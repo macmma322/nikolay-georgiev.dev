@@ -52,11 +52,11 @@ software. It has to work for three readers:
 - **Malrynth** is an operating system with its own UEFI loader and kernel. It
   is not a Linux distribution.
 - **KObait** is a two-board system (boat controller and handheld remote) with
-  its own radio protocol. It is bench-tested only. **Its technical specifics
-  are deliberately not published**: no part numbers, module names, protocol
-  details, timing constants or architecture diagram, so the build cannot be
-  copied from the site. The case study and plate stay schematic; do not
-  re-add them, and keep them out of the CV, SEO copy and Open Graph cards.
+  its own radio protocol. It is bench-tested only. **Hardware is named by kind,
+  never by model**: radio module, GPS module, gyro module, ESC controllers. No
+  part numbers, ratings, pin names, protocol byte layouts or timing constants
+  anywhere (case study, plate, diagram, CV, SEO copy, Open Graph cards), so the
+  build cannot be copied from the site. The module architecture diagram stays.
 - **Zone 32-19** is deployed but pre-launch. Stripe live mode, the WAF in the
   live path and separate staging are still next.
 - **USS X Academy** is client work in production. Stripe billing there is on

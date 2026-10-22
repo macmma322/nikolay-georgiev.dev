@@ -1,5 +1,6 @@
 import { diagramProblems, type Diagram } from '@/lib/diagram';
 import { jarvisRequestPath, jarvisTopology } from './jarvis';
+import { kobaitSystem } from './kobait';
 import { malrynthBoot } from './malrynth';
 import { steminiPipeline } from './stemini';
 import { ussxPlatform, ussxSso } from './ussx';
@@ -12,6 +13,7 @@ const all = [
   zonePayments,
   ussxPlatform,
   ussxSso,
+  kobaitSystem,
   steminiPipeline,
   malrynthBoot,
 ];

@@ -101,10 +101,6 @@ for (const locale of locales) {
   });
 }
 
-// KObait's technical specifics are deliberately withheld (PRODUCT.md): its page
-// has a schematic plate and no module-level diagram.
-const withoutDiagram: readonly string[] = ['kobait'];
-
 test('every case study has a status, an architecture diagram and its text alternative', async ({
   page,
 }) => {
@@ -113,10 +109,6 @@ test('every case study has a status, an architecture diagram and its text altern
       await page.goto(localize(`/work/${slug}`, locale));
       await expect(page.locator('.status').first()).toBeVisible();
       const diagrams = page.locator('figure.diagram');
-      if (withoutDiagram.includes(slug)) {
-        await expect(diagrams).toHaveCount(0);
-        continue;
-      }
       expect(await diagrams.count()).toBeGreaterThan(0);
       for (const figure of await diagrams.all()) {
         await expect(figure).toHaveAttribute('aria-labelledby', /.+/);

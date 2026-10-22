@@ -46,6 +46,7 @@ built:
     points:
       - Single-purpose bench sketches for every part of the hardware.
       - Host-side Python checks for architecture rules, control logic and protocol behaviour.
+diagrams: [kobait-system]
 architecture: Two boards joined by a radio link. On the boat, the safety logic has the last word over anything the remote asks for.
 hard:
   - title: Radio collisions that looked like dead hardware

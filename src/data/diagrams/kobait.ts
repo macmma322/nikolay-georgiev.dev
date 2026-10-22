@@ -1,0 +1,298 @@
+import type { Diagram } from '@/lib/diagram';
+
+/**
+ * Layout: the two boards side by side, the radio link under both of them;
+ * on the boat the stop and gate edges share one vertical through the state machine.
+ *
+ * Hardware is named by kind (radio module, GPS module, gyro module, ESC
+ * controllers), never by model; no ratings and no timing constants (PRODUCT.md).
+ */
+export const kobaitSystem: Diagram = {
+  id: 'kobait-system',
+  title: { en: 'Two boards, one link', bg: 'Две платки, една връзка' },
+  caption: {
+    en: 'The remote is the radio master and transmits control frames at a fixed rate; the boat replies only inside a jittered window or with a periodic heartbeat. On the boat, one state machine owns the mode and one propulsion module owns every motor pulse, and host-side tests enforce both. Losing the link stops the boat.',
+    bg: 'Дистанционното е водещото устройство в радиовръзката и изпраща управляващи кадри с постоянна честота; лодката отговаря само в прозорец със случайно отместване или с периодичен heartbeat сигнал. На лодката един краен автомат отговаря за режима, а един модул за задвижването – за всеки импулс към моторите; тестове, пускани на компютър, гарантират и двете. Ако връзката се загуби, лодката спира.',
+  },
+  cols: 5,
+  rows: 5,
+  groups: [
+    {
+      label: {
+        en: 'Handheld remote · microcontroller',
+        bg: 'Ръчно дистанционно · микроконтролер',
+      },
+      col: 0,
+      row: 0,
+      colSpan: 2,
+      rowSpan: 4,
+    },
+    {
+      label: {
+        en: 'Boat controller · microcontroller',
+        bg: 'Контролер на лодката · микроконтролер',
+      },
+      col: 2,
+      row: 0,
+      colSpan: 3,
+      rowSpan: 4,
+    },
+  ],
+  nodes: [
+    {
+      id: 'joystick',
+      label: { en: 'Joystick', bg: 'Джойстик' },
+      sub: {
+        en: 'stored calibration,\ndiagonal mapping',
+        bg: 'запазена калибровка,\nдиагонали',
+      },
+      kind: 'hardware',
+      col: 0,
+      row: 0,
+    },
+    {
+      id: 'buttons',
+      label: { en: 'Buttons, D-pad', bg: 'Бутони, D-pad' },
+      sub: {
+        en: 'hold opens a hatch,\ntap closes it',
+        bg: 'задържане отваря люк,\nнатискане го затваря',
+      },
+      kind: 'hardware',
+      col: 1,
+      row: 0,
+    },
+    {
+      id: 'rfw',
+      label: { en: 'Remote firmware', bg: 'Фърмуер на дистанционното' },
+      sub: {
+        en: 'mixing, neutral-to-arm gate,\nsequenced commands',
+        bg: 'смесване, активиране само от неутрално положение,\nкоманди с поредни номера',
+      },
+      kind: 'firmware',
+      col: 0,
+      row: 1,
+      colSpan: 2,
+      emphasis: true,
+    },
+    {
+      id: 'tft',
+      label: { en: 'Display', bg: 'Дисплей' },
+      sub: {
+        en: 'custom UI framework,\ndirty-region repaint',
+        bg: 'собствен UI фреймуърк,\nчастично прерисуване',
+      },
+      kind: 'client',
+      col: 0,
+      row: 2,
+    },
+    {
+      id: 'rradio',
+      label: { en: 'Radio module', bg: 'Радиомодул' },
+      sub: { en: 'transparent radio,\nserial interface', bg: 'прозрачно радио,\nсериен интерфейс' },
+      kind: 'hardware',
+      col: 1,
+      row: 3,
+    },
+    {
+      id: 'link',
+      label: { en: 'Radio protocol', bg: 'Радиопротокол' },
+      sub: {
+        en: 'framed, checked;\npaired, sequenced',
+        bg: 'кадри, проверка;\nсдвояване, поредни номера',
+      },
+      kind: 'stage',
+      col: 1,
+      row: 4,
+      colSpan: 2,
+    },
+    {
+      id: 'nav',
+      label: { en: 'GPS + gyro modules', bg: 'GPS + гироскоп' },
+      sub: {
+        en: 'fix age, heading with\ncalibration health',
+        bg: 'давност на позицията,\nкурс и калибриране',
+      },
+      kind: 'hardware',
+      col: 2,
+      row: 0,
+    },
+    {
+      id: 'autopilot',
+      label: { en: 'Autopilot', bg: 'Автопилот' },
+      sub: {
+        en: 'heading control to\nHome, A or B',
+        bg: 'управление на курса\nкъм Home, A или B',
+      },
+      kind: 'firmware',
+      col: 3,
+      row: 0,
+    },
+    {
+      id: 'safety',
+      label: { en: 'Water, leak, battery', bg: 'Вода, теч, батерия' },
+      sub: {
+        en: 'latched leak alarm,\nbattery thresholds',
+        bg: 'запомнена аларма за теч,\nпрагове за батерията',
+      },
+      kind: 'hardware',
+      col: 4,
+      row: 0,
+    },
+    {
+      id: 'sm',
+      label: { en: 'Boat state machine', bg: 'Краен автомат на лодката' },
+      sub: {
+        en: 'sole mode owner: 6 modes, 13 stop reasons,\nfailsafe stop when control goes silent',
+        bg: 'единствен собственик на режима: 6 режима, 13 причини за спиране,\nаварийно спиране, когато управлението замлъкне',
+      },
+      kind: 'firmware',
+      col: 2,
+      row: 1,
+      colSpan: 3,
+      emphasis: true,
+    },
+    {
+      id: 'boatlink',
+      label: { en: 'BoatLink', bg: 'BoatLink' },
+      sub: {
+        en: 'accept, dedup,\nbuild telemetry',
+        bg: 'приема, отсява дублите,\nсъставя телеметрия',
+      },
+      kind: 'firmware',
+      col: 2,
+      row: 2,
+    },
+    {
+      id: 'prop',
+      label: { en: 'Propulsion authority', bg: 'Модул за задвижване' },
+      sub: {
+        en: 'only motor-signal writer;\nramp, pause, calibration',
+        bg: 'само той дава ход на\nмоторите; рампа, пауза',
+      },
+      kind: 'firmware',
+      col: 4,
+      row: 2,
+      emphasis: true,
+    },
+    {
+      id: 'bradio',
+      label: { en: 'Radio module', bg: 'Радиомодул' },
+      sub: { en: 'transparent radio,\nserial interface', bg: 'прозрачно радио,\nсериен интерфейс' },
+      kind: 'hardware',
+      col: 2,
+      row: 3,
+    },
+    {
+      id: 'servos',
+      label: { en: 'Bait hatches', bg: 'Люкове за захранка' },
+      sub: {
+        en: 'two servos,\nclosed at startup',
+        bg: 'два серво мотора,\nзатворени при старт',
+      },
+      kind: 'hardware',
+      col: 3,
+      row: 3,
+    },
+    {
+      id: 'escs',
+      label: { en: 'ESC controllers', bg: 'ESC регулатори' },
+      sub: { en: 'reverse-capable,\ntwo motors', bg: 'със заден ход,\nдва мотора' },
+      kind: 'hardware',
+      col: 4,
+      row: 3,
+    },
+  ],
+  edges: [
+    { from: 'joystick', to: 'rfw', fromSide: 'bottom', toSide: 'top', toOffset: -100 },
+    { from: 'buttons', to: 'rfw', fromSide: 'bottom', toSide: 'top', toOffset: 100 },
+    {
+      from: 'rfw',
+      to: 'tft',
+      fromSide: 'bottom',
+      toSide: 'top',
+      fromOffset: -100,
+      label: { en: '25 Hz', bg: '25 Хц' },
+    },
+    {
+      from: 'rfw',
+      to: 'rradio',
+      fromSide: 'bottom',
+      toSide: 'top',
+      fromOffset: 100,
+      both: true,
+      flow: true,
+    },
+    {
+      from: 'rradio',
+      to: 'link',
+      fromSide: 'bottom',
+      toSide: 'top',
+      toOffset: -100,
+      both: true,
+      flow: true,
+    },
+    {
+      from: 'link',
+      to: 'bradio',
+      fromSide: 'top',
+      toSide: 'bottom',
+      fromOffset: 100,
+      both: true,
+      flow: true,
+    },
+    { from: 'bradio', to: 'boatlink', both: true },
+    {
+      from: 'boatlink',
+      to: 'sm',
+      fromSide: 'top',
+      toSide: 'bottom',
+      toOffset: -200,
+      label: { en: 'accepted', bg: 'прието' },
+    },
+    {
+      from: 'sm',
+      to: 'prop',
+      fromSide: 'bottom',
+      toSide: 'top',
+      fromOffset: 200,
+      label: { en: 'gate', bg: 'разрешение' },
+    },
+    { from: 'boatlink', to: 'prop', label: { en: 'manual', bg: 'ръчно' } },
+    { from: 'prop', to: 'escs', label: { en: 'drive', bg: 'тяга' }, flow: true },
+    {
+      from: 'sm',
+      to: 'autopilot',
+      fromSide: 'top',
+      toSide: 'bottom',
+      label: { en: 'AUTO', bg: 'AUTO' },
+    },
+    { from: 'nav', to: 'autopilot' },
+    {
+      from: 'safety',
+      to: 'sm',
+      fromSide: 'bottom',
+      toSide: 'top',
+      toOffset: 200,
+      label: { en: 'stop', bg: 'стоп' },
+    },
+    {
+      from: 'boatlink',
+      to: 'servos',
+      fromSide: 'bottom',
+      toSide: 'top',
+      fromOffset: 60,
+      label: { en: 'hatch', bg: 'люк' },
+    },
+  ],
+  tiers: [
+    {
+      label: { en: 'Handheld remote', bg: 'Ръчно дистанционно' },
+      nodes: ['joystick', 'buttons', 'rfw', 'tft', 'rradio'],
+    },
+    { label: { en: 'Radio link', bg: 'Радиовръзка' }, nodes: ['link'] },
+    {
+      label: { en: 'Boat controller', bg: 'Контролер на лодката' },
+      nodes: ['bradio', 'boatlink', 'sm', 'prop', 'escs', 'autopilot', 'nav', 'safety', 'servos'],
+    },
+  ],
+};
