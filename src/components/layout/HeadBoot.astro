@@ -1,0 +1,119 @@
+---
+/**
+ * Early <head> boot script (contract §5), rendered by BaseLayout right after
+ * charset/viewport. Inline so it runs before the first paint; its hash is
+ * registered with the page CSP. Every step is feature-detected and guarded:
+ * browsers without the APIs, or with storage blocked, simply skip it. The
+ * script ships as written, so its notes live here rather than inside it.
+ *
+ * (a)    pageswap/pagereveal add the view-transition type `lang` when the two
+ *        URLs are the same page in different languages (motion in base.css).
+ *        Without the Navigation API, pageswap learns the target from the last
+ *        click on a switch link. A page whose referrer is its twin (a link,
+ *        not a typed address, a reload or the / redirect) gets
+ *        data-lang-switch, so the homepage entrance does not replay.
+ * (b)    The switch link (scripts/lang-switch.ts) left a record of the section
+ *        in view: rendering waits until that section is parsed, and the page
+ *        is scrolled so it sits at the same viewport offset as before. The
+ *        link's fragment (the fallback where this script cannot run) is
+ *        dropped, so the browser's fragment scroll cannot undo that. The
+ *        placement is repeated as parsing ends (before reveal.ts judges what
+ *        is on screen) and at load, once fonts and images have settled; any
+ *        scroll or key input from the reader ends it. Not on reload or
+ *        back/forward, where the browser restores the scroll.
+ * (c)    A stored choice of Bulgarian sends a fresh visit of the English home
+ *        (typed, bookmarked or linked from another site) to /bg, keeping its
+ *        query and fragment. Never on browser language alone, never when
+ *        arriving from this site.
+ * (d)    No stored choice, an English page and a browser asking for Bulgarian:
+ *        data-lang-hint="bg" marks the BG option (LangSwitch.astro).
+ */
+import { LOCALE_META } from '@/i18n';
+import { scriptHash } from '@/lib/csp';
+
+const code = `(() => {
+  const P = ${JSON.stringify(LOCALE_META.bg.prefix)};
+  const root = document.documentElement;
+  const split = (url) => {
+    const p = new URL(url, location.href).pathname.replace(/(\\/index)?(\\.html)?\\/?$/, '') || '/';
+    const bg = p === P || p.startsWith(P + '/');
+    return [bg, (bg ? p.slice(P.length) : p) || '/'];
+  };
+  const isSwitch = (other) => {
+    const [a, b] = [split(location.href), split(other)];
+    return new URL(other, location.href).origin === location.origin && a[0] !== b[0] && a[1] === b[1];
+  };
+  const markLang = (event, other) => {
+    try {
+      if (event.viewTransition && other && isSwitch(other)) event.viewTransition.types.add('lang');
+    } catch (e) {}
+  };
+  let type, stored, rec, to;
+  try { type = performance.getEntriesByType('navigation')[0].type; } catch (e) {}
+  try { stored = localStorage.getItem('ng-lang'); } catch (e) {}
+
+  if (location.pathname === '/' && stored === 'bg' && type === 'navigate') {
+    let from = '';
+    try { from = new URL(document.referrer).origin; } catch (e) {}
+    if (from !== location.origin) return location.replace(P + location.search + location.hash);
+  }
+
+  try {
+    const from = document.referrer;
+    if (type !== 'reload' && window.navigation?.activation?.navigationType !== 'replace' && from && isSwitch(from)) {
+      root.dataset.langSwitch = '';
+    }
+  } catch (e) {}
+
+  try {
+    const langs = navigator.languages || [navigator.language];
+    if (stored == null && root.lang === 'en' && langs.some((l) => /^bg\\b/i.test(l))) {
+      root.dataset.langHint = 'bg';
+    }
+  } catch (e) {}
+
+  try {
+    rec = JSON.parse(sessionStorage.getItem('ng-lang-anchor'));
+    sessionStorage.removeItem('ng-lang-anchor');
+    if (!rec || rec.path !== location.pathname || Date.now() - rec.t > 1e4 || type === 'reload' || type === 'back_forward') {
+      rec = null;
+    } else {
+      history.replaceState(history.state, '', location.pathname + location.search);
+      const link = document.createElement('link');
+      link.rel = 'expect';
+      link.href = '#' + rec.id;
+      link.setAttribute('blocking', 'render');
+      document.head.append(link);
+    }
+  } catch (e) { rec = null; }
+
+  const refine = () => {
+    try {
+      const el = rec && document.getElementById(rec.id);
+      if (el) scrollTo({ top: scrollY + el.getBoundingClientRect().top - rec.offsetY, behavior: 'instant' });
+    } catch (e) {}
+  };
+  addEventListener('click', (e) => {
+    to = e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey
+      ? undefined
+      : e.target.closest?.('a[data-lang-link]')?.href;
+  });
+  addEventListener('pageswap', (e) => markLang(e, e.activation?.entry?.url || to));
+  addEventListener('pagereveal', (e) => {
+    markLang(e, window.navigation?.activation?.from?.url || document.referrer);
+    refine();
+  });
+  if (rec) {
+    const done = () => (rec = null);
+    document.addEventListener('readystatechange', refine, { once: true });
+    addEventListener('load', () => (refine(), done()), { once: true });
+    for (const t of ['wheel', 'touchstart', 'keydown', 'mousedown']) {
+      addEventListener(t, done, { once: true, passive: true, capture: true });
+    }
+  }
+})();`;
+
+Astro.csp?.insertScriptHash(scriptHash(code));
+---
+
+<script is:inline set:html={code}></script>

@@ -1,0 +1,91 @@
+---
+import { site } from '@/data/site';
+import ContactFinale from '@/components/layout/ContactFinale.astro';
+import Mark from '@/components/ui/Mark.astro';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { contact } from '@/i18n/ui/contact';
+
+const { l, t, href, path } = useI18n(Astro);
+const s = t(common);
+// The contact page is the finale; its footer keeps only the baseline.
+const bare = path === '/contact';
+
+const year = new Date().getFullYear();
+---
+
+<footer
+  class:list={['site-footer', { bare }]}
+  id={bare ? undefined : 'contact'}
+  aria-labelledby={bare ? undefined : 'contact-title'}
+>
+  {!bare && <ContactFinale variant="footer" />}
+
+  <div class="container baseline">
+    <a class="signature" href={href('/')}>
+      <Mark size={22} />
+      <span class="label">
+        NIKOLAY.RUNTIME <span class="ver">v3</span>
+      </span>
+      <span class="visually-hidden">{s.homeSuffix}</span>
+    </a>
+    <p>{l(contact.baseline)}</p>
+    <p>
+      © {year} {site.name}
+    </p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    margin-top: var(--space-3xl);
+    border-top: 1px solid var(--line-soft);
+    background: var(--ink-deep);
+  }
+
+  /* Under the contact page the baseline sits on the page itself: a short
+     page would otherwise show the footer band ending above the fold. */
+  .site-footer.bare {
+    margin-top: var(--space-xl);
+    background: none;
+  }
+
+  /* ---------- Baseline: the quiet signature ---------- */
+  .baseline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 2rem;
+    padding-block: var(--space-s) var(--space-l);
+    border-top: 1px solid var(--line-soft);
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .bare .baseline {
+    border-top: 0;
+  }
+
+  .signature {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    text-decoration: none;
+  }
+
+  .signature .label {
+    color: var(--fg-2);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .signature:is(:hover, :focus-visible) .label {
+    color: var(--fg);
+  }
+
+  .ver {
+    text-transform: none;
+    color: var(--fg-3);
+  }
+</style>

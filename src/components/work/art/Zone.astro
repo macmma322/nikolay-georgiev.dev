@@ -1,0 +1,181 @@
+---
+/**
+ * Zone 32-19 plate: the modular monolith as replicas over shared state,
+ * two schemas behind a wall, and one Stripe event resolving to one effect.
+ * Every mark is sourced from src/content/projects/zone-32-19.md or
+ * src/data/diagrams/zone.ts; the quotes sit next to each part.
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// "SAME ORIGIN" stays as drawn (the web term; its Bulgarian would run into the
+// BFF box), as do system names, the schema names and UNIQUE.
+const a = t(plates['zone-32-19'].art);
+
+// Replicas: three offset sheets, no count claimed ("several web replicas").
+const sheet = { x: 100, y: 164, w: 320, h: 88, dx: 12, dy: -12 };
+const sheets = [2, 1, 0].map((k) => ({ x: sheet.x + k * sheet.dx, y: sheet.y + k * sheet.dy }));
+// "One Express API holds 39 domain modules": one slice per module on the front sheet.
+const slice = sheet.w / 39;
+const slices = Array.from({ length: 38 }, (_, i) => +(sheet.x + (i + 1) * slice).toFixed(2));
+const portal = +(sheet.x + 38 * slice).toFixed(2);
+// Each replica is tied to Redis from the edge it still shows.
+const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
+---
+
+<PlateFrame slug="zone-32-19" compact={compact} legend={legend}>
+  <path d="M2 2H610.6L638 29.4V433H2Z" class="ground" />
+
+  <!-- "a same-origin BFF proxy"; "The browser only ever talks to its own origin" -->
+  <g class="part" data-part="bff">
+    <text x="24" y="83" class="t">
+      {a.browser}
+    </text>
+    <path d="M104 78H232M226 74l6 4-6 4" class="wire" />
+    <text x="110" y="66" class="t t-minor">
+      SAME ORIGIN
+    </text>
+    <rect x="236" y="62" width="140" height="32" class="ink" />
+    <text x="248" y="83" class="t-strong">
+      NEXT.JS BFF
+    </text>
+    <path d="M364 94V134M360 128l4 6 4-6" class="wire" />
+  </g>
+
+  <!-- "Built to run as several web replicas"; "39 domain modules behind a single middleware pipeline" -->
+  <g class="part" data-part="api">
+    {sheets.map((s, i) => (
+      <rect
+        x={s.x}
+        y={s.y}
+        width={sheet.w}
+        height={sheet.h}
+        class:list={['sheet', { front: i === 2 }]}
+      />
+    ))}
+    {slices.map((x) => (
+      <line x1={x} y1={sheet.y + 8} x2={x} y2={sheet.y + sheet.h - 8} class="slice no-lit" />
+    ))}
+    <rect x={portal} y={sheet.y + 8} width={slice} height={sheet.h - 16} class="portal" />
+    <text x="100" y="128" class="t-strong">
+      EXPRESS API
+    </text>
+    <text x="226" y="128" class="t">
+      {a.modules}
+    </text>
+    <text x="456" y="150" class="t">
+      × N
+    </text>
+  </g>
+
+  <!-- "Redis carries sockets, presence and rate limits" -->
+  <g class="part" data-part="redis">
+    <rect x="24" y="136" width="10" height="120" class="bus" />
+    {ties.map((t) => (
+      <path d={`M${t.x} ${t.y}H34`} class="wire" />
+    ))}
+    <text x="24" y="278" class="t-strong">
+      REDIS
+    </text>
+    <text x="24" y="296" class="t t-minor">
+      {a.presence}
+    </text>
+    <text x="24" y="314" class="t t-minor">
+      {a.rateLimits}
+    </text>
+  </g>
+
+  <!-- "two schemas"; "Public users and employees live in separate schemas with separate sessions" -->
+  <g class="part" data-part="schemas">
+    <rect x="24" y="346" width="588" height="46" class="ink" />
+    <rect x="394" y="334" width="6" height="70" class="wall" />
+    <path d={`M${portal + slice / 2} ${sheet.y + sheet.h}V346`} class="wire" />
+    <text x="36" y="374" class="t-strong">
+      PUBLIC
+    </text>
+    <text x="420" y="374" class="t-strong">
+      EMPLOYEE_PORTAL
+    </text>
+    <text x="24" y="416" class="t t-minor">
+      {a.tables}
+    </text>
+  </g>
+
+  <!-- "Stripe retries webhooks ... the same event can arrive twice"; "UNIQUE constraint inside the transaction" -->
+  <g class="part" data-part="webhook">
+    <rect x="480" y="62" width="132" height="32" class="ink" />
+    <text x="494" y="83" class="t-strong">
+      STRIPE
+    </text>
+    <path d="M524 94V184H450M456 180l-6 4 6 4" class="wire" />
+    <path d="M552 94V234H438M444 230l-6 4 6 4" class="wire" />
+    <text x="564" y="164" class="t-strong">
+      ×2
+    </text>
+    <path d="M358 252L370 312M382 252L370 312" class="wire" />
+    <circle cx="370" cy="317" r="5" class="key" />
+    <text x="358" y="322" text-anchor="end" class="t t-minor">
+      UNIQUE
+    </text>
+    <path d="M370 322V356" class="effect" />
+    <path d="M359 357h22l-11 12Z" class="marker" />
+    <text x="352" y="374" text-anchor="end" class="t-strong">
+      {a.effect}
+    </text>
+  </g>
+</PlateFrame>
+
+<style>
+  /* The darkest ground of the set: near-black with the brand mark's violet cast */
+  .ground {
+    fill: oklch(0.095 0.012 290);
+    stroke: none;
+  }
+  .sheet {
+    fill: var(--ink-1);
+    stroke: var(--steel-dim);
+    stroke-width: 1;
+  }
+  .sheet.front {
+    stroke: var(--fg-2);
+  }
+  .slice {
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+  .portal {
+    fill: var(--ink-3);
+    stroke: var(--fg-2);
+    stroke-width: 1;
+  }
+  .bus {
+    fill: var(--ink-2);
+    stroke: var(--fg-2);
+    stroke-width: 1;
+  }
+  .wall {
+    fill: var(--fg);
+    stroke: none;
+  }
+  .key {
+    fill: var(--ink-deep);
+    stroke: var(--fg);
+    stroke-width: 1.4;
+  }
+  .effect {
+    fill: none;
+    stroke: var(--accent);
+    stroke-width: 2;
+  }
+  .marker {
+    fill: var(--accent);
+    stroke: none;
+  }
+</style>

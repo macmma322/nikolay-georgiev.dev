@@ -1,0 +1,277 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Hero from '@/components/home/Hero.astro';
+import ProjectChapter, { type ChapterLayout } from '@/components/home/ProjectChapter.astro';
+import Capabilities from '@/components/home/Capabilities.astro';
+import ExperienceBrief from '@/components/home/ExperienceBrief.astro';
+import SectionHeader from '@/components/ui/SectionHeader.astro';
+import StatusBadge from '@/components/ui/StatusBadge.astro';
+import LayerGlyph from '@/components/ui/LayerGlyph.astro';
+import ProjectArt from '@/components/work/ProjectArt.astro';
+import LabCard from '@/components/work/LabCard.astro';
+import { useI18n } from '@/i18n';
+import { home } from '@/i18n/ui/home';
+import { getProjects } from '@/lib/projects';
+
+const { locale, t, href } = useI18n(Astro);
+const s = t(home);
+
+const projects = await getProjects(locale);
+const featured = projects.filter((p) => p.data.tier === 'A');
+const more = projects.filter((p) => p.data.tier === 'B');
+const lab = (await getCollection('lab'))
+  .filter((entry) => entry.data.group === 'next' || entry.id === 'environment-controller')
+  .sort((a, b) => a.data.order - b.data.order)
+  .slice(0, 3);
+
+// The page's rhythm, by position in the descent (see ProjectChapter for each spread).
+const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
+---
+
+<BaseLayout>
+  <Hero />
+
+  <section id="work" class="container section work" aria-labelledby="work-title">
+    <span id="projects" class="anchor-alias"></span>
+    <SectionHeader
+      tier="primary"
+      label={s.work.label}
+      id="work-title"
+      title={s.work.title}
+      link={{ href: href('/work'), label: s.work.link }}
+      class="reveal"
+    />
+    {featured.map((entry, i) => (
+      <ProjectChapter entry={entry} index={i + 1} layout={rhythm[i % rhythm.length] ?? 'open'} />
+    ))}
+
+    {more.length > 0 && (
+      <div class="also reveal">
+        <p class="label">{s.work.also}</p>
+        <ul role="list">
+          {more.map((entry, i) => (
+            <li class="also-row" data-accent={entry.data.accent} data-vt-scope>
+              <div class="also-art" data-vt-art={entry.id}>
+                <ProjectArt slug={entry.id} compact />
+              </div>
+              <div class="also-copy">
+                <p class="also-meta label">
+                  <span class="also-num">{String(featured.length + i + 1).padStart(2, '0')}</span>
+                  <LayerGlyph lit={entry.data.layers} />
+                  <span>{entry.data.layerNames}</span>
+                </p>
+                <h3 class="also-name" data-vt-title={entry.id}>
+                  <a class="also-link" href={href(`/work/${entry.id}`)}>
+                    {entry.data.name}
+                  </a>
+                </h3>
+                <p class="also-kicker">{entry.data.kicker}</p>
+              </div>
+              <div class="also-status">
+                <StatusBadge status={entry.data.status} note={entry.data.statusNote} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </section>
+
+  <section id="capabilities" class="container section rail" aria-labelledby="caps-title">
+    <div class="rail-head">
+      <span id="skills" class="anchor-alias"></span>
+      <SectionHeader
+        label={s.caps.label}
+        id="caps-title"
+        title={s.caps.title}
+        lede={s.caps.lede}
+        class="reveal"
+      />
+    </div>
+    <div class="rail-body">
+      <Capabilities compact />
+    </div>
+  </section>
+
+  <section id="experience" class="container section hang" aria-labelledby="exp-title">
+    <div class="hang-head">
+      <span id="about" class="anchor-alias"></span>
+      <span id="credentials" class="anchor-alias"></span>
+      <SectionHeader
+        label={s.exp.label}
+        id="exp-title"
+        title={s.exp.title}
+        link={{ href: href('/about'), label: s.exp.link }}
+        class="reveal"
+      />
+    </div>
+    <div class="reveal">
+      <ExperienceBrief />
+    </div>
+  </section>
+
+  <section id="lab" class="container section lab" aria-labelledby="lab-title">
+    <SectionHeader
+      label={s.lab.label}
+      id="lab-title"
+      title={s.lab.title}
+      lede={s.lab.lede}
+      link={{ href: href('/lab'), label: s.lab.link }}
+      class="reveal"
+    />
+    <div class="lab-list reveal">
+      {lab.map((entry) => (
+        <LabCard entry={entry} />
+      ))}
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  /*
+   * Rhythm: the widest breath before the work, related sections closer together.
+   * Margins, not padding, so an in-page jump lands on the section's rule, not on the gap.
+   */
+  .section {
+    margin-top: var(--space-2xl);
+  }
+
+  .work {
+    margin-top: var(--space-3xl);
+  }
+
+  .lab {
+    margin-top: var(--space-xl);
+  }
+
+  /* ---------- Also built: one ruled row, a small plate, the status in full ---------- */
+  .also {
+    margin-top: var(--space-l);
+    display: grid;
+    gap: var(--space-2xs);
+  }
+
+  .also ul {
+    border-top: 1px solid var(--line-soft);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .also-row {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(6.5rem, 8rem) minmax(0, 1fr);
+    align-items: center;
+    gap: var(--space-s) var(--space-m);
+    padding-block: var(--space-m);
+    transition: background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .also-row:active {
+    background-color: var(--ink-1);
+  }
+
+  .also-art {
+    align-self: start;
+  }
+
+  .also-copy {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-3xs);
+    min-width: 0;
+  }
+
+  .also-meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .also-num {
+    color: var(--accent);
+  }
+
+  .also-name {
+    font-size: var(--step-3);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-bold);
+    letter-spacing: -0.035em;
+    line-height: 1;
+  }
+
+  /* The whole row is the link; the name carries its accessible name */
+  .also-link {
+    text-decoration: none;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 calc(100% - 0.3em) / 0 2px;
+    transition: background-size var(--dur-ui) var(--ease-out);
+  }
+
+  .also-link::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+
+  .also-kicker {
+    color: var(--fg-2);
+  }
+
+  .also-status {
+    grid-column: 2;
+  }
+
+  .also-row:has(.also-link:is(:hover, :focus-visible)) {
+    --plate-lit: 1;
+  }
+
+  .also-row:has(.also-link:is(:hover, :focus-visible)) .also-link {
+    background-size: 100% 2px;
+  }
+
+  @media (min-width: 700px) {
+    .also-row {
+      grid-template-columns: 11rem minmax(0, 1fr);
+      column-gap: var(--space-l);
+    }
+  }
+
+  @media (min-width: 1000px) {
+    .also-row {
+      grid-template-columns: 11rem minmax(0, 1fr) minmax(0, 18rem);
+    }
+
+    .also-status {
+      grid-column: 3;
+      justify-self: end;
+    }
+  }
+
+  /* ---------- Capabilities: a sticky side head beside the evidence ---------- */
+  @media (min-width: 1000px) {
+    .rail {
+      display: grid;
+      grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+      column-gap: var(--space-xl);
+      align-items: start;
+    }
+
+    .rail-head {
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-m));
+    }
+  }
+
+  /* ---------- Experience: the heading hangs over the text column, dates in the margin ---------- */
+  @media (min-width: 900px) {
+    .hang-head {
+      padding-inline-start: calc(12rem + var(--space-xl));
+    }
+  }
+
+  /* ---------- Lab: plain ruled rows, styled by LabCard ---------- */
+  .lab-list {
+    display: grid;
+  }
+</style>

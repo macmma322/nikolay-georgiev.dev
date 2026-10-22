@@ -1,0 +1,126 @@
+---
+import { getTech, techName } from '@/data/tech';
+import { useI18n } from '@/i18n';
+import { iconFor } from '@/lib/icons';
+import { spriteHref } from '@/lib/sprite';
+
+interface Props {
+  id: string;
+  showName?: boolean;
+  size?: 's' | 'm';
+}
+
+const { id, showName = true, size = 's' } = Astro.props;
+const { locale } = useI18n(Astro);
+const tech = getTech(id);
+const name = techName(tech, locale);
+const icon = iconFor(tech.icon);
+// From the neutral name, never the localized one, so a monogram is the same
+// in every language and never ends up empty.
+const monogram =
+  tech.mono ??
+  tech.name
+    .replace(/[^A-Za-z0-9+#.]/g, ' ')
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+---
+
+<span class:list={['tech', `size-${size}`]} data-tech={tech.id} title={showName ? undefined : name}>
+  <span class="glyph" aria-hidden="true">
+    {icon ? (
+      <svg viewBox="0 0 24 24" width="15" height="15" focusable="false">
+        <use href={`${spriteHref}#${tech.icon}`} />
+      </svg>
+    ) : showName && size === 's' ? (
+      // In a text list the name is right there; a monogram would repeat it.
+      <span class="dot" />
+    ) : (
+      <span class="mono-glyph">{monogram}</span>
+    )}
+  </span>
+  {showName ? <span class="name">{name}</span> : <span class="visually-hidden">{name}</span>}
+</span>
+
+<style>
+  /*
+   * Subdued by default: a bare steel glyph and the name. The brand colour
+   * (from TechBrandStyles) arrives only while the tech is lit: when it is
+   * hovered, when a link around it is hovered or focused, or when any
+   * ancestor sets the shared --lit to 1 (the "text lights its drawing" idiom).
+   */
+  .tech {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+    color: color-mix(in oklch, var(--fg) calc(var(--lit) * 100%), var(--fg-2));
+    transition: --lit var(--dur-fast) var(--ease-out);
+  }
+
+  .glyph {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 15px;
+    height: 15px;
+    color: color-mix(in oklch, var(--brand, var(--fg)) calc(var(--lit) * 90%), var(--fg-3));
+  }
+
+  .glyph svg {
+    fill: currentColor;
+    width: 15px;
+    height: 15px;
+  }
+
+  .dot {
+    width: 4px;
+    height: 4px;
+    background: var(--line-strong);
+  }
+
+  .mono-glyph {
+    font-family: var(--ff-mono);
+    font-size: 0.56rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+
+  /* Size m (case-study stack list): the one place a quiet frame remains. */
+  .size-m .glyph {
+    width: 32px;
+    height: 32px;
+    border: 1px solid
+      color-mix(in oklch, var(--brand, var(--fg)) calc(var(--lit) * 40%), var(--line-soft));
+    border-radius: var(--radius-s);
+  }
+
+  .size-m .glyph svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .size-m .mono-glyph {
+    font-size: 0.6rem;
+  }
+
+  .name {
+    font-size: var(--step--1);
+    line-height: 1.25;
+  }
+
+  .tech:hover,
+  :global(a:is(:hover, :focus-visible)) .tech {
+    --lit: 1;
+  }
+
+  @media (forced-colors: active) {
+    .glyph {
+      color: CanvasText;
+    }
+  }
+</style>

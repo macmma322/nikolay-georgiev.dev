@@ -1,0 +1,603 @@
+---
+/**
+ * Capabilities, in two densities.
+ *   compact  (home) one datasheet row per group: the technologies in use, then
+ *            the ones being learned or planned behind a quiet label, and the
+ *            projects that prove them. Links to the full matrix on About.
+ *   full     (About) the evidence matrix: every technology with its level.
+ *
+ * Signature linking, in the language of the hero's FIG. 01: pointing at (or
+ * focusing) a project link lights the technologies it proves (TechIcon's
+ * shared --lit) and dims the rest; pointing at a technology lights, in each
+ * project's accent, the links that use it. The rules are listed per project in the global style block below.
+ */
+import TechIcon from '@/components/ui/TechIcon.astro';
+import { useI18n } from '@/i18n';
+import { home } from '@/i18n/ui/home';
+import { getProjects } from '@/lib/projects';
+import {
+  CATEGORY_LABEL,
+  LEVEL_LABEL,
+  LEVEL_NOTE,
+  tech,
+  type TechCategory,
+  type TechLevel,
+} from '@/data/tech';
+
+interface Props {
+  compact?: boolean;
+}
+const { compact = false } = Astro.props;
+
+const { locale, l, t, href } = useI18n(Astro);
+const s = t(home.capabilities);
+const projects = await getProjects(locale);
+const levels = Object.keys(LEVEL_LABEL) as TechLevel[];
+const inUse = (level: TechLevel) => level === 'core' || level === 'working';
+
+const groups = (Object.keys(CATEGORY_LABEL) as TechCategory[]).map((category) => {
+  const items = tech
+    .filter((t) => t.category === category)
+    .sort((a, b) => levels.indexOf(a.level) - levels.indexOf(b.level));
+  const slugs = new Set(items.flatMap((t) => t.proof));
+  return {
+    category,
+    title: l(CATEGORY_LABEL[category].title),
+    blurb: l(CATEGORY_LABEL[category].blurb),
+    items,
+    used: items.filter((t) => inUse(t.level)),
+    later: levels
+      .filter((level) => !inUse(level))
+      .map((level) => ({ level, items: items.filter((t) => t.level === level) }))
+      .filter((later) => later.items.length > 0),
+    proof: projects.filter((p) => slugs.has(p.id)),
+  };
+});
+---
+
+<div class:list={['caps', compact ? 'compact' : 'full']}>
+  {compact ? (
+    <>
+      {groups.map((g) => (
+        <section class="group" aria-labelledby={`cap-${g.category}`}>
+          <h3 id={`cap-${g.category}`} class="g-name">
+            {g.title}
+          </h3>
+          <div class="g-tech">
+            {g.used.length > 0 && (
+              <ul class="items" role="list">
+                {g.used.map((t) => (
+                  <li class="item" data-proof={t.proof.join(' ')}>
+                    <TechIcon id={t.id} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            {g.later.map((later) => (
+              <div class="later">
+                <p class="label">{l(LEVEL_LABEL[later.level])}</p>
+                <ul class="items" role="list">
+                  {later.items.map((t) => (
+                    <li class="item" data-proof={t.proof.join(' ')}>
+                      <TechIcon id={t.id} />
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          {g.proof.length > 0 ? (
+            <p class="proof">
+              <span class="label proof-label">{s.provenIn}</span>
+              <span class="proof-links">
+                {g.proof.map((p) => (
+                  <a href={href(`/work/${p.id}`)} data-slug={p.id} data-accent={p.data.accent}>
+                    {p.data.name}
+                  </a>
+                ))}
+              </span>
+            </p>
+          ) : (
+            <p class="proof none">{s.notYet}</p>
+          )}
+        </section>
+      ))}
+      <a class="to-full" href={href('/about#capabilities')}>
+        {s.full}
+        <span class="arrow" aria-hidden="true">
+          →
+        </span>
+      </a>
+    </>
+  ) : (
+    <>
+      <dl class="legend">
+        {levels.map((level) => (
+          <div>
+            <dt class="label">
+              <svg
+                class="lv"
+                data-level={level}
+                viewBox="0 0 10 10"
+                width="10"
+                height="10"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect x="0.5" y="0.5" width="9" height="9" />
+                {level === 'working' && (
+                  <rect class="half" x="0.5" y="0.5" width="4.5" height="9" />
+                )}
+              </svg>
+              {l(LEVEL_LABEL[level])}
+            </dt>
+            <dd>{l(LEVEL_NOTE[level])}</dd>
+          </div>
+        ))}
+      </dl>
+
+      <div class="groups">
+        {groups.map((g) => (
+          <section class="group" aria-labelledby={`cap-${g.category}`}>
+            <div class="group-head">
+              <h3 id={`cap-${g.category}`} class="g-name">
+                {g.title}
+              </h3>
+              <p class="blurb">{g.blurb}</p>
+              {g.proof.length > 0 && (
+                <p class="proof">
+                  <span class="label proof-label">{s.provenIn}</span>
+                  <span class="proof-links">
+                    {g.proof.map((p) => (
+                      <a href={href(`/work/${p.id}`)} data-slug={p.id} data-accent={p.data.accent}>
+                        {p.data.name}
+                      </a>
+                    ))}
+                  </span>
+                </p>
+              )}
+            </div>
+            <ul class="items" role="list">
+              {g.items.map((t) => (
+                <li class="item" data-proof={t.proof.join(' ')}>
+                  <span class="named">
+                    <TechIcon id={t.id} />
+                    <svg
+                      class="lv"
+                      data-level={t.level}
+                      viewBox="0 0 10 10"
+                      width="10"
+                      height="10"
+                      aria-hidden="true"
+                      focusable="false"
+                    >
+                      <rect x="0.5" y="0.5" width="9" height="9" />
+                      {t.level === 'working' && (
+                        <rect class="half" x="0.5" y="0.5" width="4.5" height="9" />
+                      )}
+                    </svg>
+                    <span class="visually-hidden">({l(LEVEL_LABEL[t.level])})</span>
+                  </span>
+                  {t.note && <span class="note">{l(t.note)}</span>}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </>
+  )}
+</div>
+<style is:global>
+  /*
+   * Signature linking, one pair of rules per project (the six case studies).
+   * Written out rather than generated so the stylesheet is bundled and hashed
+   * with the page CSP. Add a pair when a case study is added.
+   */
+  .caps:has(.proof a:is(:hover, :focus-visible)) .item {
+    opacity: 0.62;
+  }
+
+  :is(.caps:has(.proof a:is(:hover, :focus-visible)), .caps .group:has(.item:hover)) .proof a {
+    opacity: 0.66;
+  }
+
+  .caps:has(.proof a[data-slug='zone-32-19']:is(:hover, :focus-visible))
+    .item[data-proof~='zone-32-19'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='zone-32-19']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='zone-32-19']:hover)
+    )
+    .proof
+    a[data-slug='zone-32-19'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  .caps:has(.proof a[data-slug='uss-x-academy']:is(:hover, :focus-visible))
+    .item[data-proof~='uss-x-academy'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='uss-x-academy']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='uss-x-academy']:hover)
+    )
+    .proof
+    a[data-slug='uss-x-academy'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  .caps:has(.proof a[data-slug='jarvis']:is(:hover, :focus-visible)) .item[data-proof~='jarvis'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='jarvis']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='jarvis']:hover)
+    )
+    .proof
+    a[data-slug='jarvis'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  .caps:has(.proof a[data-slug='kobait']:is(:hover, :focus-visible)) .item[data-proof~='kobait'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='kobait']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='kobait']:hover)
+    )
+    .proof
+    a[data-slug='kobait'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  .caps:has(.proof a[data-slug='malrynth']:is(:hover, :focus-visible))
+    .item[data-proof~='malrynth'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='malrynth']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='malrynth']:hover)
+    )
+    .proof
+    a[data-slug='malrynth'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  .caps:has(.proof a[data-slug='stemini']:is(:hover, :focus-visible)) .item[data-proof~='stemini'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='stemini']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='stemini']:hover)
+    )
+    .proof
+    a[data-slug='stemini'] {
+    --lit: 1;
+    opacity: 1;
+  }
+</style>
+
+<style>
+  .caps {
+    container: caps / inline-size;
+  }
+
+  /* ---------- Shared: items, proof links, level glyphs ---------- */
+  .item {
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  /* The label hangs: wrapped links line up under the first link, not the label */
+  .proof {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    font-size: var(--text-caption);
+  }
+
+  .proof-label {
+    flex: none;
+    display: flex;
+    align-items: center;
+    min-height: 32px;
+  }
+
+  .proof-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.1rem;
+  }
+
+  /*
+   * Each link carries its project's accent (data-accent); --lit fades it in.
+   * The 44px target overhangs its line by 6px each side (the row gap above
+   * keeps wrapped targets from overlapping), so rows stay compact.
+   */
+  .proof a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-block: -6px;
+    color: color-mix(in oklch, var(--fg) calc(var(--lit) * 100%), var(--fg-2));
+    text-decoration: underline;
+    text-decoration-color: color-mix(
+      in oklch,
+      var(--accent) calc(var(--lit) * 100%),
+      var(--line-strong)
+    );
+    transition:
+      --lit var(--dur-ui) var(--ease-out),
+      opacity var(--dur-ui) var(--ease-out);
+  }
+
+  .lv {
+    flex: none;
+    color: var(--fg-2);
+    shape-rendering: crispEdges;
+  }
+
+  .lv rect {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+  }
+
+  .lv[data-level='core'] rect,
+  .lv .half {
+    fill: currentColor;
+  }
+
+  .lv[data-level='planned'] {
+    color: var(--fg-3);
+  }
+
+  .lv[data-level='planned'] rect {
+    stroke-dasharray: 2 1.5;
+  }
+
+  /* Shapes are drawn, not painted, so they survive forced colours; keep them at full contrast */
+  @media (forced-colors: active) {
+    .lv {
+      color: CanvasText;
+    }
+  }
+
+  .g-name {
+    font-size: var(--step-0);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--track-heading);
+    line-height: 1.2;
+  }
+
+  /* ---------- Compact: one datasheet row per group ----------
+   * Phones stack name, technologies and proof. From 40rem the proof links move
+   * up beside the name (a ledger heading) and the technologies run full width.
+   */
+  .compact .group {
+    padding-block: 0.85rem 0.45rem;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .compact .g-name {
+    margin-bottom: 0.3rem;
+  }
+
+  /*
+   * The in-use list and the learning / planned lists run as one inline flow,
+   * so a later label wraps like a word and never strands a line of its own.
+   */
+  .compact .g-tech {
+    font-size: var(--step--1);
+    line-height: 1.7;
+  }
+
+  .compact :is(.items, .later, .later .label) {
+    display: inline;
+  }
+
+  /* Each item fills its line box, so text and monogram glyphs share one centre */
+  .compact .item {
+    display: inline-flex;
+    align-items: center;
+    height: 1.7em;
+    vertical-align: top;
+    margin-inline-end: 0.9rem;
+  }
+
+  .later .label {
+    margin-inline-end: 0.7rem;
+  }
+
+  .compact .proof {
+    margin-top: 0.45rem;
+  }
+
+  .compact .proof.none {
+    align-items: center;
+    min-height: 32px;
+    color: var(--fg-3);
+  }
+
+  @container caps (min-width: 40rem) {
+    .compact .group {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      grid-template-areas: 'name proof' 'tech tech';
+      align-items: center;
+      column-gap: var(--space-m);
+      padding-block: 0 var(--space-xs);
+    }
+
+    .compact .g-name {
+      grid-area: name;
+      margin-bottom: 0;
+    }
+
+    .compact .g-tech {
+      grid-area: tech;
+    }
+
+    .compact .proof {
+      grid-area: proof;
+      justify-content: flex-end;
+      margin-top: 0;
+    }
+
+    .compact .proof-links {
+      justify-content: flex-end;
+    }
+  }
+
+  .to-full {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    margin-top: var(--space-2xs);
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    transition:
+      text-decoration-color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .to-full:is(:hover, :focus-visible) {
+    text-decoration-color: var(--fg);
+  }
+
+  .to-full:active {
+    scale: 0.97;
+  }
+
+  .to-full .arrow {
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  .to-full:focus-visible .arrow {
+    translate: 3px 0;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .to-full:hover .arrow {
+      translate: 3px 0;
+    }
+  }
+
+  /* ---------- Full: the evidence matrix ---------- */
+  /* One key row, never a grid: a grid lines the keys up over the item columns
+     below, where they read as column headers. */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s) var(--space-xl);
+  }
+
+  .legend > div {
+    flex: 0 1 24ch;
+  }
+
+  .legend dt {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: var(--fg-2);
+  }
+
+  .legend dd {
+    margin-top: 0.25rem;
+    max-width: 30ch;
+    font-size: var(--text-caption);
+    line-height: 1.45;
+    color: var(--fg-3);
+  }
+
+  .groups {
+    margin-top: var(--space-l);
+  }
+
+  .full .group {
+    display: grid;
+    gap: var(--space-s);
+    padding-block: var(--space-m);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .blurb {
+    margin-top: 0.3rem;
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .full .proof {
+    margin-top: 0.75rem;
+  }
+
+  .full .items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+    gap: 0.6rem 1.25rem;
+    align-content: start;
+  }
+
+  /* A flex column has no line-box strut: glyphs and monograms share one centre */
+  .full .item {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    min-width: 0;
+  }
+
+  /* Name, then its level glyph right beside it; a note (if any) below */
+  .named {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    max-width: 100%;
+  }
+
+  .note {
+    margin-top: 0.15rem;
+    font-size: var(--text-caption);
+    line-height: 1.4;
+    color: var(--fg-3);
+  }
+
+  /* Columns wide enough that most names keep one line beside their glyph */
+  @container caps (min-width: 40rem) {
+    .full .items {
+      grid-template-columns: repeat(auto-fill, minmax(11.5rem, 1fr));
+    }
+  }
+
+  @container caps (min-width: 56rem) {
+    .full .group {
+      grid-template-columns: minmax(0, 0.85fr) minmax(0, 2fr);
+      gap: var(--space-xl);
+    }
+
+    .full .items {
+      padding-top: 0.2rem;
+    }
+  }
+</style>

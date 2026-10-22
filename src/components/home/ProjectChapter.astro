@@ -1,0 +1,355 @@
+---
+import StatusBadge from '@/components/ui/StatusBadge.astro';
+import LayerGlyph from '@/components/ui/LayerGlyph.astro';
+import ProjectArt from '@/components/work/ProjectArt.astro';
+import { useI18n } from '@/i18n';
+import { home } from '@/i18n/ui/home';
+import type { Project } from '@/lib/projects';
+
+/**
+ * One homepage chapter: the project's name, kicker, status and one signature
+ * sentence beside its drawn plate. The title link and "Read the case study"
+ * light the plate (--plate-lit); pointing at the plate underlines the title.
+ * The plate is not inside a link (its drawing text would become link text):
+ * the title link stretches an invisible target over the chapter, and the copy
+ * sits above that target, so only the plate and the gaps around it reach it.
+ *
+ * `layout` varies the spread from 1000px so five chapters do not read as one
+ * template:
+ *   open    copy 5 | plate 7, centred
+ *   mirror  plate 7 | copy 5, the copy spans the plate's height
+ *   lead    copy 3 | plate 5, the plate leads and the copy sits at its foot
+ *   essay   plate 2 | copy 3, the copy leads and the plate stays in view
+ */
+export type ChapterLayout = 'open' | 'mirror' | 'lead' | 'essay';
+
+interface Props {
+  entry: Project;
+  index: number;
+  layout?: ChapterLayout;
+}
+
+const { entry, index, layout = 'open' } = Astro.props;
+const { l, href: localize } = useI18n(Astro);
+const p = entry.data;
+const href = localize(`/work/${entry.id}`);
+const num = String(index).padStart(2, '0');
+const headingId = `chapter-${entry.id}`;
+---
+
+<article
+  class:list={['chapter', `is-${layout}`, 'reveal']}
+  data-accent={p.accent}
+  aria-labelledby={headingId}
+  data-vt-scope
+>
+  <div class="copy">
+    <div class="head">
+      <p class="meta label">
+        <span class="num">{num}</span>
+        <LayerGlyph lit={p.layers} />
+        <span>{p.layerNames}</span>
+      </p>
+      <h3 id={headingId} class="name" data-vt-title={entry.id}>
+        <a href={href}>{p.name}</a>
+      </h3>
+      <p class="kicker">{p.kicker}</p>
+      <StatusBadge status={p.status} note={p.statusNote} />
+    </div>
+
+    <div class="body">
+      {p.signature && <p class="signature">{p.signature}</p>}
+      <p class="summary">{p.summary}</p>
+    </div>
+
+    <a class="read" href={href}>
+      <span class="read-label">{l(home.chapter.read)}</span>
+      <span class="visually-hidden">: {p.name}</span>
+      <span aria-hidden="true" class="arrow">
+        →
+      </span>
+    </a>
+  </div>
+
+  <div class="visual" data-vt-art={entry.id}>
+    <ProjectArt slug={entry.id} />
+  </div>
+</article>
+
+<style>
+  .chapter {
+    display: grid;
+    gap: var(--space-l);
+    padding-block: var(--space-l);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* ---------- Copy ---------- */
+  .copy {
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-m);
+    min-width: 0;
+  }
+
+  .head {
+    display: grid;
+    justify-items: start;
+    gap: var(--space-2xs);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.75rem;
+  }
+
+  .num {
+    color: var(--accent);
+  }
+
+  .name {
+    margin-top: var(--space-3xs);
+    /* The longest unbreakable name (J.A.R.V.I.S.) is about 5.6em wide at this stretch */
+    font-size: min(var(--step-5), 17cqi);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: var(--track-display);
+    line-height: 0.92;
+    overflow-wrap: normal;
+    word-break: normal;
+    hyphens: none;
+  }
+
+  .name a {
+    text-decoration: none;
+    /* The sweep sits just under the baseline, clear of the kicker below the tight line box */
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 calc(100% - 0.3em) / 0 2px;
+    transition: background-size var(--dur-ui) var(--ease-out);
+  }
+
+  /* A subtitle to the name, a step below the signature so the two never compete */
+  .kicker {
+    margin-block: var(--space-3xs);
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    font-size: var(--step-0);
+    line-height: 1.35;
+    color: var(--fg-2);
+  }
+
+  .body {
+    display: grid;
+    gap: var(--space-s);
+  }
+
+  /* The one sentence that belongs to this project alone, pulled out */
+  .signature {
+    max-width: 38ch;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    font-size: var(--step-1);
+    line-height: 1.34;
+    letter-spacing: -0.01em;
+    color: var(--fg);
+  }
+
+  .signature::before {
+    content: '';
+    display: block;
+    width: 18px;
+    height: 2px;
+    margin-bottom: var(--space-xs);
+    background: var(--accent);
+  }
+
+  .summary {
+    max-width: 56ch;
+    font-size: var(--text-caption);
+    line-height: 1.62;
+    color: var(--fg-2);
+  }
+
+  .read {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    padding-inline-end: var(--space-3xs);
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-semibold);
+    color: var(--fg);
+    text-decoration: none;
+    transition: scale var(--dur-press) var(--ease-out);
+  }
+
+  .read-label {
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+
+  .read:active {
+    scale: 0.97;
+  }
+
+  .arrow {
+    color: var(--accent);
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  /* ---------- Plate: reached through the title link ----------
+   * The title link's invisible target covers the plate's column (the chapter
+   * is its containing block), so pointing at the plate is pointing at the
+   * title. The title stacks above the plate (z-index works on a grid item
+   * without positioning); the copy is never covered. Phones: the plate opens
+   * the chapter at 4:3, full width.
+   */
+  .chapter {
+    position: relative;
+  }
+
+  .name {
+    z-index: 1;
+  }
+
+  .name a::after {
+    content: '';
+    position: absolute;
+    top: var(--space-l);
+    inset-inline: 0;
+    aspect-ratio: 4 / 3;
+  }
+
+  /* ---------- Signature linking: text lights the plate, the plate marks the title ---------- */
+  .chapter:has(:is(.name a, .read):is(:hover, :focus-visible)) .visual {
+    --plate-lit: 1;
+  }
+
+  .name a:is(:hover, :focus-visible) {
+    background-size: 100% 2px;
+  }
+
+  .read:is(:hover, :focus-visible) .read-label {
+    text-decoration-color: var(--accent);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .read:hover .arrow {
+      translate: 3px 0;
+    }
+  }
+
+  .read:focus-visible .arrow {
+    translate: 3px 0;
+  }
+
+  /* ---------- Tablet: copy and plate side by side ---------- */
+  @media (min-width: 700px) {
+    .chapter {
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      align-items: start;
+      gap: var(--space-l);
+    }
+
+    .name a::after {
+      inset: 0 0 0 calc(50% + var(--space-l) / 2);
+      aspect-ratio: auto;
+    }
+  }
+
+  /* Tablets: the copy runs longer than the plate, so the plate stays in view beside it */
+  @media (min-width: 700px) and (max-width: 999px) {
+    .visual {
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-m));
+    }
+  }
+
+  /* Phones: the plate opens the chapter */
+  @media (max-width: 699px) {
+    .visual {
+      order: -1;
+    }
+  }
+
+  /* ---------- Desktop: one spread per chapter ---------- */
+  @media (min-width: 1000px) {
+    .chapter {
+      column-gap: var(--space-xl);
+      align-items: center;
+      padding-block: var(--space-m);
+    }
+
+    .copy {
+      gap: var(--space-s);
+    }
+
+    .is-open {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    }
+
+    .is-mirror {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+      align-items: stretch;
+    }
+
+    .is-mirror .visual {
+      order: -1;
+      align-self: start;
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-l));
+    }
+
+    .is-mirror .read {
+      margin-top: auto;
+    }
+
+    .is-lead {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 5fr);
+      align-items: end;
+    }
+
+    .is-essay {
+      grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+      align-items: start;
+    }
+
+    .is-essay .visual {
+      order: -1;
+      align-self: start;
+      position: sticky;
+      top: calc(var(--header-h) + var(--space-l));
+    }
+
+    /* The plate's column: the copy's share of the split, (100% - gap) * share + gap, is left out */
+    .is-open .name a::after {
+      inset: 0 0 0 calc((100% - var(--space-xl)) * 5 / 12 + var(--space-xl));
+    }
+
+    .is-mirror .name a::after {
+      inset: 0 calc((100% - var(--space-xl)) * 5 / 12 + var(--space-xl)) 0 0;
+    }
+
+    .is-lead .name a::after {
+      inset: 0 0 0 calc((100% - var(--space-xl)) * 3 / 8 + var(--space-xl));
+    }
+
+    .is-essay .name a::after {
+      inset: 0 calc((100% - var(--space-xl)) * 3 / 5 + var(--space-xl)) 0 0;
+    }
+
+    .is-essay .signature {
+      max-width: 30ch;
+      font-size: var(--step-2);
+      line-height: 1.24;
+      letter-spacing: -0.015em;
+    }
+  }
+</style>

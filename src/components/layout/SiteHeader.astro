@@ -1,0 +1,602 @@
+---
+import { nav, site } from '@/data/site';
+import Mark from '@/components/ui/Mark.astro';
+import LangSwitch from '@/components/layout/LangSwitch.astro';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { header } from '@/i18n/ui/header';
+
+// `path` is locale-free, so /bg/work and /work both mark Work as current.
+const { l, t, href, path } = useI18n(Astro);
+const s = t(common);
+const h = t(header);
+const isCurrent = (target: string) => path === target || path.startsWith(`${target}/`);
+---
+
+<header class="site-header">
+  <div class="bar container">
+    <a class="brand" href={href('/')}>
+      <Mark />
+      <span class="brand-text">
+        <span class="brand-name">{site.name}</span>
+        <span class="brand-role">{l(site.role)}</span>
+        <span class="visually-hidden">{s.homeSuffix}</span>
+      </span>
+    </a>
+
+    <nav class="nav-desktop" aria-label={h.primary}>
+      <ul role="list">
+        {nav.map((item) => (
+          <li>
+            <a href={href(item.href)} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+              {l(item.label)}
+            </a>
+          </li>
+        ))}
+      </ul>
+      <a class="cv-link" href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+        {s.cv}
+        <svg class="nudge-down" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="M8 2v8m0 0 3.2-3.2M8 10 4.8 6.8M3 13.5h10"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+          ></path>
+        </svg>
+        <span class="visually-hidden">{s.pdfDownload}</span>
+      </a>
+      {/* Last, at the right edge: the CV link's width changes with the language, the switch never moves. */}
+      <LangSwitch variant="header" />
+    </nav>
+
+    <button class="menu-button" type="button" popovertarget="mobile-menu" aria-haspopup="dialog">
+      <span class="menu-lines" aria-hidden="true">
+        <span></span>
+        <span></span>
+      </span>
+      <span class="menu-label">{h.menu}</span>
+    </button>
+  </div>
+
+  <div
+    id="mobile-menu"
+    class="mobile-menu"
+    popover
+    role="dialog"
+    aria-modal="true"
+    aria-label={h.siteMenu}
+  >
+    <div class="mobile-top container">
+      <span class="label">{h.navigation}</span>
+      <button
+        class="mobile-close"
+        type="button"
+        popovertarget="mobile-menu"
+        popovertargetaction="hide"
+      >
+        {h.close}
+        <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+          <path
+            d="m3.5 3.5 9 9m0-9-9 9"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.4"
+          ></path>
+        </svg>
+      </button>
+    </div>
+    <nav class="mobile-nav container" aria-label={h.mobile}>
+      <ol role="list" class="mobile-list">
+        {nav.map((item, i) => (
+          <li>
+            <a
+              href={href(item.href)}
+              aria-current={isCurrent(item.href) ? 'page' : undefined}
+              data-close-menu
+            >
+              <span class="mobile-index">{String(i + 1).padStart(2, '0')}</span>
+              <span class="mobile-word">{l(item.label)}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+      <div class="mobile-meta">
+        <p class="mobile-availability">
+          <span class="label">{h.availability}</span>
+          {l(site.availability)}
+        </p>
+        <LangSwitch variant="menu" />
+        <ul role="list" class="mobile-links">
+          <li>
+            <a href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+              CV <span class="muted">{h.cvMeta}</span>
+              <span class="nudge-down" aria-hidden="true">
+                ↓
+              </span>
+            </a>
+          </li>
+          <li>
+            <a href={site.links.github} rel="me noopener" target="_blank">
+              GitHub{' '}
+              <span class="nudge-ext" aria-hidden="true">
+                ↗
+              </span>
+              <span class="visually-hidden">{s.newTab}</span>
+            </a>
+          </li>
+          <li>
+            <a href={site.links.linkedin} rel="me noopener" target="_blank">
+              LinkedIn{' '}
+              <span class="nudge-ext" aria-hidden="true">
+                ↗
+              </span>
+              <span class="visually-hidden">{s.newTab}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  /*
+   * The menu is a native popover (Esc, light dismiss and focus return for
+   * free). While it is open everything behind it is inert, so Tab stays in
+   * the menu; the page is released before the popover hides, so the browser
+   * can hand focus back to the Menu button.
+   */
+  const menu = document.getElementById('mobile-menu');
+  if (menu) {
+    const setPageInert = (inert: boolean) => {
+      document
+        .querySelectorAll<HTMLElement>('.skip-link, .site-header > .bar, main, .site-footer')
+        .forEach((el) => (el.inert = inert));
+    };
+
+    menu.addEventListener('beforetoggle', (event) => {
+      if ((event as ToggleEvent).newState === 'closed') setPageInert(false);
+    });
+
+    menu.addEventListener('toggle', (event) => {
+      if ((event as ToggleEvent).newState !== 'open') return;
+      menu.querySelector<HTMLElement>('.mobile-list a')?.focus();
+      setPageInert(true);
+    });
+
+    // Tab wraps at either end instead of leaving for the browser chrome, so
+    // focus is still inside when Esc asks the browser to restore it.
+    menu.addEventListener('keydown', (event) => {
+      if (event.key !== 'Tab') return;
+      const items = menu.querySelectorAll<HTMLElement>('a[href], button');
+      const first = items[0];
+      const last = items[items.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    });
+
+    // Chosen link: close first.
+    menu.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target instanceof Element && target.closest('[data-close-menu]')) {
+        menu.hidePopover();
+      }
+    });
+
+    // Widening past the desktop breakpoint removes the Menu button, so close.
+    // Keep in step with the media query in the styles below.
+    window.matchMedia('(min-width: 960px)').addEventListener('change', (event) => {
+      if (event.matches && menu.matches(':popover-open')) menu.hidePopover();
+    });
+  }
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    height: var(--header-h);
+    border-bottom: 1px solid transparent;
+    background: color-mix(in oklch, var(--ink-0) 72%, transparent);
+    /* Unprefixed only: the minifier adds the -webkit- copy itself, and a
+       hand-written one makes it drop this line, leaving no blur in Chrome. */
+    backdrop-filter: blur(14px) saturate(140%);
+  }
+
+  @media (forced-colors: active) {
+    .site-header {
+      animation: none;
+      background: Canvas;
+    }
+  }
+
+  @supports (animation-timeline: scroll()) {
+    /* Longhands only: the minifier folds a timeline into the `animation`
+       shorthand, which browsers reject, and the header would never settle. */
+    .site-header {
+      animation-name: header-settle;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: 0 120px;
+    }
+  }
+
+  @keyframes header-settle {
+    from {
+      background: color-mix(in oklch, var(--ink-0) 0%, transparent);
+      border-bottom-color: transparent;
+    }
+    to {
+      background: color-mix(in oklch, var(--ink-0) 78%, transparent);
+      border-bottom-color: var(--line-soft);
+    }
+  }
+
+  .bar {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-m);
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.8rem;
+    text-decoration: none;
+    min-height: 44px;
+  }
+
+  .brand-text {
+    display: grid;
+    line-height: 1.15;
+  }
+
+  .brand-name {
+    font-family: var(--ff-display);
+    font-weight: var(--w-semibold);
+    font-stretch: var(--wide-2);
+    font-size: 0.98rem;
+    letter-spacing: -0.01em;
+  }
+
+  .brand-role {
+    font-family: var(--ff-mono);
+    font-size: 0.66rem;
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  /* ---------- Desktop navigation ---------- */
+  .nav-desktop {
+    display: none;
+    align-items: center;
+    gap: var(--space-m);
+  }
+
+  .nav-desktop ul {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .nav-desktop ul a {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding-inline: 0.75rem;
+    font-size: 0.92rem;
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  /* The rule grows from the left and leaves to the right. A border, not a
+     background, so the current-page mark survives forced colours. */
+  .nav-desktop ul a::after {
+    content: '';
+    position: absolute;
+    left: 0.75rem;
+    right: 0.75rem;
+    bottom: 0.7rem;
+    border-top: 1px solid var(--fg);
+    scale: 0 1;
+    transform-origin: right;
+    transition: scale var(--dur-ui) var(--ease-out);
+  }
+
+  .nav-desktop ul a:is(:hover, :focus-visible),
+  .nav-desktop ul a[aria-current='page'] {
+    color: var(--fg);
+  }
+
+  .nav-desktop ul a:is(:hover, :focus-visible)::after,
+  .nav-desktop ul a[aria-current='page']::after {
+    scale: 1;
+    transform-origin: left;
+  }
+
+  .nav-desktop ul a:focus-visible {
+    outline-offset: 0;
+  }
+
+  .cv-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 0.95rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    font-size: 0.92rem;
+    font-weight: var(--w-medium);
+    text-decoration: none;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .cv-link:is(:hover, :focus-visible) {
+    border-color: var(--fg-2);
+    background: color-mix(in oklch, var(--fg) 6%, transparent);
+  }
+
+  .cv-link:active,
+  .menu-button:active,
+  .mobile-close:active {
+    scale: 0.97;
+  }
+
+  /* Direction-true nudges: down arrows drop, external arrows lift away. */
+  .nudge-down,
+  .nudge-ext {
+    display: inline-block;
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    a:hover .nudge-down {
+      translate: 0 2px;
+    }
+    a:hover .nudge-ext {
+      translate: 2px -2px;
+    }
+  }
+
+  a:focus-visible .nudge-down {
+    translate: 0 2px;
+  }
+  a:focus-visible .nudge-ext {
+    translate: 2px -2px;
+  }
+
+  /* ---------- Menu button ---------- */
+  .menu-button,
+  .mobile-close {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    min-width: 44px;
+    padding-inline: 0.6rem;
+    margin-inline-end: -0.6rem;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    transition: scale var(--dur-press) var(--ease-out);
+  }
+
+  .menu-lines {
+    display: grid;
+    gap: 5px;
+    width: 20px;
+  }
+
+  .menu-lines span {
+    display: block;
+    height: 1.5px;
+    background: currentColor;
+  }
+
+  .menu-lines span:last-child {
+    width: 65%;
+    justify-self: end;
+  }
+
+  /* One breakpoint for both languages: the Bulgarian labels, the CV link and
+     the language switch fit beside the brand from here on (measured). */
+  @media (min-width: 960px) {
+    .nav-desktop {
+      display: flex;
+    }
+    .menu-button {
+      display: none;
+    }
+  }
+
+  /* ---------- Mobile menu ----------
+   * An opaque sheet wiped down from the top (never a fade, so its type never
+   * sits over the page's type), then the items settle in a short stagger.
+   * Closing is quicker than opening.
+   */
+  .mobile-menu {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: var(--ink-deep);
+    color: var(--fg);
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    clip-path: inset(0 0 100% 0);
+    transition:
+      clip-path var(--dur-fast) var(--ease-drawer),
+      overlay var(--dur-fast) allow-discrete,
+      display var(--dur-fast) allow-discrete;
+  }
+
+  .mobile-menu:popover-open {
+    display: flex;
+    clip-path: inset(0);
+    transition-duration: var(--dur-panel);
+  }
+
+  @starting-style {
+    .mobile-menu:popover-open {
+      clip-path: inset(0 0 100% 0);
+    }
+  }
+
+  .mobile-menu::backdrop {
+    background: transparent;
+  }
+
+  :global(html:has(#mobile-menu:popover-open)) {
+    overflow: hidden;
+  }
+
+  .mobile-top {
+    flex: none;
+    height: var(--header-h);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .mobile-nav {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-list {
+    display: grid;
+    padding-block: var(--space-m) var(--space-l);
+  }
+
+  .mobile-list a {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-block: 0.9rem;
+    border-bottom: 1px solid var(--line-soft);
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-bold);
+    /* 1.75rem floor: "Лаборатория" fits a 320px screen. */
+    font-size: clamp(1.75rem, 9vw, 3rem);
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .mobile-list a:is(:hover, :focus-visible),
+  .mobile-list a[aria-current='page'] {
+    color: var(--fg);
+  }
+
+  /* Current page: ivory, with the same rule the desktop nav draws. */
+  .mobile-list a[aria-current='page'] .mobile-word {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.16em;
+  }
+
+  .mobile-index {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    font-weight: 450;
+    letter-spacing: 0.1em;
+    color: var(--fg-3);
+    translate: 0 -0.6em;
+  }
+
+  [aria-current='page'] > .mobile-index {
+    color: var(--fg);
+  }
+
+  .mobile-meta {
+    margin-top: auto;
+    display: grid;
+    gap: var(--space-s);
+    padding-block: var(--space-m) var(--space-l);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .mobile-availability {
+    display: grid;
+    gap: 0.2rem;
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  .mobile-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.75rem;
+  }
+
+  .mobile-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    font-size: var(--step-1);
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .mobile-links a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .mobile-menu:popover-open :is(.mobile-list li, .mobile-meta) {
+      animation: menu-in var(--dur-ui) var(--ease-out) 40ms backwards;
+    }
+    .mobile-menu:popover-open .mobile-list li:nth-child(2) {
+      animation-delay: 70ms;
+    }
+    .mobile-menu:popover-open .mobile-list li:nth-child(3) {
+      animation-delay: 100ms;
+    }
+    .mobile-menu:popover-open .mobile-list li:nth-child(4) {
+      animation-delay: 130ms;
+    }
+    .mobile-menu:popover-open .mobile-meta {
+      animation-delay: 160ms;
+    }
+  }
+
+  @keyframes menu-in {
+    from {
+      opacity: 0;
+      translate: 0 8px;
+    }
+  }
+</style>

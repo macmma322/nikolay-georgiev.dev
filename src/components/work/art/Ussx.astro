@@ -1,0 +1,218 @@
+---
+/**
+ * USS X Academy plate: the technician directory's real map of Bulgaria, with
+ * the course lifecycle ruled underneath it.
+ *
+ * Every region is neutral on purpose: the map shows the feature (a keyboard
+ * operable map of the 28 regions), not data. The one accent is a keyboard
+ * focus ring, drawn the way the site draws focus: an offset ring outside the
+ * shape. Billing is left out entirely (it lives on an unmerged branch).
+ */
+import PlateFrame from '../PlateFrame.astro';
+import bulgaria from '@/data/bulgaria-regions.json';
+import { useI18n } from '@/i18n';
+import { plates } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// TAB (the key's own legend) and the locale codes stay as drawn.
+const a = t(plates['uss-x-academy'].art);
+
+// Map placement: the source viewBox is 920x560, the drawn extent 880x417.
+const MAP = { x: 53.4, y: 32.5, s: 0.58 };
+const FOCUS = 'burgas';
+const focusPath = bulgaria.regions.find((r) => r.slug === FOCUS)?.path ?? '';
+
+// Lifecycle rail. "City-based intakes with capacity limits", "An application
+// funnel ... with staff review states" (uss-x-academy.md, built), "a waiting
+// room with host approval", "Host presence, student check-in and attendance
+// records" (built, live classroom).
+const RAIL = { y: 392, x0: 48, x1: 592 };
+const stageX = (i: number) => RAIL.x0 + (i * (RAIL.x1 - RAIL.x0)) / 5;
+const stages = [
+  { name: a.intake, part: 'apply' },
+  { name: a.application, part: 'apply' },
+  { name: a.review, part: 'apply', minor: true },
+  { name: a.waiting, part: 'class', door: true },
+  { name: a.classroom, part: 'class' },
+  { name: a.attendance, part: 'class', minor: true },
+].map((s, i) => ({
+  ...s,
+  x: stageX(i),
+  // Labels alternate above and below the rail so each gets two slots of room.
+  y: i % 2 === 0 ? RAIL.y - 12 : RAIL.y + 22,
+  anchor: i === 0 ? 'start' : i === 5 ? 'end' : 'middle',
+}));
+
+const ticks = (part: string) =>
+  stages
+    .filter((s) => s.part === part && !s.door)
+    .map((s) => `M${s.x} ${RAIL.y - 4}V${RAIL.y + 4}`)
+    .join('');
+
+// The waiting room is drawn as a door in plan: a gap in the rail, a leaf and
+// its swing (host approval admits the student).
+const door = stageX(3);
+const DOOR = 20;
+const railApply = `M${RAIL.x0} ${RAIL.y}H${door - DOOR / 2}`;
+const railClass = `M${door + DOOR / 2} ${RAIL.y}H${RAIL.x1 + 6}`;
+const doorLeaf = `M${door - DOOR / 2} ${RAIL.y}V${RAIL.y - DOOR}`;
+const doorSwing = `M${door - DOOR / 2} ${RAIL.y - DOOR}A${DOOR} ${DOOR} 0 0 1 ${door + DOOR / 2} ${RAIL.y}`;
+const railEnd = `M${RAIL.x1} ${RAIL.y - 4}L${RAIL.x1 + 7} ${RAIL.y}L${RAIL.x1} ${RAIL.y + 4}`;
+
+// Focus annotation: one leader from the ring, forked to both keys.
+const KEYS = { y: 284, h: 22 };
+// One key only: the repo documents a keyboard-operable map, not which key selects.
+const tab = { x: 476, w: 48 };
+const mid = (k: { x: number; w: number }) => k.x + k.w / 2;
+const leader = `M${mid(tab)} 266V${KEYS.y}`;
+
+// Locale mark: fixed columns (no dependence on font metrics), Bulgarian first
+// and underlined as the default.
+const LOCALE = { y: 68, x: 596, step: 48 };
+const locales = ['BG', 'EN', 'RU'].map((code, i) => ({
+  code,
+  x: LOCALE.x - (2 - i) * LOCALE.step,
+}));
+const defaultMark = `M${LOCALE.x - 2 * LOCALE.step - 11} ${LOCALE.y + 7}h22`;
+---
+
+<PlateFrame slug="uss-x-academy" compact={compact} legend={legend}>
+  {/* "a keyboard-operable SVG map of Bulgaria's 28 regions" (uss-x-academy.md, built) */}
+  <g class="part" data-part="map">
+    <g transform={`translate(${MAP.x} ${MAP.y}) scale(${MAP.s})`}>
+      {bulgaria.regions.map((r) => (
+        <path d={r.path} class="border" />
+      ))}
+      {bulgaria.regions.map((r) => (
+        <path d={r.path} class="region" />
+      ))}
+    </g>
+    <text x="48" y="336" class="t t-minor">
+      {a.regions}
+    </text>
+  </g>
+
+  {/* Same fact, as the keyboard sees it: focus moves region to region. */}
+  <g class="part" data-part="focus">
+    <rect class="hit no-lit" x="420" y="270" width="196" height="76" />
+    <g transform={`translate(${MAP.x} ${MAP.y}) scale(${MAP.s})`}>
+      <path d={focusPath} class="ring accent" />
+      <path d={focusPath} class="gap no-lit" />
+      <path d={focusPath} class="region" />
+    </g>
+    <path class="wire" d={leader}></path>
+    <rect x={tab.x} y={KEYS.y} width={tab.w} height={KEYS.h} rx="2" class="key" />
+    <text x={mid(tab)} y={KEYS.y + 15.5} text-anchor="middle" class="t t-strong">
+      TAB
+    </text>
+    <text x="608" y="336" text-anchor="end" class="t">
+      {a.keyboard}
+    </text>
+  </g>
+
+  <g class="part" data-part="apply">
+    <rect class="hit no-lit" x="40" y="360" width={door - 12 - 40} height="62" />
+    <path class="wire" d={railApply}></path>
+    <path class="wire" d={ticks('apply')}></path>
+    {stages
+      .filter((s) => s.part === 'apply')
+      .map((s) => (
+        <text x={s.x} y={s.y} text-anchor={s.anchor} class:list={['t', { 't-minor': s.minor }]}>
+          {s.name}
+        </text>
+      ))}
+  </g>
+
+  <g class="part" data-part="class">
+    <rect class="hit no-lit" x={door - 12} y="360" width={604 - door + 12} height="62" />
+    <path class="wire" d={railClass}></path>
+    <path class="wire" d={ticks('class')}></path>
+    <path class="wire" d={doorLeaf}></path>
+    <path class="faint" d={doorSwing}></path>
+    <path class="wire" d={railEnd}></path>
+    {stages
+      .filter((s) => s.part === 'class')
+      .map((s) => (
+        <text x={s.x} y={s.y} text-anchor={s.anchor} class:list={['t', { 't-minor': s.minor }]}>
+          {s.name}
+        </text>
+      ))}
+  </g>
+
+  {/* "Bulgarian by default, English, Russian" (uss-x-academy.md, spec: Locales) */}
+  <g class="part" data-part="locales">
+    <rect class="hit no-lit" x="476" y="50" width="138" height="32" />
+    {locales.map((l, i) => (
+      <text x={l.x} y={LOCALE.y} text-anchor="middle" class={i === 0 ? 't t-strong' : 't'}>
+        {l.code}
+      </text>
+    ))}
+    <text x={LOCALE.x - LOCALE.step * 1.5} y={LOCALE.y} text-anchor="middle" class="t">
+      ·
+    </text>
+    <text x={LOCALE.x - LOCALE.step / 2} y={LOCALE.y} text-anchor="middle" class="t">
+      ·
+    </text>
+    <path class="wire" d={defaultMark}></path>
+  </g>
+</PlateFrame>
+
+<style>
+  .region {
+    fill: var(--ink-1);
+    stroke: var(--steel-dim);
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+  }
+
+  /* Drawn under the regions: only the outer half survives, so the national
+     border reads heavier than the internal ones. */
+  .border {
+    fill: none;
+    stroke: var(--line-strong);
+    stroke-width: 5;
+    stroke-linejoin: round;
+  }
+
+  /* Focus ring: about 2px wide, 2px outside the region at case-study size. */
+  .ring {
+    fill: none;
+    stroke-width: 17;
+    stroke-linejoin: round;
+  }
+
+  .gap {
+    fill: none;
+    stroke: var(--ink-deep);
+    stroke-width: 9;
+    stroke-linejoin: round;
+  }
+
+  /* Invisible pointer targets, so a thin drawing is easy to point at */
+  .hit {
+    fill: none;
+    stroke: none;
+    pointer-events: all;
+  }
+
+  .key {
+    fill: var(--ink-1);
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+
+  /* Thumbnails: keep the ring proportional instead of one device pixel, and
+     drop the locale mark, which is only text and its underline. */
+  :global(.project-plate.compact) :is(.ring, .gap, .border) {
+    vector-effect: none;
+  }
+
+  :global(.project-plate.compact) [data-part='locales'] {
+    display: none;
+  }
+</style>

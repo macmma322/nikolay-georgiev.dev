@@ -1,0 +1,201 @@
+---
+/**
+ * Every page's metadata, derived from its route: titles, descriptions and
+ * alt texts from src/i18n/ui/seo.ts, case studies from their frontmatter
+ * (seoTitle, description, kicker). Only the 404 pages pass a title and
+ * description.
+ */
+import { getImage } from 'astro:assets';
+import portrait from '@/assets/media/about/portrait.webp';
+import og from '@/data/og.json';
+import { site } from '@/data/site';
+import { getTech, techName } from '@/data/tech';
+import { LOCALES, LOCALE_META, useI18n } from '@/i18n';
+import { seo } from '@/i18n/ui/seo';
+import { getProject } from '@/lib/projects';
+import {
+  absolute,
+  breadcrumbSchema,
+  graph,
+  ids,
+  personSchema,
+  projectSchema,
+  webPageSchema,
+  websiteSchema,
+  type PageType,
+} from '@/lib/schema';
+import { cleanPath } from '@/lib/paths';
+import { STATUS_LABEL } from '@/lib/status';
+
+interface Props {
+  title?: string | undefined;
+  description?: string | undefined;
+  noindex?: boolean;
+}
+
+const { locale, meta, l, t, href, path, alternates } = useI18n(Astro);
+const s = t(seo);
+const noindex = Astro.props.noindex ?? false;
+
+interface Page {
+  /** The part before " · name"; none on the home page. */
+  title?: string | undefined;
+  description: string;
+  og: 'website' | 'article' | 'profile';
+  page: PageType;
+  image: string;
+  imageAlt: string;
+  crumbs: { name: string; path: string }[];
+  mainEntity?: string | undefined;
+  about?: string | undefined;
+  nodes: Record<string, unknown>[];
+}
+
+// Open Graph cards by locale, written by `npm run og` with content-hashed
+// names: the home card doubles as the fallback for About, Lab, Contact, 404.
+const card = (name: string) => {
+  const url = (og[locale] as Record<string, string>)[name];
+  if (!url) throw new Error(`No Open Graph card "${name}" for ${locale} (run npm run og)`);
+  return url;
+};
+const home = { name: s.breadcrumb.home, path: href('/') };
+const sections = {
+  work: 'CollectionPage',
+  lab: 'CollectionPage',
+  about: 'ProfilePage',
+  contact: 'ContactPage',
+} as const satisfies Record<string, PageType>;
+const [section, slug, ...rest] = path.split('/').filter(Boolean);
+
+let page: Page = {
+  title: Astro.props.title,
+  description: Astro.props.description ?? s.home.description,
+  og: 'website',
+  page: 'WebPage',
+  image: card('home'),
+  imageAlt: s.imageAlt.site,
+  crumbs: [],
+  nodes: [],
+};
+
+if (noindex) {
+  // 404s: no canonical, hreflang or structured data.
+} else if (path === '/') {
+  page = { ...page, title: undefined, description: s.home.description, about: ids.person };
+} else if (section === 'work' && slug && !rest.length) {
+  const { data: p } = await getProject(slug, locale);
+  const url = href(`/work/${slug}`);
+  page = {
+    ...page,
+    title: p.seoTitle ?? `${p.name}: ${p.kicker}`,
+    description: p.description,
+    og: 'article',
+    image: card(slug),
+    imageAlt: s.imageAlt.project(p.name, p.kicker),
+    crumbs: [home, { name: s.breadcrumb.work, path: href('/work') }, { name: p.name, path: url }],
+    mainEntity: `${absolute(url)}#project`,
+    nodes: [
+      projectSchema({
+        name: p.name,
+        kicker: p.kicker,
+        description: p.description,
+        slug,
+        keywords: p.stack.map((id) => techName(getTech(id), locale)),
+        status: l(STATUS_LABEL[p.status]),
+        // Only a product in production is linked as the work's URL.
+        live: p.status === 'production' ? p.links.live : undefined,
+        dateCreated: p.started,
+        image: card(slug),
+        locale,
+      }),
+    ],
+  };
+} else if (section && section in sections && !slug) {
+  const key = section as keyof typeof sections;
+  page = {
+    ...page,
+    title: s[key].title,
+    description: s[key].description,
+    og: key === 'about' ? 'profile' : 'website',
+    page: sections[key],
+    ...(key === 'work' ? { image: card('work'), imageAlt: s.imageAlt.work } : {}),
+    crumbs: [home, { name: s.breadcrumb[key], path: href(`/${key}`) }],
+    ...(key === 'about' ? { mainEntity: ids.person } : { about: ids.person }),
+  };
+}
+
+// The home title reuses the role the header and hero show (site.role).
+const fullTitle = page.title ? `${page.title} · ${s.name}` : `${s.name} · ${l(site.role)}`;
+// Self-referencing per locale: the root keeps its slash, /bg and the rest have none.
+const canonical = absolute(cleanPath(Astro.url.pathname));
+const hreflang = [
+  ...LOCALES.map((code) => ({ lang: LOCALE_META[code].lang, href: absolute(alternates[code]) })),
+  { lang: 'x-default', href: absolute(alternates.en) },
+];
+const ogImage = absolute(page.image);
+
+let jsonLd: Record<string, unknown> | undefined;
+if (!noindex) {
+  const photo = await getImage({ src: portrait, width: 720 });
+  jsonLd = graph([
+    webPageSchema({
+      type: page.page,
+      url: canonical,
+      name: fullTitle,
+      description: page.description,
+      locale,
+      mainEntity: page.mainEntity,
+      about: page.about,
+      breadcrumb: page.crumbs.length > 0,
+    }),
+    ...(path === '/' ? [websiteSchema()] : []),
+    personSchema(locale, absolute(photo.src)),
+    ...(page.crumbs.length ? [breadcrumbSchema(page.crumbs)] : []),
+    ...page.nodes,
+  ]);
+}
+---
+
+<title>{fullTitle}</title>
+<meta name="description" content={page.description} />
+{!noindex && <link rel="canonical" href={canonical} />}
+{!noindex && hreflang.map((alt) => <link rel="alternate" hreflang={alt.lang} href={alt.href} />)}
+{noindex && <meta name="robots" content="noindex, follow" />}
+<meta name="author" content={site.name} />
+<meta name="theme-color" content="#0b0d10" />
+<meta name="color-scheme" content="dark" />
+<meta name="format-detection" content="telephone=no" />
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+
+<meta property="og:type" content={page.og} />
+<meta property="og:site_name" content={site.name} />
+<meta property="og:title" content={page.title ?? fullTitle} />
+<meta property="og:description" content={page.description} />
+{!noindex && <meta property="og:url" content={canonical} />}
+<meta property="og:image" content={ogImage} />
+<meta property="og:image:type" content="image/png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content={page.imageAlt} />
+<meta property="og:locale" content={meta.og} />
+{LOCALES.filter((code) => code !== locale).map((code) => (
+  <meta property="og:locale:alternate" content={LOCALE_META[code].og} />
+))}
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={page.title ?? fullTitle} />
+<meta name="twitter:description" content={page.description} />
+<meta name="twitter:image" content={ogImage} />
+<meta name="twitter:image:alt" content={page.imageAlt} />
+
+{jsonLd && (
+  <script
+    type="application/ld+json"
+    is:inline
+    set:html={JSON.stringify(jsonLd).replaceAll('<', '\\u003c')}
+  />
+)}

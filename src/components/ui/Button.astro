@@ -1,0 +1,153 @@
+---
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+
+interface Props {
+  href: string;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  icon?: 'arrow' | 'down' | 'scroll' | 'external' | 'none';
+  download?: string | boolean;
+  external?: boolean;
+  class?: string;
+}
+
+const {
+  href,
+  variant = 'primary',
+  icon = 'arrow',
+  download,
+  external = false,
+  class: className,
+} = Astro.props;
+const { l } = useI18n(Astro);
+
+const paths: Record<string, string> = {
+  arrow: 'M3 8h9.5M8.5 4 12.5 8l-4 4',
+  down: 'M8 2.5v9m0 0 3.5-3.5M8 11.5 4.5 8M3 13.5h10',
+  // Down without the tray: moves you down the page, does not download.
+  scroll: 'M8 2.5v11m0 0 3.5-3.5M8 13.5 4.5 10',
+  external: 'M5 3.5h7.5V11M12.5 3.5l-9 9',
+};
+---
+
+<a
+  class:list={['btn', `btn-${variant}`, `btn-i-${icon}`, className]}
+  href={href}
+  download={download}
+  target={external ? '_blank' : undefined}
+  rel={external ? 'noopener' : undefined}
+>
+  <span class="btn-label">
+    <slot />
+  </span>
+  {icon !== 'none' && (
+    <span class="btn-icon" aria-hidden="true">
+      <svg viewBox="0 0 16 16" width="14" height="14">
+        <path d={paths[icon]} fill="none" stroke="currentColor" stroke-width="1.5" />
+      </svg>
+    </span>
+  )}
+  {external && <span class="visually-hidden">{l(common.newTab)}</span>}
+</a>
+
+<style>
+  .btn {
+    --btn-bg: transparent;
+    --btn-fg: var(--fg);
+    --btn-border: var(--line-strong);
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.85rem;
+    min-height: 48px;
+    padding: 0 0.6rem 0 1.15rem;
+    border: 1px solid var(--btn-border);
+    border-radius: var(--radius-s);
+    background: var(--btn-bg);
+    color: var(--btn-fg);
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-semibold);
+    font-size: 0.95rem;
+    letter-spacing: -0.005em;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .btn:active {
+    scale: 0.97;
+  }
+
+  .btn-icon {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-xs);
+    background: color-mix(in oklch, currentColor 10%, transparent);
+  }
+
+  /* The glyph moves the way it points, inside its fixed tile. */
+  .btn-icon svg {
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-i-arrow:hover .btn-icon svg {
+      translate: 3px 0;
+    }
+    .btn-i-down:hover .btn-icon svg,
+    .btn-i-scroll:hover .btn-icon svg {
+      translate: 0 2px;
+    }
+    .btn-i-external:hover .btn-icon svg {
+      translate: 2px -2px;
+    }
+  }
+
+  .btn-i-arrow:focus-visible .btn-icon svg {
+    translate: 3px 0;
+  }
+  .btn-i-down:focus-visible .btn-icon svg,
+  .btn-i-scroll:focus-visible .btn-icon svg {
+    translate: 0 2px;
+  }
+  .btn-i-external:focus-visible .btn-icon svg {
+    translate: 2px -2px;
+  }
+
+  .btn-primary {
+    --btn-bg: var(--fg);
+    --btn-fg: var(--ink-0);
+    --btn-border: var(--fg);
+  }
+
+  .btn-primary:is(:hover, :focus-visible) {
+    --btn-bg: color-mix(in oklch, var(--fg), white 70%);
+  }
+
+  .btn-primary .btn-icon {
+    background: var(--ink-0);
+    color: var(--fg);
+  }
+
+  .btn-secondary:is(:hover, :focus-visible) {
+    --btn-border: var(--fg-2);
+    --btn-bg: color-mix(in oklch, var(--fg) 6%, transparent);
+  }
+
+  .btn-ghost {
+    --btn-border: transparent;
+    padding-inline-start: 0.6rem;
+    color: var(--fg-2);
+  }
+
+  .btn-ghost:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+</style>

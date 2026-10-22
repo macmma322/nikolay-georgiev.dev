@@ -1,0 +1,99 @@
+---
+import { getCollection } from 'astro:content';
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import LabCard from '@/components/work/LabCard.astro';
+import SectionHeader from '@/components/ui/SectionHeader.astro';
+import { useI18n } from '@/i18n';
+import { lab } from '@/i18n/ui/lab';
+
+const { t } = useI18n(Astro);
+const u = t(lab);
+const entries = (await getCollection('lab')).sort((a, b) => a.data.order - b.data.order);
+const byGroup = (key: string) => entries.filter((entry) => entry.data.group === key);
+
+// Built first and strongest, then what is not built yet. Paused work closes
+// the page as one dim line.
+const groups = (['tooling', 'next'] as const).map((key) => ({ key, ...u.groups[key] }));
+const paused = byGroup('paused');
+---
+
+<BaseLayout>
+  <section class="container intro" aria-labelledby="lab-h1">
+    <p class="label">{u.eyebrow}</p>
+    <h1 id="lab-h1" class="title" data-vt-lang="title">
+      {u.title}
+    </h1>
+    <p class="lede" data-vt-lang="lede">
+      {u.lede}
+    </p>
+  </section>
+
+  {groups.map((g) => {
+    const items = byGroup(g.key);
+    if (items.length === 0) return null;
+    return (
+      <section class:list={['container', 'group', `group-${g.key}`]} aria-labelledby={`g-${g.key}`}>
+        <SectionHeader label={g.label} id={`g-${g.key}`} title={g.title} lede={g.lede} />
+        <div class="ledger reveal">
+          {items.map((entry) => (
+            <LabCard entry={entry} detailed />
+          ))}
+        </div>
+      </section>
+    );
+  })}
+
+  {paused.length > 0 && (
+    <section class="container group group-paused" aria-labelledby="g-paused">
+      <h2 id="g-paused" class="visually-hidden">
+        {u.paused}
+      </h2>
+      <div class="ledger">
+        {paused.map((entry) => (
+          <LabCard entry={entry} detailed />
+        ))}
+      </div>
+    </section>
+  )}
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-l);
+    container-type: inline-size;
+  }
+
+  .title {
+    margin-top: var(--space-s);
+    font-size: var(--step-hero);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: -0.05em;
+    line-height: 0.88;
+  }
+
+  /* "Лаборатория" is one word 7.6em wide: cap it by the column (cqi) so it
+     never breaks on a phone, and keep the hero size where it fits. */
+  .title:lang(bg) {
+    font-size: min(var(--step-hero), 12.8cqi);
+  }
+
+  .intro .lede {
+    margin-top: var(--space-m);
+  }
+
+  .group {
+    padding-top: var(--space-2xl);
+  }
+
+  /* The next group's header rule closes this ledger; do not draw two lines. */
+  .group:not(:last-of-type) .ledger :global(.lab:last-child) {
+    border-bottom-color: transparent;
+  }
+
+  /* Paused work trails the page as one dim line; its heading is for the outline */
+  .group-paused {
+    padding-top: var(--space-xl);
+  }
+</style>

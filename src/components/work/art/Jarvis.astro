@@ -1,0 +1,229 @@
+---
+/**
+ * J.A.R.V.I.S. plate: routing on the left, authority on the right.
+ * Every mark is sourced from src/content/projects/jarvis.md or
+ * src/data/diagrams/jarvis.ts; the quotes sit next to each part.
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates, fit } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// Lane names (FAST, SMART, DEEP), model names and "TOOLS" stay as drawn: "0
+// TOOLS" has no room for a longer word before the approval column.
+const a = t(plates.jarvis.art);
+
+const lane = { fast: 140, smart: 220, deep: 300 };
+
+// "21 read-only tools the model can request only by identifier": 7 x 3 marks
+const tools = Array.from({ length: 21 }, (_, i) => ({
+  x: 254 + (i % 7) * 8,
+  y: 322 + Math.floor(i / 7) * 8,
+}));
+
+// Tiers 3 and 4 sit above the ceiling: hatched, never executable.
+const hatch = (x0: number, x1: number, y0: number, y1: number, step = 9) => {
+  let d = '';
+  for (let s = x0 + step; s < x1 + (y1 - y0); s += step) {
+    const ax = Math.min(s, x1);
+    const bx = Math.max(x0, s - (y1 - y0));
+    d += `M${ax} ${y1 - (s - ax)}L${bx} ${y1 - (s - bx)}`;
+  }
+  return d;
+};
+
+const rail = { t4: 100, t3: 136, ceiling: 164, t2: 220, t1: 260, t0: 300 };
+// "Ten operations sit at tier 2. The five reachable today ..."
+const ops = Array.from({ length: 10 }, (_, i) => ({ x: 440 + i * 15, reachable: i < 5 }));
+// The approval leader drops from the five reachable operations; rails 1 and 0 break around it.
+const leaderX = 476;
+const brokenRail = (y: number) => `M440 ${y}H${leaderX - 6}M${leaderX + 6} ${y}H596`;
+---
+
+<PlateFrame slug="jarvis" compact={compact} legend={legend}>
+  <!-- "A deterministic cognitive router that scans for hazards first, matches 37 intents" -->
+  <g class="part" data-part="router">
+    <circle cx="28" cy={lane.smart} r="3.5" class="wire" />
+    <line x1="31.5" y1={lane.smart} x2="40" y2={lane.smart} class="wire" />
+    <path
+      d={`M40 ${lane.smart - 16}L74 ${lane.fast - 16}V${lane.deep + 16}L40 ${lane.smart + 16}Z`}
+      class="ink"
+    />
+    <text x="24" y="84" class="t-strong">
+      {a.router}
+    </text>
+    <text x="24" y="102" class="t t-minor">
+      {a.intents}
+    </text>
+  </g>
+
+  <!-- "picks a FAST, SMART or DEEP lane"; FAST: "compiled evidence, 0 provider calls" -->
+  <g class="part" data-part="lanes">
+    {Object.values(lane).map((y) => (
+      <>
+        <path d={`M74 ${y}H374`} class="wire" />
+        <circle cx="378" cy={y} r="4" class="term" />
+      </>
+    ))}
+    <text x="88" y={lane.fast - 10} class="t-strong">
+      FAST
+    </text>
+    <text x="88" y={lane.fast + 24} class="t">
+      {a.calls0}
+    </text>
+    <text x="88" y={lane.smart - 10} class="t-strong">
+      SMART
+    </text>
+    <text x="88" y={lane.smart + 24} class="t">
+      {a.calls1}
+    </text>
+    <text x="88" y={lane.deep - 10} class="t-strong">
+      DEEP
+    </text>
+    <text x="88" y={lane.deep + 24} class="t">
+      {a.bounded}
+    </text>
+    <text x="382" y={lane.fast - 14} text-anchor="end" class="t t-minor">
+      {a.answer}
+    </text>
+    <!-- DEEP: "a bounded agent loop": the lane closes a loop around the call and the tools -->
+    <path d={`M204 ${lane.deep}V346a8 8 0 0 0 8 8H314a8 8 0 0 0 8-8V${lane.deep}`} class="wire" />
+    <path d="M272 350l-7 4 7 4" class="wire" />
+    <text x="238" y="376" class="t t-minor">
+      21 TOOLS
+    </text>
+    {tools.map((t) => (
+      <rect x={t.x} y={t.y} width="3.5" height="3.5" class="tool" />
+    ))}
+  </g>
+
+  <!-- "a local Qwen3-8B on a loopback llama.cpp server ... or with a frontier CLI"; "zero tools" -->
+  <g class="part" data-part="models">
+    <rect x="213" y={lane.smart - 11} width="22" height="22" class="ink call" />
+    <rect x="213" y={lane.deep - 11} width="22" height="22" class="ink call" />
+    <path d={`M224 ${lane.smart + 11}V${lane.deep - 11}M224 ${lane.deep + 11}V392`} class="wire" />
+    <path d="M224 392H146M224 392H250l4-7 6 14 4-7H300" class="wire" />
+    <circle cx="146" cy="392" r="3" class="ink" />
+    <circle cx="300" cy="392" r="3" class="ink" />
+    <text x="134" y="397" text-anchor="end" class="t-strong">
+      QWEN3-8B
+    </text>
+    <text x="134" y="415" text-anchor="end" class="t">
+      {a.local}
+    </text>
+    <text x="312" y="397" class="t-strong">
+      FRONTIER
+    </text>
+    <text x="312" y="415" class="t">
+      0 TOOLS
+    </text>
+  </g>
+
+  <!-- "A capability-claim postcondition that compares every model answer with receipts" -->
+  <g class="part" data-part="claim">
+    <line x1="344" y1="198" x2="344" y2="322" class="gate" />
+    <line x1="350" y1="198" x2="350" y2="322" class="gate" />
+    <path d={`M420 260H356M362 256l-6 4 6 4`} class="wire" />
+    <path d={`M426 ${rail.t2}H420V${rail.t0}H426`} class="faint" />
+    <text x="347" y="190" text-anchor="middle" class="t">
+      {a.receipts}
+    </text>
+  </g>
+
+  <!-- "A compiled registry of 100 operations with fixed tiers from 0 to 4. The executable ceiling is pinned at tier 2" -->
+  <g class="part" data-part="tiers">
+    <path d={hatch(440, 596, 88, 148)} class="faint hatch no-lit" />
+    <line x1="440" y1={rail.t4} x2="596" y2={rail.t4} class="faint" />
+    <line x1="440" y1={rail.t3} x2="596" y2={rail.t3} class="faint" />
+    <line x1="420" y1={rail.ceiling} x2="612" y2={rail.ceiling} class="ceiling" />
+    <line x1="440" y1={rail.t2} x2="596" y2={rail.t2} class="wire" />
+    <path d={brokenRail(rail.t1) + brokenRail(rail.t0)} class="wire" />
+    <text x="612" y="76" text-anchor="end" class="t">
+      {a.tier}
+    </text>
+    <text x="604" y={rail.t4 + 5} class="t">
+      4
+    </text>
+    <text x="604" y={rail.t3 + 5} class="t">
+      3
+    </text>
+    <text x="604" y={rail.t2 + 5} class="t-strong">
+      2
+    </text>
+    <text x="604" y={rail.t1 + 5} class="t">
+      1
+    </text>
+    <text x="604" y={rail.t0 + 5} class="t">
+      0
+    </text>
+    <text x="420" y="192" textLength={fit(a.ceiling, 187.2)} class="t-strong">
+      {a.ceiling}
+    </text>
+    {ops.map((o) => (
+      <rect
+        x={o.x}
+        y={rail.t2 - 6}
+        width="8"
+        height="12"
+        class:list={[o.reachable ? 'op' : 'op-off']}
+      />
+    ))}
+  </g>
+
+  <!-- "The five reachable today are reversible file operations behind a single-use approval in the local UI" -->
+  <g class="part" data-part="approval">
+    <path d={`M440 ${rail.t2 + 11}v4H508v-4M${leaderX} ${rail.t2 + 15}V336`} class="wire" />
+    <rect x={leaderX - 8} y="336" width="16" height="16" class="wire" />
+    <path d={`M${leaderX - 4} 344l3 3 6-6`} class="wire" />
+    <text x="440" y="378" class="t-strong">
+      {a.singleUse}
+    </text>
+    <text x="440" y="396" class="t-strong">
+      {a.approval}
+    </text>
+    <text x="440" y="414" class="t t-minor">
+      {a.localUi}
+    </text>
+  </g>
+</PlateFrame>
+
+<style>
+  .term {
+    fill: var(--ink-deep);
+    stroke: var(--fg-2);
+    stroke-width: 1.2;
+  }
+  .call {
+    stroke: var(--fg-2);
+  }
+  .tool {
+    fill: var(--fg-3);
+    stroke: none;
+  }
+  .hatch {
+    stroke: var(--line-soft);
+  }
+  .gate {
+    stroke: var(--fg-2);
+    stroke-width: 1.2;
+  }
+  .ceiling {
+    stroke: var(--accent);
+    stroke-width: 3;
+  }
+  .op {
+    fill: var(--fg-2);
+    stroke: var(--fg-2);
+    stroke-width: 1;
+  }
+  .op-off {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-width: 1;
+  }
+</style>

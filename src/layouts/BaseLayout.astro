@@ -1,0 +1,53 @@
+---
+import '@/styles/base.css';
+import { Font } from 'astro:assets';
+import HeadBoot from '@/components/layout/HeadBoot.astro';
+import SEO from '@/components/layout/SEO.astro';
+import SiteHeader from '@/components/layout/SiteHeader.astro';
+import SiteFooter from '@/components/layout/SiteFooter.astro';
+import TechBrandStyles from '@/components/ui/TechBrandStyles.astro';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+
+interface Props {
+  title?: string | undefined;
+  description?: string | undefined;
+  accent?: string;
+  noindex?: boolean;
+}
+
+const { title, description, accent, noindex = false } = Astro.props;
+const { locale, meta, t } = useI18n(Astro);
+const s = t(common);
+---
+
+<!doctype html>
+<html lang={meta.lang} dir="ltr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <HeadBoot />
+    <Font cssVariable="--font-display" preload />
+    <Font cssVariable="--font-body" preload />
+    <Font cssVariable="--font-mono" preload />
+    {/* Cyrillic-only faces: always declared, preloaded where the text is Bulgarian. */}
+    <Font cssVariable="--font-cyr" preload={locale === 'bg'} />
+    <Font cssVariable="--font-mono-cyr" preload={locale === 'bg'} />
+    <TechBrandStyles />
+    <SEO title={title} description={description} noindex={noindex} />
+  </head>
+  <body data-accent={accent}>
+    <a class="skip-link" href="#main">
+      {s.skipLink}
+    </a>
+    <div class="atmosphere" aria-hidden="true"></div>
+    <SiteHeader />
+    <main id="main" tabindex="-1">
+      <slot />
+    </main>
+    <SiteFooter />
+    <script>
+      import '@/scripts/reveal';
+    </script>
+  </body>
+</html>

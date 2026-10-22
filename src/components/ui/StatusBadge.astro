@@ -1,0 +1,130 @@
+---
+import { STATUS_LABEL, STATUS_SHAPE, type Status } from '@/lib/status';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+
+interface Props {
+  status: Status;
+  note?: string | undefined;
+  size?: 's' | 'm';
+}
+
+const { status, note, size = 's' } = Astro.props;
+const shape = STATUS_SHAPE[status];
+const { l } = useI18n(Astro);
+---
+
+<span class:list={['status', `size-${size}`, `shape-${shape}`]}>
+  <svg
+    class="glyph"
+    viewBox="0 0 10 10"
+    width="10"
+    height="10"
+    aria-hidden="true"
+    focusable="false"
+  >
+    <rect class="frame" x="0.75" y="0.75" width="8.5" height="8.5" pathLength="24"></rect>
+    {shape === 'half' && <rect class="fill" x="0.75" y="0.75" width="4.25" height="8.5" />}
+    {shape === 'paused' && <path class="stroke" d="M2.5 7.5 7.5 2.5" />}
+  </svg>
+  <span class="label-text">
+    <span class="visually-hidden">{l(common.statusPrefix)}</span>
+    {l(STATUS_LABEL[status])}
+  </span>
+  {note && <span class="note">{note}</span>}
+</span>
+
+<style>
+  /* Glyph and label share the first row, so the glyph stays on the label
+     line however the note wraps; the note hangs under the label. */
+  .status {
+    display: inline-grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: 0.6rem;
+    row-gap: 0.2rem;
+    color: var(--fg-2);
+  }
+
+  .label-text {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    font-weight: 450;
+    letter-spacing: var(--track-label);
+    line-height: 1.3;
+    text-transform: uppercase;
+  }
+
+  .note {
+    grid-column: 2;
+    font-family: var(--ff-body);
+    font-size: var(--text-caption);
+    line-height: 1.45;
+    color: var(--fg-3);
+  }
+
+  /* Drawn with currentColor so forced colours keep the shape. */
+  .glyph {
+    flex: none;
+    overflow: visible;
+  }
+
+  .size-m .glyph {
+    width: 11px;
+    height: 11px;
+  }
+
+  .frame {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .fill {
+    fill: currentColor;
+  }
+
+  .stroke {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+  }
+
+  .shape-production,
+  .shape-half,
+  .shape-solid {
+    color: var(--fg);
+  }
+
+  .shape-production .glyph,
+  .shape-half .glyph {
+    color: var(--signal);
+  }
+
+  .shape-production .frame,
+  .shape-solid .frame {
+    fill: currentColor;
+  }
+
+  .shape-paused,
+  .shape-dashed {
+    color: var(--fg-3);
+  }
+
+  /* Dashes centred on the corners: two per side on a 24-unit perimeter. */
+  .shape-dashed .frame {
+    stroke-dasharray: 2 1;
+    stroke-dashoffset: 1;
+  }
+
+  .shape-paused .glyph {
+    opacity: 0.8;
+  }
+
+  /* An explicit colour opts out of forced colours; hand it back. */
+  @media (forced-colors: active) {
+    .status .glyph {
+      color: CanvasText;
+    }
+  }
+</style>

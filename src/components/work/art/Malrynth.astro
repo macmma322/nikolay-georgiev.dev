@@ -1,0 +1,284 @@
+---
+/**
+ * Malrynth plate: memory-map canonicalisation, read top to bottom against the
+ * boot index on the left. Row 00 is the firmware's map as delivered, row 04
+ * the kernel-owned canonical map, row 05 the next milestone.
+ *
+ * Every width is schematic. There are no addresses or sizes on purpose: the
+ * plate shows the rules, not a machine's real map. Canonical edges sit on an
+ * 8-unit grid (page aligned); the firmware's edges deliberately do not.
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates, CH, fit } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// Stage names MALBOOT and BOOTINFO V1, MMIO and RAM stay as drawn.
+const a = t(plates.malrynth.art);
+
+// Row centres shared by the index and the drawing.
+const ROW = { fw: 88, owned: 248, next: 392 };
+const H = 24;
+const RAIL = { x: 240, end: 612, breakAt: 528 };
+
+// Boot index. "fw -> malboot -> BootInfo v1 -> Kernel _start -> Physical
+// memory (M1A)", then "Page tables, higher half ... M1B" as planned
+// (src/data/diagrams/malrynth.ts).
+// The index column holds 15 characters before a leader runs out of room.
+const stages = [
+  { n: '00', name: a.firmware, y: ROW.fw, leader: true },
+  { n: '01', name: 'MALBOOT', y: 128 },
+  { n: '02', name: 'BOOTINFO V1', y: 168 },
+  { n: '03', name: a.kernel, y: 208 },
+  { n: '04', name: a.memory, y: ROW.owned, now: true },
+  { n: '05', name: a.paging, y: ROW.next, planned: true, leader: true },
+];
+const builtEnd = ROW.owned + 84;
+
+// Canonical map, address order. "rounds usable RAM inward and reservations
+// outward, lets reservations win overlaps, and sorts and merges the result"
+// (malrynth.md, hard problem 2).
+type Span = readonly [number, number];
+const canon = {
+  u1: [240, 304],
+  r1: [304, 328],
+  u2: [328, 416],
+  hole: [416, 448],
+  u3: [448, 512],
+  mmio: [560, 600],
+} as const;
+const cTop = ROW.owned - H / 2;
+const cBot = ROW.owned + H / 2;
+
+// Firmware map, delivery order, off-grid widths. "The firmware map is treated
+// as untrusted" (malrynth.md, built). Each entry points at the canonical range
+// it becomes.
+const fwTop = ROW.fw - H / 2;
+const fwBot = ROW.fw + H / 2;
+const delivered = [
+  { x: 241, w: 70, kind: 'usable', to: 480 },
+  { x: 317, w: 18, kind: 'reserved', to: 316 },
+  { x: 341, w: 34, kind: 'usable', to: 288 },
+  { x: 381, w: 43, kind: 'mmio', to: 580 },
+  { x: 430, w: 102, kind: 'usable', to: 372 },
+  { x: 538, w: 33, kind: 'usable', to: 256 },
+];
+
+// 45-degree hatch clipped to a rectangle (lines, not a pattern, so a lit part
+// can recolour them).
+function hatch(x1: number, y1: number, x2: number, y2: number, step = 6) {
+  let d = '';
+  for (let c = x1 + y1 + step / 2; c < x2 + y2; c += step) {
+    const sx = Math.max(x1, c - y2);
+    const ex = Math.min(x2, c - y1);
+    if (ex - sx >= 0.5) d += `M${sx} ${c - sx}L${ex} ${c - ex}`;
+  }
+  return d;
+}
+
+const box = ([a, b]: Span, y: number, h: number) => `M${a} ${y}H${b}V${y + h}H${a}Z`;
+
+// The address rail: two hairlines, broken once (not to scale) before high MMIO.
+const rail = [cTop, cBot]
+  .map((y) => `M${RAIL.x} ${y}H${RAIL.breakAt}M${RAIL.breakAt + 16} ${y}H${RAIL.end}`)
+  .join('');
+// Page grid under the rail: every canonical edge lands on a tick.
+let ruler = '';
+for (let x = RAIL.x; x <= RAIL.breakAt; x += 8) ruler += `M${x} ${cBot}v${x % 64 === 48 ? 5 : 3}`;
+const breakMark = `M${RAIL.breakAt - 3} ${cBot + 5}L${RAIL.breakAt + 5} ${cTop - 5}M${RAIL.breakAt + 11} ${cBot + 5}L${RAIL.breakAt + 19} ${cTop - 5}`;
+
+// One accent path: the usable RAM the kernel now owns.
+const usable: Span[] = [canon.u1, canon.u2, canon.u3];
+const ownedPath = usable.map((r) => box(r, cTop, H)).join('');
+
+// Rounding marks: an arrowhead under each edge that moved. A shared edge
+// moves one way for both neighbours (304 left, 328 right).
+const arrow = (x: number, dir: 1 | -1, y = cBot + 9) =>
+  `M${x} ${y - 3}L${x + dir * 5} ${y}L${x} ${y + 3}Z`;
+const inward = [arrow(240, 1), arrow(416, -1), arrow(448, 1), arrow(512, -1)].join('');
+const outward = [arrow(304, -1), arrow(328, 1)].join('');
+
+// Frame allocator: usable frames only, numbered without the holes.
+// "a two-bitmap frame allocator" and "Frame numbers are compacted across
+// holes" (malrynth.md, built and hard problem 3).
+const bm = { x: 240, cell: 8, y: 300 };
+let cursor = bm.x;
+const guides = usable
+  .map(([a, b]) => {
+    const from = cursor;
+    cursor += b - a;
+    return `M${a} ${cBot + 16}L${from} ${bm.y - 4}M${b} ${cBot + 16}L${cursor} ${bm.y - 4}`;
+  })
+  .join('');
+const bmEnd = cursor;
+const cells = (y: number) => {
+  let d = `M${bm.x} ${y}H${bmEnd}V${y + bm.cell}H${bm.x}Z`;
+  for (let x = bm.x + bm.cell; x < bmEnd; x += bm.cell) d += `M${x} ${y}V${y + bm.cell}`;
+  return d;
+};
+
+// "The next milestone's direct map will cover classified RAM only"
+// (malrynth.md, decisions).
+const nextPath = usable.map((r) => box(r, ROW.next - 8, 16)).join('');
+---
+
+<PlateFrame slug="malrynth" compact={compact} legend={legend}>
+  <g class="part" data-part="boot">
+    <path class="wire" d={`M24 ${ROW.fw}V${builtEnd}`}></path>
+    <path class="wire planned" d={`M24 ${builtEnd}V${ROW.next}`}></path>
+    {stages.map((s) => (
+      <g>
+        <rect
+          x="20.5"
+          y={s.y - 3.5}
+          width="7"
+          height="7"
+          class:list={['node', { now: s.now, planned: s.planned }]}
+        />
+        <text x="38" y={s.y + 4.5} class="t">
+          {s.n}
+        </text>
+        <text x="66" y={s.y + 4.5} class={s.now ? 't-strong' : 't'}>
+          {s.name}
+        </text>
+        {s.leader && (
+          <path class="wire leader" d={`M${66 + s.name.length * CH + 8} ${s.y}H${RAIL.x - 8}`} />
+        )}
+      </g>
+    ))}
+  </g>
+
+  <g class="part" data-part="untrusted">
+    {delivered.map((d) => (
+      <rect x={d.x} y={fwTop} width={d.w} height={H} class={d.kind === 'usable' ? 'ink' : 'wire'} />
+    ))}
+    {delivered
+      .filter((d) => d.kind === 'reserved')
+      .map((d) => (
+        <path class="wire" d={hatch(d.x, fwTop, d.x + d.w, fwBot)} />
+      ))}
+    <text x="612" y={fwTop - 9} text-anchor="end" class="t">
+      {a.untrusted}
+    </text>
+  </g>
+
+  <g class="part" data-part="sort">
+    <rect
+      x={RAIL.x}
+      y={fwBot + 2}
+      width={RAIL.end - RAIL.x}
+      height={cTop - fwBot - 4}
+      class="hit no-lit"
+    />
+    <path
+      class="wire sort"
+      d={delivered.map((d) => `M${d.x + d.w / 2} ${fwBot + 4}L${d.to} ${cTop - 4}`).join('')}
+    ></path>
+  </g>
+
+  <g class="context">
+    <path class="faint" d={rail}></path>
+    <path class="faint" d={ruler}></path>
+  </g>
+
+  <g class="part" data-part="frames">
+    <path class="wire" d={breakMark}></path>
+    <rect
+      x={canon.mmio[0]}
+      y={cTop}
+      width={canon.mmio[1] - canon.mmio[0]}
+      height={H}
+      class="wire"
+    />
+    <text x={canon.hole[0] + 16} y={cTop - 9} text-anchor="middle" class="t t-minor">
+      {a.hole}
+    </text>
+    <text x={canon.mmio[1]} y={cBot + 22} text-anchor="end" class="t t-minor">
+      MMIO
+    </text>
+    <path class="wire guide" d={guides}></path>
+    <path class="wire" d={cells(bm.y)}></path>
+    <path class="wire" d={cells(bm.y + 12)}></path>
+    <text x={bmEnd + 16} y={bm.y + 15} textLength={fit(a.bitmaps, 612 - (bmEnd + 16))} class="t">
+      {a.bitmaps}
+    </text>
+  </g>
+
+  <g class="part" data-part="reserve">
+    <rect x={canon.r1[0]} y={cTop} width={canon.r1[1] - canon.r1[0]} height={H} class="ink" />
+    <path class="wire" d={hatch(canon.r1[0], cTop, canon.r1[1], cBot)}></path>
+    <path class="mark" d={outward}></path>
+  </g>
+
+  <g class="part" data-part="owned">
+    <path class="owned accent" d={ownedPath}></path>
+    <path class="mark" d={inward}></path>
+  </g>
+
+  <g class="part" data-part="next">
+    <path class="wire planned" d={nextPath}></path>
+    <text x={RAIL.end} y={ROW.next + 4.5} text-anchor="end" class="t t-minor">
+      {a.ramOnly}
+    </text>
+  </g>
+</PlateFrame>
+
+<style>
+  .node {
+    fill: var(--steel-dim);
+    stroke: var(--steel-dim);
+  }
+
+  .node.planned {
+    fill: var(--ink-deep);
+    stroke-dasharray: 2 2;
+  }
+
+  .node.now {
+    fill: var(--fg);
+    stroke: var(--fg);
+  }
+
+  .owned {
+    fill: var(--ink-1);
+    stroke-width: 1.4;
+  }
+
+  .mark {
+    fill: var(--steel);
+  }
+
+  /* Invisible hover targets for parts drawn only in hairlines */
+  .hit {
+    fill: transparent;
+    stroke: none;
+  }
+
+  .wire.sort {
+    stroke-width: 1;
+  }
+
+  .wire.leader {
+    stroke-width: 1;
+    stroke-dasharray: 1 4;
+  }
+
+  .wire.guide {
+    stroke-width: 1;
+    stroke-dasharray: 1 3;
+  }
+
+  /* Thumbnails carry no text: drop the index and centre the drawing. */
+  :global(.project-plate.compact) [data-part='boot'] {
+    display: none;
+  }
+
+  :global(.project-plate.compact .plate-svg) > :is(.part, .context) {
+    transform: translate(-108px, 0);
+  }
+</style>

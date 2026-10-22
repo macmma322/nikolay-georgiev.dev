@@ -1,0 +1,463 @@
+---
+/**
+ * The contact block, in two variants:
+ *   footer  the finale that closes every page except the contact page
+ *   page    the /contact page itself: the h1, and the only place the phone
+ *           number is rendered (see site.ts)
+ * Email is the largest thing in both; the phone sits under it, a size down.
+ */
+import { site } from '@/data/site';
+import CopyButton from '@/components/ui/CopyButton.astro';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { contact } from '@/i18n/ui/contact';
+import { iconFor } from '@/lib/icons';
+
+interface Props {
+  variant: 'footer' | 'page';
+}
+
+const { variant } = Astro.props;
+const page = variant === 'page';
+const { l, t } = useI18n(Astro);
+const c = t(common);
+const s = t(contact);
+
+const [emailUser, emailDomain] = site.email.split('@');
+const githubMark = iconFor('github')?.path;
+// simple-icons no longer ships LinkedIn; its mark on the same 24px grid.
+const linkedinMark =
+  'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.125 2.062 2.062 0 0 1 0 4.125zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
+---
+
+<div class:list={['container', 'finale', variant]} id={page ? 'contact' : undefined}>
+  <div class="finale-head">
+    {page ? (
+      <h1 id="contact-h1" class="label">
+        {s.label}
+      </h1>
+    ) : (
+      <p class="label">{s.label}</p>
+    )}
+    {page ? (
+      <p class="finale-title" data-vt-lang="title">
+        {s.statement.lead} <em>{s.statement.em}</em>
+      </p>
+    ) : (
+      <h2 id="contact-title" class="finale-title">
+        {s.statement.lead} <em>{s.statement.em}</em>
+      </h2>
+    )}
+    <p class="finale-support" data-vt-lang={page ? 'lede' : undefined}>
+      {s.support}
+    </p>
+  </div>
+
+  <div class="email-row">
+    <a class="email" href={`mailto:${site.email}`}>
+      {emailUser}
+      <wbr />@{emailDomain}
+    </a>
+    <CopyButton value={site.email} label={s.copyEmail} />
+  </div>
+
+  {page && (
+    <div class="phone-row">
+      <a class="phone" href={`tel:${site.phone.tel}`}>
+        <svg
+          class="phone-glyph"
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M3.5 2.5h2.2l1.1 3-1.5 1.2a7.5 7.5 0 0 0 4 4l1.2-1.5 3 1.1v2.2a1 1 0 0 1-1 1A11.5 11.5 0 0 1 2.5 3.5a1 1 0 0 1 1-1z" />
+        </svg>
+        <span class="visually-hidden">{s.phone}</span>
+        <span class="phone-number">{site.phone.display}</span>
+      </a>
+      <CopyButton value={site.phone.tel} label={s.copyPhone} />
+    </div>
+  )}
+
+  <ul class="channels" role="list">
+    <li>
+      <a href={site.links.github} rel="me noopener" target="_blank">
+        <svg class="brand" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d={githubMark}></path>
+        </svg>
+        GitHub{' '}
+        <span class="glyph ext" aria-hidden="true">
+          ↗
+        </span>
+        <span class="visually-hidden">{c.newTab}</span>
+      </a>
+    </li>
+    <li>
+      <a href={site.links.linkedin} rel="me noopener" target="_blank">
+        <svg class="brand" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d={linkedinMark}></path>
+        </svg>
+        LinkedIn{' '}
+        <span class="glyph ext" aria-hidden="true">
+          ↗
+        </span>
+        <span class="visually-hidden">{c.newTab}</span>
+      </a>
+    </li>
+    <li>
+      <a href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+        CV <span class="muted">{s.cvMeta}</span>
+        <span class="glyph down" aria-hidden="true">
+          ↓
+        </span>
+        <span class="visually-hidden">{c.pdfDownload}</span>
+      </a>
+    </li>
+  </ul>
+
+  {page && (
+    <div class="elsewhere">
+      <p class="label">{s.elsewhere}</p>
+      <ul class="channels minor" role="list">
+        {site.elsewhere.map((profile) => (
+          <li>
+            <a href={profile.href} rel="me noopener" target="_blank">
+              <svg class="brand" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d={iconFor(profile.icon)?.path}></path>
+              </svg>
+              {profile.name}{' '}
+              <span class="glyph ext" aria-hidden="true">
+                ↗
+              </span>
+              <span class="visually-hidden">{c.newTab}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )}
+
+  <dl class="facts">
+    <div>
+      <dt class="label">{s.facts.based}</dt>
+      <dd>{l(site.location)}</dd>
+    </div>
+    <div>
+      <dt class="label">{s.facts.time}</dt>
+      <dd>
+        <time data-local-time data-tz={site.timeZone}>
+          {site.timeZone}
+        </time>
+      </dd>
+    </div>
+    <div>
+      <dt class="label">{s.facts.availability}</dt>
+      <dd>{l(site.availability)}</dd>
+    </div>
+    {page && (
+      <div>
+        <dt class="label">{s.facts.languages}</dt>
+        <dd>{s.workingLanguages}</dd>
+      </div>
+    )}
+  </dl>
+</div>
+
+<script>
+  // "15:04 UTC+3" in both languages: Bulgarian ICU names the zone "Гринуич+3",
+  // so the offset comes from en-GB and reads as UTC.
+  const nodes = document.querySelectorAll<HTMLTimeElement>('[data-local-time]');
+  const render = () => {
+    nodes.forEach((node) => {
+      const tz = node.dataset.tz ?? 'Europe/Sofia';
+      const now = new Date();
+      const time = new Intl.DateTimeFormat(document.documentElement.lang || 'en', {
+        timeZone: tz,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }).format(now);
+      const offset =
+        new Intl.DateTimeFormat('en-GB', { timeZone: tz, timeZoneName: 'shortOffset' })
+          .formatToParts(now)
+          .find((part) => part.type === 'timeZoneName')
+          ?.value.replace('GMT', 'UTC') ?? '';
+      node.textContent = `${time} ${offset}`;
+      node.dateTime = now.toISOString();
+    });
+  };
+  if (nodes.length) {
+    render();
+    window.setInterval(render, 30_000);
+  }
+</script>
+
+<style>
+  .finale {
+    padding-block: var(--space-2xl) var(--space-xl);
+    display: grid;
+    gap: var(--space-l);
+  }
+
+  /* The contact page: the block is the page, so it starts closer to the header. */
+  .finale.page {
+    padding-block: var(--space-xl) var(--space-l);
+  }
+
+  /* ---------- The statement and its answer ---------- */
+  /* Rows keep their own height where the sheet beside it is taller, so the
+     label and the title sit at the same place in both languages. */
+  .finale-head {
+    display: grid;
+    gap: var(--space-s);
+    align-content: start;
+  }
+
+  .finale-title {
+    font-family: var(--ff-display);
+    font-size: var(--step-3);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--track-heading);
+    line-height: 1.06;
+    text-wrap: balance;
+    max-width: 22ch;
+    color: var(--fg-2);
+  }
+
+  .finale-title em {
+    font-style: normal;
+    color: var(--fg);
+  }
+
+  .finale-support {
+    font-size: var(--step-1);
+    line-height: 1.45;
+    color: var(--fg-3);
+    max-width: 30ch;
+  }
+
+  /* ---------- Email: the largest thing on the page ---------- */
+  .email-row,
+  .phone-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-s) var(--space-m);
+  }
+
+  .email-row {
+    margin-top: var(--space-xs);
+  }
+
+  /* The phone answers the email from just below it. */
+  .phone-row {
+    margin-top: calc(var(--space-s) - var(--space-l));
+    column-gap: var(--space-s);
+  }
+
+  /*
+   * Mona Sans, not Hubot: Hubot draws zero with a crossbar, which reads as a
+   * theta in "georgiev00". An address people may retype must be unambiguous.
+   * The underline sweeps in from the left and leaves to the right.
+   */
+  .email,
+  .phone {
+    font-family: var(--ff-body);
+    text-decoration: none;
+    padding-bottom: 0.08em;
+    background: linear-gradient(currentColor, currentColor) no-repeat 100% 100% / 0 0.04em;
+    transition:
+      background-size var(--dur-ui) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .email:is(:hover, :focus-visible),
+  .phone:is(:hover, :focus-visible) {
+    background-position: 0 100%;
+    background-size: 100% 0.04em;
+  }
+
+  .email {
+    font-weight: var(--w-heavy);
+    font-size: clamp(1.75rem, 0.35rem + 4.2vw, 3.9rem);
+    letter-spacing: -0.04em;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+
+  .phone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    min-height: 44px;
+    font-weight: var(--w-semibold);
+    /* Small enough on a phone to keep its copy button on the same line. */
+    font-size: clamp(1.2rem, 0.9rem + 1.3vw, 1.95rem);
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg-2);
+  }
+
+  .phone:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  /* A number broken across lines is a wrong number. */
+  .phone-number {
+    white-space: nowrap;
+  }
+
+  .phone-glyph {
+    flex: none;
+    width: 0.8em;
+    height: 0.8em;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linejoin: round;
+    color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .phone:is(:hover, :focus-visible) .phone-glyph {
+    color: currentColor;
+  }
+
+  /* ---------- Channels ---------- */
+  .channels {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 2rem;
+  }
+
+  .channels a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    font-size: var(--step-1);
+    text-decoration: none;
+    color: var(--fg-2);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .channels a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  /* Brand marks: monochrome, a shade quieter than the name until pointed at. */
+  .brand {
+    flex: none;
+    width: 0.9em;
+    height: 0.9em;
+    margin-inline-end: 0.15rem;
+    fill: currentColor;
+    opacity: 0.7;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  .channels a:is(:hover, :focus-visible) .brand {
+    opacity: 1;
+  }
+
+  .glyph {
+    display: inline-block;
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .channels a:hover .ext {
+      translate: 2px -2px;
+    }
+    .channels a:hover .down {
+      translate: 0 2px;
+    }
+  }
+
+  .channels a:focus-visible .ext {
+    translate: 2px -2px;
+  }
+  .channels a:focus-visible .down {
+    translate: 0 2px;
+  }
+
+  /* Personal profiles: the same rail, a size down and quieter. */
+  .elsewhere {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 1.5rem;
+    margin-top: calc(var(--space-s) * -1);
+  }
+
+  .channels.minor a {
+    font-size: var(--step-0);
+    color: var(--fg-3);
+  }
+
+  .channels.minor a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  /* ---------- Facts: a ruled spec sheet ---------- */
+  /* One label column for every row, as wide as the longest label needs
+     (Bulgarian labels run longer), never narrower than the English sheet. */
+  .facts {
+    display: grid;
+    grid-template-columns: minmax(8.5rem, max-content) minmax(0, 1fr);
+    column-gap: var(--space-s);
+  }
+
+  .facts > div {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: baseline;
+    padding-block: 0.65rem;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* Narrow phones: long labels wrap (never below their longest word), so the
+     values keep room to read. */
+  @media (max-width: 400px) {
+    .facts {
+      grid-template-columns: minmax(8.5rem, min-content) minmax(0, 1fr);
+    }
+  }
+
+  .facts dd {
+    color: var(--fg-2);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* From 1000px the sheet sits beside the statement, level with its last
+     line, and the email runs the full width underneath. */
+  @media (min-width: 1000px) {
+    .finale {
+      grid-template-columns: minmax(0, 1fr) minmax(20rem, 29rem);
+      column-gap: var(--space-xl);
+    }
+    .finale-head {
+      grid-area: 1 / 1;
+    }
+    .facts {
+      grid-area: 1 / 2;
+      align-self: end;
+    }
+    .facts > div:last-child {
+      border-bottom: 1px solid var(--line-soft);
+    }
+    .email-row,
+    .phone-row,
+    .channels,
+    .elsewhere {
+      grid-column: 1 / -1;
+    }
+  }
+</style>

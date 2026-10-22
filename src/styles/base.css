@@ -1,0 +1,535 @@
+@import './tokens.css';
+
+/* ---------- Reset ---------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+* {
+  margin: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-padding-top: calc(var(--header-h) + 1rem);
+  background: var(--ink-0);
+  hanging-punctuation: first last;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+body {
+  min-height: 100dvh;
+  background: var(--ink-0);
+  color: var(--fg);
+  font-family: var(--ff-body);
+  font-size: var(--step-0);
+  line-height: 1.62;
+  font-kerning: normal;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: clip;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}
+
+img {
+  height: auto;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a,
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  cursor: pointer;
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+p,
+li,
+dd,
+figcaption {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--ff-display);
+  font-weight: 650;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  overflow-wrap: break-word;
+}
+
+ul[role='list'],
+ol[role='list'] {
+  list-style: none;
+  padding: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+::selection {
+  background: oklch(0.68 0.19 30 / 0.4);
+  color: var(--fg);
+}
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 3px;
+  border-radius: var(--radius-xs);
+}
+
+/* ---------- Native cross-document view transitions (zero JS) ----------
+ * The header stays put, the page crossfades, and a project's title and plate
+ * travel between the index, the homepage chapter and the case study. Pages
+ * opt elements in with data-vt-title / data-vt-art set to the project slug;
+ * each slug may appear at most once per attribute on a page.
+ */
+@view-transition {
+  navigation: auto;
+}
+
+.site-header {
+  view-transition-name: site-header;
+}
+
+::view-transition-old(site-header) {
+  display: none;
+}
+
+::view-transition-new(site-header),
+::view-transition-group(site-header) {
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation: vt-out var(--dur-fast) var(--ease-out) both;
+}
+
+::view-transition-new(root) {
+  animation: vt-in var(--dur-panel) var(--ease-out) 60ms both;
+}
+
+::view-transition-group(*.title),
+::view-transition-group(*.art) {
+  animation-duration: 340ms;
+  animation-timing-function: var(--ease-in-out);
+}
+
+/* A title or plate with no partner on the other page leaves with the page. */
+::view-transition-old(*.title):only-child,
+::view-transition-old(*.art):only-child {
+  animation: vt-out var(--dur-fast) var(--ease-out) both;
+}
+
+::view-transition-new(*.title):only-child,
+::view-transition-new(*.art):only-child {
+  animation: vt-in var(--dur-panel) var(--ease-out) 60ms both;
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+  }
+}
+
+[data-vt-title] {
+  view-transition-class: title;
+}
+/* Plates travel as their 4:3 canvas only, so a case-hero legend never morphs. */
+[data-vt-art] .plate-canvas {
+  view-transition-class: art;
+}
+[data-vt-title='zone-32-19'] {
+  view-transition-name: title-zone;
+}
+[data-vt-title='jarvis'] {
+  view-transition-name: title-jarvis;
+}
+[data-vt-title='uss-x-academy'] {
+  view-transition-name: title-ussx;
+}
+[data-vt-title='kobait'] {
+  view-transition-name: title-kobait;
+}
+[data-vt-title='malrynth'] {
+  view-transition-name: title-malrynth;
+}
+[data-vt-title='stemini'] {
+  view-transition-name: title-stemini;
+}
+[data-vt-art='zone-32-19'] .plate-canvas {
+  view-transition-name: art-zone;
+}
+[data-vt-art='jarvis'] .plate-canvas {
+  view-transition-name: art-jarvis;
+}
+[data-vt-art='uss-x-academy'] .plate-canvas {
+  view-transition-name: art-ussx;
+}
+[data-vt-art='kobait'] .plate-canvas {
+  view-transition-name: art-kobait;
+}
+[data-vt-art='malrynth'] .plate-canvas {
+  view-transition-name: art-malrynth;
+}
+[data-vt-art='stemini'] .plate-canvas {
+  view-transition-name: art-stemini;
+}
+
+/*
+ * Listing pages name every project, so only the row being activated (under
+ * the pointer or holding focus) keeps its names; a plain Home to Work visit
+ * then crossfades instead of flying twelve titles and plates in from below.
+ */
+[data-vt-scope]:not(:hover, :focus-within) :is([data-vt-title], [data-vt-art] .plate-canvas) {
+  view-transition-name: none;
+}
+
+/* ---------- Language switch (type `lang`, added by HeadBoot) ----------
+ * Same page, other language, same place. The page and the header crossfade
+ * on matched curves, so everything that did not change holds still; the
+ * switch marker slides to the new language; the page title and its lede
+ * (data-vt-lang, at most one of each per page) roll over behind a clip: the
+ * old text leaves upwards, the new rises in. Images keep their natural size,
+ * anchored top-left, so a longer line is never stretched. Plates stay put.
+ */
+html:active-view-transition-type(lang) [data-vt-lang='title'] {
+  view-transition-name: lang-title;
+}
+html:active-view-transition-type(lang) [data-vt-lang='lede'] {
+  view-transition-name: lang-lede;
+}
+
+/* plus-lighter, as the UA crossfade has it (an author animation drops it):
+   two matched curves then add up to the unchanged pixel. */
+html:active-view-transition-type(lang)::view-transition-old(root) {
+  animation: vt-out var(--dur-ui) var(--ease-out) both;
+  mix-blend-mode: plus-lighter;
+}
+html:active-view-transition-type(lang)::view-transition-new(root) {
+  animation: vt-in var(--dur-ui) var(--ease-out) both;
+  mix-blend-mode: plus-lighter;
+}
+
+html:active-view-transition-type(lang)::view-transition-old(site-header) {
+  display: block;
+  animation: vt-out var(--dur-fast) var(--ease-out) both;
+  mix-blend-mode: plus-lighter;
+}
+html:active-view-transition-type(lang)::view-transition-new(site-header) {
+  animation: vt-in var(--dur-fast) var(--ease-out) both;
+  mix-blend-mode: plus-lighter;
+}
+
+/* A switch from the open mobile menu: the menu keeps its own snapshot above
+   the header and fades out, instead of the header painting over it. */
+html:active-view-transition-type(lang) #mobile-menu {
+  view-transition-name: lang-menu;
+}
+html:active-view-transition-type(lang)::view-transition-old(lang-menu) {
+  animation: vt-out var(--dur-fast) var(--ease-out) both;
+}
+
+html:active-view-transition-type(lang)::view-transition-group(lang-marker) {
+  animation-duration: var(--dur-fast);
+  animation-timing-function: var(--ease-in-out);
+}
+
+/* Clipped vertically only, with room for accents and descenders. */
+html:active-view-transition-type(lang)::view-transition-group(lang-title),
+html:active-view-transition-type(lang)::view-transition-group(lang-lede) {
+  clip-path: inset(-20% -100vmax);
+  animation-duration: var(--dur-panel);
+  animation-timing-function: var(--ease-in-out);
+}
+
+/* A one-line title rolls fully out of its clip; taller blocks travel less. */
+html:active-view-transition-type(lang)::view-transition-image-pair(lang-title) {
+  --travel: min(100%, 4rem);
+}
+html:active-view-transition-type(lang)::view-transition-image-pair(lang-lede) {
+  --travel: min(100%, 1.5rem);
+}
+
+html:active-view-transition-type(lang)::view-transition-old(lang-title),
+html:active-view-transition-type(lang)::view-transition-old(lang-lede) {
+  inline-size: auto;
+  mix-blend-mode: normal;
+  animation: lang-out var(--dur-fast) var(--ease-out) both;
+}
+html:active-view-transition-type(lang)::view-transition-new(lang-title),
+html:active-view-transition-type(lang)::view-transition-new(lang-lede) {
+  inline-size: auto;
+  mix-blend-mode: normal;
+  /* Starts once the old text is mostly gone, so the two rarely overlap. */
+  animation: lang-in var(--dur-panel) var(--ease-out-expo) calc(2 * var(--stagger)) both;
+}
+
+@keyframes lang-out {
+  to {
+    opacity: 0;
+    translate: 0 calc(-1 * var(--travel));
+  }
+}
+
+@keyframes lang-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--travel);
+  }
+}
+
+/* Plates hold still; the UA crossfade (plus-lighter) keeps identical strokes
+   steady while their words change with the rest of the page. */
+html:active-view-transition-type(lang)::view-transition-group(*.art) {
+  animation: none;
+}
+html:active-view-transition-type(lang)::view-transition-old(*.art),
+html:active-view-transition-type(lang)::view-transition-new(*.art) {
+  animation-duration: var(--dur-ui);
+}
+
+/* Arriving by the language switch (HeadBoot): the homepage entrance does not
+   replay, so the name and the stack stay where they were. */
+:root[data-lang-switch]
+  .hero
+  :is(
+    .word,
+    .hero-meta,
+    .hero-statement,
+    .hero-actions,
+    .now,
+    .plate-body,
+    .lead,
+    .lead-dot,
+    .stack-label
+  ) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition {
+    navigation: none;
+  }
+}
+
+/* ---------- Page atmosphere: one cool wash and near-invisible grain ---------- */
+.atmosphere {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(120vmax 70vmax at 78% -10%, oklch(0.3 0.03 240 / 0.3), transparent 60%),
+    var(--ink-0);
+}
+
+.atmosphere::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.07;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---------- Layout primitives ---------- */
+.container {
+  width: min(100% - 2 * var(--gutter), var(--max));
+  margin-inline: auto;
+}
+
+.measure {
+  max-width: var(--measure);
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  inset-block-start: 0.75rem;
+  inset-inline-start: 0.75rem;
+  z-index: 100;
+  padding: 0.7rem 1rem;
+  background: var(--fg);
+  color: var(--ink-0);
+  font-family: var(--ff-mono);
+  font-size: var(--step--1);
+  text-decoration: none;
+  transform: translateY(-160%);
+}
+
+.skip-link:focus-visible {
+  transform: none;
+}
+
+/* ---------- Type utilities ---------- */
+.mono,
+.label {
+  font-family: var(--ff-mono);
+  font-size: var(--text-label);
+  font-weight: 450;
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+}
+
+.label {
+  text-transform: uppercase;
+  letter-spacing: var(--track-label);
+  color: var(--fg-3);
+}
+
+.display {
+  font-family: var(--ff-display);
+  font-stretch: var(--wide-3);
+  font-weight: 720;
+  letter-spacing: -0.035em;
+  line-height: 0.92;
+}
+
+.lede {
+  font-size: var(--step-1);
+  line-height: 1.5;
+  color: var(--fg-2);
+  max-width: 60ch;
+}
+
+.muted {
+  color: var(--fg-3);
+}
+
+.text-link {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--line-strong);
+  transition: text-decoration-color var(--dur-fast) var(--ease-out);
+}
+
+.text-link:is(:hover, :focus-visible) {
+  text-decoration-color: var(--accent);
+}
+
+/* ---------- Accent mapping (no inline styles: CSP forbids them) ---------- */
+[data-accent='zone'] {
+  --accent: var(--acc-zone);
+}
+[data-accent='jarvis'] {
+  --accent: var(--acc-jarvis);
+}
+[data-accent='ussx'] {
+  --accent: var(--acc-ussx);
+}
+[data-accent='kobait'] {
+  --accent: var(--acc-kobait);
+}
+[data-accent='malrynth'] {
+  --accent: var(--acc-malrynth);
+}
+[data-accent='stemini'] {
+  --accent: var(--acc-stemini);
+}
+[data-accent='signal'] {
+  --accent: var(--signal);
+}
+
+/* ---------- Reveal once (see scripts/reveal.ts) ----------
+ * Content is never hidden by default. The script marks the document with
+ * data-motion only when motion is allowed, shows anything already on screen
+ * at once, and plays the rest a single time as it arrives. It uses the
+ * `translate` property so components keep ownership of `transform`.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion] .reveal:not([data-shown]) {
+    opacity: 0;
+    translate: 0 var(--move-m);
+  }
+
+  :root[data-motion] .reveal[data-shown='play'] {
+    transition:
+      opacity var(--dur-content) var(--ease-out-expo),
+      translate var(--dur-content) var(--ease-out-expo);
+  }
+}
+
+@media print {
+  .reveal {
+    opacity: 1 !important;
+    translate: none !important;
+  }
+}
+
+/* ---------- Reduced motion ----------
+ * Remove movement, keep meaning: animations collapse to their end state,
+ * transforms and travel become instant, but short colour and opacity changes
+ * (a lit plate, a copied state) still fade, because they explain state.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-property:
+      color, background-color, border-color, outline-color, text-decoration-color, fill, stroke,
+      opacity, --lit, --plate-lit !important;
+    transition-duration: var(--dur-fast) !important;
+    transition-delay: 0ms !important;
+  }
+}

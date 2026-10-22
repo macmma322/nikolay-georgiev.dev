@@ -1,0 +1,12 @@
+---
+import Project from '@/views/Project.astro';
+import { projectPaths } from '@/lib/projects';
+
+export const getStaticPaths = projectPaths;
+
+interface Props {
+  slug: string;
+}
+---
+
+<Project slug={Astro.props.slug} />

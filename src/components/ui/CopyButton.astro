@@ -1,0 +1,150 @@
+---
+import { useI18n } from '@/i18n';
+import { contact } from '@/i18n/ui/contact';
+
+interface Props {
+  value: string;
+  /** Accessible name; must say what is copied ("Copy email address"). */
+  label: string;
+}
+const { value, label } = Astro.props;
+// The script is bundled once for both languages: its messages ride on data-*.
+const s = useI18n(Astro).t(contact.copy);
+---
+
+<span class="copy-wrap">
+  <button
+    class="copy"
+    type="button"
+    data-copy={value}
+    data-done={s.doneMessage}
+    data-failed={s.failedMessage}
+    aria-label={label}
+  >
+    <span class="stack icons" aria-hidden="true">
+      <svg class="idle" viewBox="0 0 16 16" width="14" height="14">
+        <rect
+          x="5.5"
+          y="5.5"
+          width="8"
+          height="8"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.3"
+        ></rect>
+        <path d="M3 10.5V2.5h8" fill="none" stroke="currentColor" stroke-width="1.3"></path>
+      </svg>
+      <svg class="done" viewBox="0 0 16 16" width="14" height="14">
+        <path d="m3 8.5 3 3 7-7" fill="none" stroke="currentColor" stroke-width="1.6"></path>
+      </svg>
+    </span>
+    {/* Every label shares one grid cell, so the width never jumps. */}
+    <span class="stack words" aria-hidden="true">
+      <span class="idle">{s.idle}</span>
+      <span class="done">{s.done}</span>
+      <span class="failed">{s.failed}</span>
+    </span>
+  </button>
+  <span class="visually-hidden" role="status"></span>
+</span>
+
+<script>
+  document.querySelectorAll<HTMLButtonElement>('button[data-copy]').forEach((button) => {
+    const status = button.nextElementSibling as HTMLElement | null;
+    let timer = 0;
+    button.addEventListener('click', async () => {
+      let ok = true;
+      try {
+        await navigator.clipboard.writeText(button.dataset.copy ?? '');
+      } catch {
+        ok = false;
+      }
+      button.dataset.state = ok ? 'copied' : 'failed';
+      if (status) {
+        // Empty first, refill next frame: a repeat click is announced again.
+        status.textContent = '';
+        window.requestAnimationFrame(() => {
+          status.textContent = (ok ? button.dataset.done : button.dataset.failed) ?? '';
+        });
+      }
+      // Cleared after the await, so a click that lands mid-write cannot let
+      // an earlier timer reset the newer state.
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        delete button.dataset.state;
+        if (status) status.textContent = '';
+      }, 2000);
+    });
+  });
+</script>
+
+<style>
+  .copy-wrap {
+    display: inline-flex;
+  }
+
+  .copy {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-2);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .copy:is(:hover, :focus-visible) {
+    color: var(--fg);
+    border-color: var(--fg-2);
+  }
+
+  .copy:active {
+    scale: 0.97;
+  }
+
+  .copy[data-state='copied'] {
+    color: var(--ink-0);
+    background: var(--fg);
+    border-color: var(--fg);
+  }
+
+  .stack {
+    display: grid;
+    place-items: center start;
+  }
+
+  .stack > * {
+    grid-area: 1 / 1;
+    transition:
+      opacity var(--dur-fast) var(--ease-out),
+      translate var(--dur-fast) var(--ease-out);
+  }
+
+  /* Resting: only "Copy" and its icon; the others wait just below. */
+  .stack > :not(.idle) {
+    opacity: 0;
+    translate: 0 4px;
+  }
+
+  .copy[data-state] .stack > .idle {
+    opacity: 0;
+    translate: 0 -4px;
+  }
+
+  .copy[data-state='copied'] .stack > .done,
+  .copy[data-state='failed'] .words > .failed,
+  .copy[data-state='failed'] .icons > .idle {
+    opacity: 1;
+    translate: none;
+  }
+</style>

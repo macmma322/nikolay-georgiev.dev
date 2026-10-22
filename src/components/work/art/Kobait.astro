@@ -1,0 +1,163 @@
+---
+/**
+ * KObait plate: a schematic plan view of the remote, the radio link and the
+ * boat, over a strip that shows what the failsafe does with silence.
+ *
+ * Schematic on purpose, like the Malrynth plate: no part numbers, sizes,
+ * timings, pin names or boat internals. It shows the rules (control travels
+ * over the link, AUTO is gated off, silence stops the boat), not the build.
+ *
+ * Nothing here is telemetry: no speeds, no battery levels, no coordinates,
+ * and no water (the boat has only been bench-tested).
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// The word AUTO and the waypoint names stay as drawn; the callout column
+// holds about 5 characters.
+const a = t(plates.kobait.art);
+
+// Failsafe strip: control frames, then silence, then the stop. The spacing is
+// schematic; there is no time axis and no units.
+const T = { x0: 60, y: 392, stop: 360 };
+const frames = [0, 1, 2, 3].map((i) => T.x0 + i * 44);
+const silence = { from: 216, to: 352 };
+
+// Boat, plan view, bow up: the silhouette only.
+const B = { cx: 494, l: 448, r: 540, bow: 76, stern: 290 };
+const hull = `M${B.l} ${B.stern}V160C${B.l} 120 ${B.cx - 24} 92 ${B.cx} ${B.bow}C${B.cx + 24} 92 ${B.r} 120 ${B.r} 160V${B.stern}Z`;
+const gunwale = `M${B.l + 7} ${B.stern - 7}V162C${B.l + 7} 126 ${B.cx - 20} 102 ${B.cx} ${B.bow + 12}C${B.cx + 20} 102 ${B.r - 7} 126 ${B.r - 7} 162V${B.stern - 7}Z`;
+
+// Waypoints: "Waypoint navigation to saved points" (kobait.md, built);
+// "AUTO is gated off in firmware" (kobait.md, now).
+const wp = { h: [206, 258], a: [300, 158], b: [392, 246] } as const;
+const route = `M${wp.h.join(' ')}L${wp.a.join(' ')}L${wp.b.join(' ')}Z`;
+
+// Remote: a screen, a stick and a pad, drawn 3:2. Generic controls only.
+const R = { x: 40, y: 116, w: 112, h: 186 };
+const antenna = { x: 58, y: 92 };
+const boatAntenna = { x: B.l + 8, y: 176 };
+const link = `M${antenna.x} ${antenna.y}Q262 12 ${boatAntenna.x} ${boatAntenna.y}`;
+---
+
+<PlateFrame slug="kobait" compact={compact} legend={legend}>
+  <g class="context">
+    <path class="ink" d={hull}></path>
+    <path class="faint" d={gunwale}></path>
+    <path class="faint" d={`M${T.x0} ${T.y}H${T.stop + 12}`}></path>
+  </g>
+
+  <g class="part" data-part="remote">
+    <rect x={R.x} y={R.y} width={R.w} height={R.h} rx="10" class="ink" />
+    <rect x={R.x + 11} y={R.y + 14} width="90" height="60" class="wire screen" />
+    <circle cx={R.x + 36} cy={R.y + 118} r="17" class="wire" />
+    <circle cx={R.x + 36} cy={R.y + 118} r="6" class="wire" />
+    <path
+      class="wire"
+      d={`M${R.x + 71} ${R.y + 113}h10v-10h10v10h10v10h-10v10h-10v-10h-10z`}
+    ></path>
+    <circle cx={R.x + 36} cy={R.y + 162} r="6" class="wire" />
+    <circle cx={R.x + 76} cy={R.y + 162} r="6" class="wire" />
+    <path class="wire" d={`M${antenna.x} ${R.y}V${antenna.y}`}></path>
+    <text x={R.x} y={R.y + R.h + 22} class="t">
+      {a.remote}
+    </text>
+  </g>
+
+  <g class="part" data-part="link">
+    <path class="band no-lit" d={link}></path>
+    <path class="accent link" d={link}></path>
+    <circle cx={antenna.x} cy={antenna.y} r="3" class="accent dot" />
+    <circle cx={boatAntenna.x} cy={boatAntenna.y} r="3" class="accent dot" />
+    <text x="262" y="60" text-anchor="middle" class="t">
+      {a.link}
+    </text>
+  </g>
+
+  <g class="part" data-part="auto">
+    <path class="hit no-lit" d={route}></path>
+    <path class="wire planned" d={route}></path>
+    <rect x={wp.h[0] - 4} y={wp.h[1] - 4} width="8" height="8" class="wire pin" />
+    <circle cx={wp.a[0]} cy={wp.a[1]} r="4" class="wire pin" />
+    <circle cx={wp.b[0]} cy={wp.b[1]} r="4" class="wire pin" />
+    <text x={wp.h[0] - 14} y={wp.h[1] + 4.5} text-anchor="end" class="t">
+      H
+    </text>
+    <text x={wp.a[0]} y={wp.a[1] - 12} text-anchor="middle" class="t">
+      A
+    </text>
+    <text x={wp.b[0] + 14} y={wp.b[1] + 4.5} class="t">
+      B
+    </text>
+    <text x="300" y="292" text-anchor="middle" class="t">
+      {a.auto}
+    </text>
+  </g>
+
+  <g class="part" data-part="failsafe">
+    {frames.map((x) => (
+      <rect x={x} y={T.y - 10} width="8" height="10" class="wire" />
+    ))}
+    <path class="wire planned" d={`M${silence.from} ${T.y - 5}H${silence.to}`}></path>
+    <rect x={T.stop - 2} y={T.y - 22} width="4" height="28" class="stop" />
+    <text x={(silence.from + silence.to) / 2} y={T.y - 30} text-anchor="middle" class="t callout">
+      {a.silence}
+    </text>
+    <text x={T.stop} y={T.y - 30} text-anchor="middle" class="t">
+      {a.stop}
+    </text>
+  </g>
+</PlateFrame>
+
+<style>
+  .wire.screen {
+    fill: var(--ink-deep);
+  }
+
+  .link {
+    fill: none;
+    stroke-width: 1.6;
+  }
+
+  .dot {
+    fill: var(--accent);
+  }
+
+  .wire.pin,
+  .pin {
+    fill: var(--steel-dim);
+  }
+
+  /* Invisible hover targets for parts drawn only in hairlines */
+  .hit {
+    fill: transparent;
+    stroke: none;
+  }
+
+  .band {
+    fill: none;
+    stroke: transparent;
+    stroke-width: 16;
+  }
+
+  .stop {
+    fill: var(--fg);
+  }
+
+  /*
+   * Callouts hide on phones. Their own cutoff (not .t-minor's 480px) keeps them
+   * in the home chapter, where the plate renders just under 480px wide.
+   */
+  @container (max-width: 440px) {
+    .callout {
+      display: none;
+    }
+  }
+</style>

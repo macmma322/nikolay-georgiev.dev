@@ -1,0 +1,67 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import { useI18n } from '@/i18n';
+import { seo } from '@/i18n/ui/seo';
+import { common } from '@/i18n/ui/common';
+import { notFound } from '@/i18n/ui/notfound';
+
+const { t, href } = useI18n(Astro);
+const s = t(seo);
+const c = t(common);
+const nf = t(notFound);
+---
+
+<BaseLayout title={s.notFound.title} description={s.notFound.description} noindex>
+  <section class="container nf" aria-labelledby="nf-title">
+    <p class="label">{nf.label}</p>
+    <h1 id="nf-title" class="title" data-vt-lang="title">
+      {nf.title}
+    </h1>
+    <p class="lede" data-vt-lang="lede">
+      {nf.lede}
+    </p>
+    <div class="actions">
+      <Button href={href('/')}>{c.home}</Button>
+      <Button href={href('/work')} variant="secondary">
+        {nf.allWork}
+      </Button>
+    </div>
+  </section>
+</BaseLayout>
+
+<style>
+  .nf {
+    padding-top: var(--space-3xl);
+    min-height: 50vh;
+  }
+
+  .title {
+    margin-top: var(--space-s);
+    font-size: var(--step-5);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: var(--track-display);
+    line-height: 0.95;
+    max-width: 16ch;
+  }
+
+  .lede {
+    margin-top: var(--space-m);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: var(--space-l);
+  }
+
+  /* Phones: two equal, full-width choices. */
+  @media (max-width: 479px) {
+    .actions > :global(.btn) {
+      flex: 1;
+      justify-content: space-between;
+    }
+  }
+</style>

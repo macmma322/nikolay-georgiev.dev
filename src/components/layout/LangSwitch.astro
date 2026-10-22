@@ -1,0 +1,219 @@
+---
+/**
+ * Language switch: two real links to this page in each language (crawlable,
+ * works without JS). The header variant is a compact EN | BG pair whose
+ * marker slides to the new language during the language view transition
+ * (base.css); the menu variant spells the languages out. The bundled script
+ * remembers the choice and carries the section in view across (HeadBoot).
+ */
+import { LOCALES, LOCALE_META, useI18n } from '@/i18n';
+import { header } from '@/i18n/ui/header';
+
+interface Props {
+  variant: 'header' | 'menu';
+}
+
+const { variant } = Astro.props;
+const { locale, l, alternates } = useI18n(Astro);
+const label = l(header.language);
+const labelId = `lang-label-${variant}`;
+const inHeader = variant === 'header';
+---
+
+<div
+  class="lang-switch"
+  data-variant={variant}
+  role="group"
+  aria-label={inHeader ? label : undefined}
+  aria-labelledby={inHeader ? undefined : labelId}
+>
+  {!inHeader && (
+    <span class="label" id={labelId}>
+      {label}
+    </span>
+  )}
+  <div class="options">
+    {LOCALES.map((code) => {
+      const meta = LOCALE_META[code];
+      return (
+        <a
+          class="lang-option"
+          href={alternates[code]}
+          hreflang={meta.lang}
+          aria-current={code === locale ? 'true' : undefined}
+          data-lang-link={code}
+          data-close-menu={inHeader ? undefined : ''}
+        >
+          {inHeader && code === locale && <span class="marker" aria-hidden="true" />}
+          <span class="code">{meta.short}</span>{' '}
+          {inHeader ? (
+            <span class="visually-hidden native">
+              {' – '}
+              <span lang={meta.lang}>{meta.name}</span>
+            </span>
+          ) : (
+            <span class="name" lang={meta.lang}>
+              {meta.name}
+            </span>
+          )}
+        </a>
+      );
+    })}
+  </div>
+</div>
+
+<script>
+  import '@/scripts/lang-switch';
+</script>
+
+<style>
+  .options {
+    display: flex;
+    align-items: center;
+  }
+
+  .lang-option {
+    position: relative;
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .code {
+    position: relative;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    font-weight: 450;
+    letter-spacing: var(--track-label);
+  }
+
+  /* Hidden Cyrillic on English pages: a system face, so the Cyrillic
+     webfont is never downloaded for text nobody sees. */
+  .native {
+    font-family: system-ui, sans-serif;
+  }
+
+  /* ---------- Header: EN | BG ---------- */
+  [data-variant='header'] .options {
+    gap: 1px;
+  }
+
+  [data-variant='header'] .lang-option {
+    display: inline-grid;
+    place-items: center;
+    min-width: 44px;
+    min-height: 44px;
+    color: var(--fg-3);
+  }
+
+  /* The divider between the two languages. */
+  [data-variant='header'] .lang-option + .lang-option::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: -1px;
+    inset-block: 15px;
+    border-inline-start: 1px solid var(--line);
+  }
+
+  /* The current language's chip: it slides to the new language during the
+     language view transition (base.css). Header only, so the name is unique. */
+  .marker {
+    position: absolute;
+    inset: 9px 4px;
+    z-index: -1;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    background: color-mix(in oklch, var(--fg) 7%, transparent);
+    view-transition-name: lang-marker;
+  }
+
+  /* Hover: the chip's fill without its edge, so the current one stays distinct. */
+  [data-variant='header'] .lang-option:not([aria-current])::after {
+    content: '';
+    position: absolute;
+    inset: 9px 4px;
+    z-index: -1;
+    border: 1px solid transparent;
+    border-radius: var(--radius-xs);
+    background: color-mix(in oklch, var(--fg) 4%, transparent);
+    opacity: 0;
+    transition: opacity var(--dur-fast) var(--ease-out);
+  }
+
+  [data-variant='header'] .options {
+    isolation: isolate;
+  }
+
+  [data-variant='header'] .lang-option:is(:hover, :focus-visible),
+  [data-variant='header'] .lang-option[aria-current] {
+    color: var(--fg);
+  }
+
+  [data-variant='header'] .lang-option:not([aria-current]):is(:hover, :focus-visible)::after {
+    opacity: 1;
+  }
+
+  [data-variant='header'] .lang-option:focus-visible {
+    outline-offset: -4px;
+  }
+
+  /* ---------- Mobile menu: EN English · BG Български ---------- */
+  [data-variant='menu'] {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  [data-variant='menu'] .options {
+    flex-wrap: wrap;
+    gap: 0 1.75rem;
+  }
+
+  [data-variant='menu'] .lang-option {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    min-height: 44px;
+    padding-block: 0.55rem;
+    color: var(--fg-2);
+  }
+
+  [data-variant='menu'] .code {
+    color: var(--fg-3);
+  }
+
+  [data-variant='menu'] .name {
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    font-size: var(--step-1);
+    line-height: 1.2;
+  }
+
+  [data-variant='menu'] .lang-option:is(:hover, :focus-visible),
+  [data-variant='menu'] .lang-option[aria-current] {
+    color: var(--fg);
+  }
+
+  [data-variant='menu'] .lang-option[aria-current] .name {
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.2em;
+  }
+
+  /* ---------- Hint: the browser prefers Bulgarian (HeadBoot) ---------- */
+  :global(html[data-lang-hint='bg']) .lang-option[hreflang='bg']:not([aria-current]) .code::after {
+    content: '';
+    position: absolute;
+    inset-block-start: -1px;
+    inset-inline-end: -6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--signal);
+  }
+
+  @media (forced-colors: active) {
+    .marker {
+      border-color: Highlight;
+    }
+  }
+</style>

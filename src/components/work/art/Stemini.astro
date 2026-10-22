@@ -1,0 +1,234 @@
+---
+/**
+ * Stemini plate: the pipeline from a prompt to a printer, read left to right,
+ * with the human approval drawn as a wall in the middle. Everything left of it
+ * is cheap and can be redone; the paid mesh step only starts on the other side.
+ *
+ * The object that travels is a generic lathe profile, drawn first as a
+ * low-poly mesh and then as slices. It stands for "a model", not for anything
+ * Stemini produced. No output images, no printed parts.
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+// ORCASLICER stays as drawn. RESERVE and CHARGE OR RELEASE share one line.
+const a = t(plates.stemini.art);
+
+const FLOW = 196; // the pipeline's centre line
+const LABEL = 262; // stage names
+const SUB = 278; // minor notes under them
+
+// Open chevron pointing right (or up) with its tip at x, y.
+const right = (x: number, y = FLOW) => `M${x - 6} ${y - 4}L${x} ${y}L${x - 6} ${y + 4}`;
+const up = (x: number, y: number) => `M${x - 4} ${y + 6}L${x} ${y}L${x + 4} ${y + 6}`;
+const arrow = (x0: number, x1: number) => `M${x0} ${FLOW}H${x1}${right(x1)}`;
+
+// Concept: "approve or regenerate, up to 3 attempts" (src/data/diagrams/stemini.ts).
+// Three frames, back to front; the front one carries the drafting mark for an image.
+const F = 54;
+const front = { x: 128, y: 178 };
+const frames = [2, 1, 0].map((k) => ({ x: front.x + k * 10, y: front.y - k * 10 }));
+
+// Gate: "a concept phase ... that pauses for approval, and a mesh phase that
+// runs only after it" (stemini.md, built). One accent path, two rules.
+const GATE = 252;
+const gate = `M${GATE - 4} 100V300M${GATE + 4} 100V300`;
+const regen = `M${GATE - 8} 166C${GATE - 8} 128 176 124 176 150`;
+
+// Lathe profile shared by the mesh and the slices: [height 0..1, radius].
+const LIP: [number, number] = [1, 19];
+const profile: [number, number][] = [[0, 18], [0.3, 32], [0.62, 26], [0.84, 15], LIP];
+const BASE = 244;
+const HEIGHT = 96;
+const TILT = 0.3; // ellipse ry / rx, the viewing angle
+// Straight-line interpolation along the profile (t is 0..1).
+const radius = (t: number) => {
+  let [h0, r0] = profile[0] ?? LIP;
+  for (const [h1, r1] of profile) {
+    if (h1 >= t) return h1 === h0 ? r1 : r0 + ((r1 - r0) * (t - h0)) / (h1 - h0);
+    [h0, r0] = [h1, r1];
+  }
+  return r0;
+};
+const pt = (cx: number, t: number, r: number, a: number) =>
+  `${+(cx + r * Math.sin(a)).toFixed(1)} ${+(BASE - t * HEIGHT + r * TILT * Math.cos(a)).toFixed(1)}`;
+
+// Mesh: "image-to-3D API" then "GLB to STL" (stemini.ts). Low poly: straight
+// segments between seven meridians on the visible half, plus the open rim.
+const MESH = 318;
+const angles = [-3, -2, -1, 0, 1, 2, 3].map((k) => (k * Math.PI) / 6);
+const meshRings = profile.map(([t, r]) => 'M' + angles.map((a) => pt(MESH, t, r, a)).join('L'));
+const meshMeridians = angles.map((a) => 'M' + profile.map(([t, r]) => pt(MESH, t, r, a)).join('L'));
+const rimBack =
+  'M' + [3, 4, 5, 6, 7, 8, 9].map((k) => pt(MESH, LIP[0], LIP[1], (k * Math.PI) / 6)).join('L');
+
+// Slices: "OrcaSlicer CLI in a sandbox per job" (stemini.md, spec: Slicing).
+const SLICE = 436;
+const slices = Array.from({ length: 11 }, (_, i) => {
+  const t = i / 10;
+  const r = radius(t);
+  return { cy: +(BASE - t * HEIGHT).toFixed(1), rx: +r.toFixed(1), ry: +(r * TILT).toFixed(1) };
+});
+
+// Delivery: "The printer bridge only makes outbound calls" (stemini.md,
+// highlights); "One bridge command protocol with claim leasing and five
+// adapters" (hard problems).
+const NODE = 500;
+const BRIDGE = { x: 462, y: 332, w: 76, h: 24 };
+const adapters = Array.from(
+  { length: 5 },
+  (_, i) => `M${BRIDGE.x + BRIDGE.w} ${BRIDGE.y + 2 + i * 5}H556`,
+).join('');
+const printer =
+  'M556 392V300H606V392' + // frame
+  'M556 320H606' + // gantry
+  'M577 326L581 334L585 326' + // nozzle
+  'M550 392H612'; // base
+
+// Ledger: "Token ledger: reserve, then charge or release, idempotent"
+// (stemini.md, spec: Metering). The bracket spans the generation job.
+const LEDGER = { y: 356, x0: 44, x1: 350 };
+const bracket = `M${LEDGER.x0} ${LEDGER.y - 8}V${LEDGER.y}H${LEDGER.x1}V${LEDGER.y - 8}`;
+---
+
+<PlateFrame slug="stemini" compact={compact} legend={legend}>
+  <g class="part" data-part="prompt">
+    <rect class="hit no-lit" x="36" y="166" width="82" height="104" />
+    <path class="wire words" d={`M44 ${FLOW - 14}H104M44 ${FLOW}H92M44 ${FLOW + 14}H74`}></path>
+    <path class="wire" d={`M82 ${FLOW + 7}V${FLOW + 21}`}></path>
+    <path class="wire" d={arrow(112, 122)}></path>
+    <text x="44" y={LABEL} class="t">
+      {a.prompt}
+    </text>
+  </g>
+
+  <g class="part" data-part="concept">
+    <rect class="hit no-lit" x="122" y="140" width="114" height="146" />
+    {frames.map((f) => (
+      <rect x={f.x} y={f.y} width={F} height={F} class="ink" />
+    ))}
+    <path
+      class="faint"
+      d={`M${front.x} ${front.y}l${F} ${F}M${front.x + F} ${front.y}l${-F} ${F}`}
+    ></path>
+    <path class="wire" d={arrow(210, 240)}></path>
+    <text x={front.x} y={LABEL} class="t">
+      {a.concept}
+    </text>
+    <text x={front.x} y={SUB} class="t t-minor">
+      {a.upTo3}
+    </text>
+  </g>
+
+  <g class="part" data-part="gate">
+    <rect class="hit no-lit" x="132" y="70" width="194" height="62" />
+    <rect class="hit no-lit" x="238" y="132" width="28" height="172" />
+    <path class="gate accent" d={gate}></path>
+    <path class="faint" d={regen}></path>
+    <path class="wire" d={`M171 143L176 150L181 143`}></path>
+    <text x={GATE} y="86" text-anchor="middle" class="t t-strong">
+      {a.approval}
+    </text>
+    <text x={GATE - 16} y="116" text-anchor="end" class="t t-minor">
+      {a.regenerate}
+    </text>
+  </g>
+
+  <g class="part" data-part="mesh">
+    <rect class="hit no-lit" x="268" y="136" width="116" height="150" />
+    <path class="wire" d={arrow(264, 282)}></path>
+    <path class="faint" d={rimBack}></path>
+    <path class="wire" d={meshMeridians.join('')}></path>
+    <path class="wire" d={meshRings.join('')}></path>
+    <text x={MESH} y={LABEL} text-anchor="middle" class="t">
+      {a.mesh}
+    </text>
+    <text x={MESH} y={SUB} text-anchor="middle" class="t t-minor">
+      {a.paid}
+    </text>
+  </g>
+
+  <g class="part" data-part="slice">
+    <rect class="hit no-lit" x="384" y="136" width="100" height="150" />
+    <path class="wire" d={arrow(358, 398)}></path>
+    {slices.map((s) => (
+      <ellipse cx={SLICE} cy={s.cy} rx={s.rx} ry={s.ry} class="wire" />
+    ))}
+    <text x={SLICE} y={LABEL} text-anchor="middle" class="t">
+      {a.slice}
+    </text>
+    <text x={SLICE} y={SUB} text-anchor="middle" class="t t-minor">
+      ORCASLICER
+    </text>
+  </g>
+
+  <g class="part" data-part="bridge">
+    <rect class="hit no-lit" x="484" y="180" width="132" height="240" />
+    <path class="wire" d={`M468 ${FLOW}H${NODE - 4}`}></path>
+    <circle cx={NODE} cy={FLOW} r="3.5" class="ink" />
+    <path class="wire" d={`M${NODE} ${BRIDGE.y}V${FLOW + 5}${up(NODE, FLOW + 5)}`}></path>
+    <text x={NODE + 12} y="252" class="t">
+      {a.outbound}
+    </text>
+    <text x={NODE + 12} y="268" class="t">
+      {a.only}
+    </text>
+    <rect x={BRIDGE.x} y={BRIDGE.y} width={BRIDGE.w} height={BRIDGE.h} class="ink" />
+    <text x={NODE} y={BRIDGE.y + 16.5} text-anchor="middle" class="t t-strong">
+      {a.bridge}
+    </text>
+    <path class="wire" d={adapters}></path>
+    <text x={NODE} y={BRIDGE.y + BRIDGE.h + 20} text-anchor="middle" class="t t-minor">
+      {a.adapters}
+    </text>
+    <path class="wire" d={printer}></path>
+    <rect x="572" y="314" width="18" height="12" class="ink" />
+    <rect x="562" y="374" width="38" height="5" class="ink" />
+    <text x="608" y="412" text-anchor="end" class="t">
+      {a.printer}
+    </text>
+  </g>
+
+  <g class="part" data-part="ledger">
+    <rect class="hit no-lit" x="36" y="330" width="324" height="80" />
+    <path class="wire" d={bracket}></path>
+    <text x={LEDGER.x0} y={LEDGER.y + 22} class="t">
+      {a.reserve}
+    </text>
+    <text x={LEDGER.x1} y={LEDGER.y + 22} text-anchor="end" class="t">
+      {a.settle}
+    </text>
+    <text x={LEDGER.x1} y={LEDGER.y + 38} text-anchor="end" class="t t-minor">
+      {a.once}
+    </text>
+    <text x={(LEDGER.x0 + LEDGER.x1) / 2} y={LEDGER.y - 8} text-anchor="middle" class="t">
+      {a.tokens}
+    </text>
+  </g>
+</PlateFrame>
+
+<style>
+  .gate {
+    fill: none;
+    stroke-width: 2;
+  }
+
+  /* Invisible pointer targets, so a thin drawing is easy to point at */
+  .hit {
+    fill: none;
+    stroke: none;
+    pointer-events: all;
+  }
+
+  .words {
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+</style>

@@ -1,0 +1,540 @@
+---
+/**
+ * Isometric exploded view of the six layers Nikolay works across.
+ * Geometry is fixed (six plates), so label positions are plain CSS,
+ * which keeps the component free of inline styles (CSP) and of JS.
+ */
+import { layers } from '@/data/layers';
+import { useI18n } from '@/i18n';
+import { home } from '@/i18n/ui/home';
+
+const { l, href } = useI18n(Astro);
+
+const W = 600;
+const H = 580;
+const CX = 150; // plate centre x
+const S = 150; // plate side in square space
+const HW = +(S * 0.866).toFixed(1); // half width of the iso rhombus
+const T = 9; // plate thickness
+const G = 80; // vertical pitch between plates
+const Y0 = 12;
+
+const plates = layers.map((layer, i) => {
+  const y = Y0 + i * G;
+  const left = `${CX - HW},${y + S / 2}`;
+  const right = `${CX + HW},${y + S / 2}`;
+  const bottom = `${CX},${y + S}`;
+  return {
+    ...layer,
+    index: i,
+    y,
+    matrix: `matrix(0.866 0.5 -0.866 0.5 ${CX} ${y})`,
+    leftFace: `${left} ${bottom} ${CX},${y + S + T} ${CX - HW},${y + S / 2 + T}`,
+    rightFace: `${bottom} ${right} ${CX + HW},${y + S / 2 + T} ${CX},${y + S + T}`,
+    // The plate's resting silhouette: a pointer target that never moves, so
+    // the lit plate's nudge cannot slide it out from under the cursor.
+    hit: `${CX},${y} ${right} ${CX + HW},${y + S / 2 + T} ${CX},${y + S + T} ${CX - HW},${y + S / 2 + T} ${left}`,
+    lead: { x1: CX + HW + 6, x2: 326, y: y + S / 2 },
+  };
+});
+
+/* Etched patterns, drawn in square space (0..150) before the iso transform. */
+const etch: Record<string, string> = {
+  web: 'M16 16h118v118H16zM16 30h118M46 30v104M56 40h68v22H56zM56 72h30v28H56zM94 72h30v28H94zM56 110h68M56 118h52M56 126h60',
+  backend:
+    'M16 16h118v118H16zM16 32h118M16 50h118M16 68h118M16 86h118M16 104h118M16 122h118M50 16v118M98 16v118M21 38h6v6h-6zM21 56h6v6h-6zM21 74h6v6h-6z',
+  realtime:
+    'M8 75c12-26 24-26 36 0s24 26 36 0 24-26 36 0 24 26 36 0M8 96c12-18 24-18 36 0s24 18 36 0 24-18 36 0 24 18 36 0M8 54c12-18 24-18 36 0s24 18 36 0 24-18 36 0 24 18 36 0',
+  ai: 'M75 75 32 30M75 75l0-50M75 75l46-36M75 75 38 84M75 75l50 26M75 75l-14 48M75 75l30 50M32 30l43-5M75 25l46 14M38 84l-6-54M125 101l-4-62M61 123l44 2',
+  hardware:
+    'M54 54h42v42H54zM60 54V40M68 54V34h-30M76 54V22M84 54V40h36M90 54V28M60 96v14M68 96v24h-40M76 96v30M84 96v18h34M90 96v10M54 62H36M54 70H22v-30M54 78H30M54 86H40v28M96 62h18M96 70h28v-24M96 78h22M96 86h14v30',
+  system:
+    'M16 16h40v18H16zM60 16h74v18H60zM16 40h86v18H16zM106 40h28v18h-28zM16 64h13v18H16zM31 64h13v18H31zM46 64h13v18H46zM61 64h13v18H61zM76 64h13v18H76zM91 64h13v18H91zM106 64h28v18h-28zM16 88h118v18H16zM16 112h58v22H16zM78 112h56v22H78zM24 88l12 18M40 88l12 18M56 88l12 18M72 88l12 18M88 88l12 18M104 88l12 18M120 88l12 18',
+};
+
+const nodes: Record<string, [number, number, number][]> = {
+  ai: [
+    [75, 75, 7],
+    [32, 30, 3.5],
+    [75, 25, 3.5],
+    [121, 39, 3.5],
+    [38, 84, 3.5],
+    [125, 101, 3.5],
+    [61, 123, 3.5],
+    [105, 125, 3.5],
+  ],
+  hardware: [
+    [38, 34, 2.6],
+    [28, 120, 2.6],
+    [120, 40, 2.6],
+    [118, 114, 2.6],
+    [22, 40, 2.6],
+    [124, 46, 2.6],
+    [40, 114, 2.6],
+    [110, 116, 2.6],
+  ],
+  realtime: [
+    [8, 75, 3],
+    [152, 75, 3],
+  ],
+};
+---
+
+<div class="stack" role="group" aria-label={l(home.hero.stack)}>
+  <svg class="stack-svg" viewBox={`0 0 ${W} ${H}`} aria-hidden="true" focusable="false">
+    <defs>
+      <clipPath id="plate-clip">
+        <rect width={S} height={S}></rect>
+      </clipPath>
+    </defs>
+    {[...plates].reverse().map((p) => (
+      <g class="plate" data-layer={p.id} data-accent={p.accent}>
+        <g class="plate-body">
+          <polygon class="face-left" points={p.leftFace} />
+          <polygon class="face-right" points={p.rightFace} />
+          <g transform={p.matrix}>
+            <rect class="face-top" width={S} height={S} />
+            <g clip-path="url(#plate-clip)" class="etch">
+              <path d={etch[p.id]} />
+              {(nodes[p.id] ?? []).map(([x, y, r]) => (
+                <circle cx={x} cy={y} r={r} />
+              ))}
+            </g>
+            <rect class="face-edge" width={S} height={S} />
+          </g>
+        </g>
+        <polygon class="hit" points={p.hit} />
+        <line class="lead" x1={p.lead.x1} x2={p.lead.x2} y1={p.lead.y} y2={p.lead.y} />
+        <circle class="lead-dot" cx={p.lead.x1} cy={p.lead.y} r="2.2" />
+      </g>
+    ))}
+  </svg>
+
+  <ol class="stack-labels" role="list">
+    {plates.map((p) => (
+      <li class="stack-label" data-layer={p.id} data-accent={p.accent}>
+        <a href={href(p.href)}>
+          <span class="idx">{String(p.index + 1).padStart(2, '0')}</span>
+          <span class="name">{l(p.name)}</span>
+          <span class="proof">
+            {p.proof.map((name, j) => (
+              <span class="proof-item">
+                {j > 0 && <span aria-hidden="true">· </span>}
+                {name}
+              </span>
+            ))}
+          </span>
+        </a>
+      </li>
+    ))}
+  </ol>
+</div>
+
+<style>
+  .stack {
+    --lit: 0;
+    position: relative;
+    width: 100%;
+    aspect-ratio: 600 / 580;
+    container-type: inline-size;
+  }
+
+  .stack-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /*
+   * Every lit look derives from --lit (0 resting, 1 lit; registered in
+   * tokens.css, so it interpolates). The lighting rules further down only
+   * decide which layer is lit: they set --lit and opacity, nothing else.
+   */
+  .plate,
+  .stack-label {
+    transition:
+      --lit var(--dur-ui) var(--ease-out),
+      opacity var(--dur-ui) var(--ease-out);
+  }
+
+  /* The nudge toward the label owns `translate`; the entrance owns `transform`. */
+  .plate-body {
+    translate: calc(var(--lit) * -8px) 0;
+    pointer-events: none;
+  }
+
+  .face-top {
+    fill: var(--ink-1);
+  }
+
+  .face-left {
+    fill: var(--ink-deep);
+    stroke: var(--line);
+    stroke-width: 0.8;
+  }
+
+  .face-right {
+    fill: var(--ink-2);
+    stroke: var(--line);
+    stroke-width: 0.8;
+  }
+
+  .face-edge {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--line-strong));
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .etch path,
+  .etch circle {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--steel-dim));
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .etch circle {
+    fill: var(--ink-1);
+  }
+
+  .plate[data-layer='realtime'] .etch path {
+    stroke-dasharray: 6 5;
+  }
+
+  .hit {
+    fill: none;
+    pointer-events: all;
+  }
+
+  .lead {
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--line-strong));
+    stroke-width: 1;
+    stroke-dasharray: 2 4;
+  }
+
+  .lead-dot {
+    fill: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-3));
+  }
+
+  /* Labels are HTML, placed at the rhombus' right corner of each plate. */
+  .stack-labels {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    pointer-events: none;
+  }
+
+  .stack-label {
+    position: absolute;
+    left: 56%;
+    right: 0;
+    min-width: 0;
+    transform: translateY(-50%);
+  }
+
+  .stack-label:nth-child(1) {
+    top: 15%;
+  }
+  .stack-label:nth-child(2) {
+    top: 28.79%;
+  }
+  .stack-label:nth-child(3) {
+    top: 42.59%;
+  }
+  .stack-label:nth-child(4) {
+    top: 56.38%;
+  }
+  .stack-label:nth-child(5) {
+    top: 70.17%;
+  }
+  .stack-label:nth-child(6) {
+    top: 83.97%;
+  }
+
+  .stack-label a {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    column-gap: 0.7rem;
+    align-items: baseline;
+    padding-block: 0.35rem;
+    min-height: 44px;
+    align-content: center;
+    text-decoration: none;
+    pointer-events: auto;
+  }
+
+  /* The focus ring takes the layer's colour, like the plate it lights. */
+  .stack-label a:focus-visible {
+    outline-color: var(--accent);
+  }
+
+  .idx {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.08em;
+    color: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-3));
+  }
+
+  .name {
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-semibold);
+    font-size: clamp(0.92rem, 0.6rem + 1.9cqi, 1.3rem);
+    letter-spacing: var(--track-heading);
+    line-height: 1.1;
+    text-transform: uppercase;
+  }
+
+  /* Bulgarian names run longer ("Реално време"): the plain width keeps them
+     on the one line their plate points at, from phones to the 1000px split. */
+  .name:lang(bg) {
+    font-stretch: normal;
+  }
+
+  .proof-item {
+    white-space: nowrap;
+  }
+
+  /* One line only: names that do not fit wrap onto a clipped second line, so
+     narrow stacks show whole project names and never collide with the next
+     plate's label. The full list is on each layer's destination anyway. */
+  .proof {
+    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 0.35em;
+    max-height: 1.4em;
+    overflow: hidden;
+    font-family: var(--ff-mono);
+    font-size: clamp(0.62rem, 0.5rem + 0.7cqi, 0.72rem);
+    letter-spacing: 0.02em;
+    color: color-mix(in oklch, var(--fg-2) calc(var(--lit) * 100%), var(--fg-3));
+    line-height: 1.4;
+  }
+
+  @container (max-width: 280px) {
+    .proof {
+      display: none;
+    }
+  }
+
+  /* ---------- Lighting: a label lights its plate, and the reverse ----------
+   * Sources for each layer: its label (hover, keyboard focus, press), its
+   * plate (pointer), the matching phrase of the hero statement (pointer, wide
+   * screens only) and, on touch screens, the scroll sequence at the end.
+   * Any source dims the rest; dimming rules come first so lit rules win.
+   */
+  .plate {
+    --dim: 0.42;
+  }
+
+  /* Sibling labels dim only slightly: their 12px proof line stays above AA. */
+  .stack-label {
+    --dim: 0.8;
+  }
+
+  .stack:has(.stack-label a:is(:hover, :focus-visible, :active), .plate:hover)
+    :is(.plate, .stack-label) {
+    opacity: var(--dim);
+  }
+
+  @media (hover: hover) and (pointer: fine) and (min-width: 1000px) {
+    :global(.hero:has([data-lights]:hover)) .stack :is(.plate, .stack-label) {
+      opacity: var(--dim);
+    }
+  }
+
+  .stack:has(
+      [data-layer='web'] a:is(:hover, :focus-visible, :active),
+      .plate[data-layer='web']:hover
+    )
+    [data-layer='web'],
+  .stack:has(
+      [data-layer='backend'] a:is(:hover, :focus-visible, :active),
+      .plate[data-layer='backend']:hover
+    )
+    [data-layer='backend'],
+  .stack:has(
+      [data-layer='realtime'] a:is(:hover, :focus-visible, :active),
+      .plate[data-layer='realtime']:hover
+    )
+    [data-layer='realtime'],
+  .stack:has([data-layer='ai'] a:is(:hover, :focus-visible, :active), .plate[data-layer='ai']:hover)
+    [data-layer='ai'],
+  .stack:has(
+      [data-layer='hardware'] a:is(:hover, :focus-visible, :active),
+      .plate[data-layer='hardware']:hover
+    )
+    [data-layer='hardware'],
+  .stack:has(
+      [data-layer='system'] a:is(:hover, :focus-visible, :active),
+      .plate[data-layer='system']:hover
+    )
+    [data-layer='system'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
+  @media (hover: hover) and (pointer: fine) and (min-width: 1000px) {
+    :global(.hero:has([data-lights~='web']:hover)) .stack [data-layer='web'],
+    :global(.hero:has([data-lights~='backend']:hover)) .stack [data-layer='backend'],
+    :global(.hero:has([data-lights~='realtime']:hover)) .stack [data-layer='realtime'],
+    :global(.hero:has([data-lights~='ai']:hover)) .stack [data-layer='ai'],
+    :global(.hero:has([data-lights~='hardware']:hover)) .stack [data-layer='hardware'],
+    :global(.hero:has([data-lights~='system']:hover)) .stack [data-layer='system'] {
+      --lit: 1;
+      opacity: 1;
+    }
+  }
+
+  /* ---------- Motion ---------- */
+  @media (prefers-reduced-motion: no-preference) {
+    /* Assembly on load: the plates open out of a compressed stack. */
+    .plate-body {
+      animation: plate-in var(--dur-cinematic) var(--ease-out-expo) backwards;
+    }
+    .plate[data-layer='web'] .plate-body {
+      --from: 90px;
+    }
+    .plate[data-layer='backend'] .plate-body {
+      --from: 54px;
+      animation-delay: 40ms;
+    }
+    .plate[data-layer='realtime'] .plate-body {
+      --from: 18px;
+      animation-delay: 80ms;
+    }
+    .plate[data-layer='ai'] .plate-body {
+      --from: -18px;
+      animation-delay: 120ms;
+    }
+    .plate[data-layer='hardware'] .plate-body {
+      --from: -54px;
+      animation-delay: 160ms;
+    }
+    .plate[data-layer='system'] .plate-body {
+      --from: -90px;
+      animation-delay: 200ms;
+    }
+    /* Labels, the interactive part, are readable by about 500ms. */
+    .lead,
+    .lead-dot,
+    .stack-label {
+      animation: fade-in var(--dur-content) var(--ease-out) 300ms backwards;
+    }
+
+    /* The realtime signal flows only while its layer is lit. */
+    .plate[data-layer='realtime'] .etch path {
+      animation: signal 6s linear infinite paused;
+    }
+    .stack:has(
+        [data-layer='realtime'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='realtime']:hover
+      )
+      .plate[data-layer='realtime']
+      .etch
+      path {
+      animation-play-state: running;
+    }
+  }
+
+  @media (prefers-reduced-motion: no-preference) and (hover: hover) and (pointer: fine) and (min-width: 1000px) {
+    :global(.hero:has([data-lights~='realtime']:hover))
+      .stack
+      .plate[data-layer='realtime']
+      .etch
+      path {
+      animation-play-state: running;
+    }
+  }
+
+  /*
+   * Touch screens have no hover, so the stack answers the scroll instead: as it
+   * travels through the viewport, plates 01 to 06 light in turn with the same
+   * look. Single-column layouts only (there the stack always travels); a press,
+   * keyboard focus or a tap's sticky hover takes over from the sequence.
+   */
+  @media (hover: none) and (max-width: 999px) and (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .stack {
+        view-timeline: --stack block;
+      }
+      /* Longhands only: the minifier folds a timeline into the `animation`
+         shorthand, which browsers reject, and the sequence would vanish. */
+      .plate,
+      .stack-label a {
+        animation-name: scan;
+        animation-timing-function: linear;
+        animation-timeline: --stack;
+      }
+      .plate[data-layer='web'],
+      [data-layer='web'] a {
+        animation-range: contain -4% contain 21%;
+      }
+      .plate[data-layer='backend'],
+      [data-layer='backend'] a {
+        animation-range: contain 13% contain 38%;
+      }
+      .plate[data-layer='realtime'],
+      [data-layer='realtime'] a {
+        animation-range: contain 29% contain 54%;
+      }
+      .plate[data-layer='ai'],
+      [data-layer='ai'] a {
+        animation-range: contain 46% contain 71%;
+      }
+      .plate[data-layer='hardware'],
+      [data-layer='hardware'] a {
+        animation-range: contain 63% contain 88%;
+      }
+      .plate[data-layer='system'],
+      [data-layer='system'] a {
+        animation-range: contain 79% contain 104%;
+      }
+      .stack:has(a:is(:hover, :focus-visible, :active), .plate:hover) :is(.plate, .stack-label a) {
+        animation: none;
+      }
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .plate-body {
+      translate: none;
+    }
+  }
+
+  @keyframes plate-in {
+    from {
+      opacity: 0;
+      transform: translateY(var(--from, 0));
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+
+  @keyframes signal {
+    to {
+      stroke-dashoffset: -110;
+    }
+  }
+
+  @keyframes scan {
+    0%,
+    100% {
+      --lit: 0;
+    }
+    35%,
+    65% {
+      --lit: 1;
+    }
+  }
+</style>

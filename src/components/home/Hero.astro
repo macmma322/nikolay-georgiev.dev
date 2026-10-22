@@ -1,0 +1,378 @@
+---
+import { site } from '@/data/site';
+import Button from '@/components/ui/Button.astro';
+import LayerStack from '@/components/home/LayerStack.astro';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { home } from '@/i18n/ui/home';
+
+const { l, t } = useI18n(Astro);
+const s = t(home);
+const c = t(common);
+
+// Each phrase of the statement lights the layers it stands for (LayerStack
+// holds the rules); the segments are written per locale in site.statement.
+const statement = l(site.statement);
+---
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="container hero-grid">
+    <div class="hero-copy">
+      <p class="hero-meta label" data-vt-lang="lede">
+        <span class="nowrap">{l(site.role)} ·</span> <span class="nowrap">{l(site.location)}</span>
+      </p>
+
+      <h1 id="hero-title" class="hero-name">
+        <span class="line">
+          <span class="word">Nikolay</span>
+        </span>{' '}
+        <span class="line">
+          <span class="word">Georgiev</span>
+        </span>
+      </h1>
+
+      <p class="hero-statement" data-vt-lang="title">
+        {statement.map((seg) =>
+          seg.lights ? (
+            <span class="lights" data-lights={seg.lights}>
+              {seg.text}
+            </span>
+          ) : (
+            seg.text
+          ),
+        )}
+      </p>
+
+      <div class="hero-actions">
+        <Button class="hero-cta" href="#work" variant="primary" icon="scroll">
+          {s.hero.cta}
+        </Button>
+        <Button
+          class="hero-cta"
+          href={site.cv.href}
+          variant="secondary"
+          icon="down"
+          download="Nikolay-Georgiev-CV.pdf"
+        >
+          {s.hero.cv}
+        </Button>
+        <ul class="hero-links" role="list">
+          <li>
+            <a href={site.links.github} rel="me noopener" target="_blank">
+              <span class="link-text">GitHub</span>
+              <span class="ext" aria-hidden="true">
+                ↗
+              </span>
+              <span class="visually-hidden">{c.newTab}</span>
+            </a>
+          </li>
+          <li>
+            <a href={site.links.linkedin} rel="me noopener" target="_blank">
+              <span class="link-text">LinkedIn</span>
+              <span class="ext" aria-hidden="true">
+                ↗
+              </span>
+              <span class="visually-hidden">{c.newTab}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <p class="visual-caption label" aria-hidden="true">
+        {s.hero.fig}
+      </p>
+      <LayerStack />
+    </div>
+  </div>
+
+  <div class="container">
+    <dl class="now">
+      {s.now.map((item) => (
+        <div class="now-item">
+          <dt class="label">{item.label}</dt>
+          <dd>{item.value}</dd>
+        </div>
+      ))}
+    </dl>
+  </div>
+</section>
+
+<style>
+  /* The hero fills the first screen and pins the "now" strip to its foot, so
+     the strip is always whole: in view on laptops, below the fold on phones. */
+  .hero {
+    display: grid;
+    grid-template-rows: 1fr auto;
+    min-height: min(calc(100svh - var(--header-h)), 64rem);
+    padding-top: clamp(1.5rem, 0.5rem + 4vh, 4.5rem);
+    padding-bottom: var(--space-s);
+  }
+
+  .hero-grid {
+    display: grid;
+    gap: var(--space-xl);
+    align-items: center;
+    align-content: center;
+  }
+
+  .hero-copy {
+    container-type: inline-size;
+    min-width: 0;
+  }
+
+  .hero-meta {
+    margin-bottom: var(--space-m);
+  }
+
+  .nowrap {
+    white-space: nowrap;
+  }
+
+  .hero-name {
+    display: grid;
+    font-family: var(--ff-display);
+    font-stretch: 116%;
+    font-weight: var(--w-heavy);
+    font-size: min(calc(100cqi / 6.45), 10.5rem);
+    line-height: 0.86;
+    letter-spacing: var(--track-display);
+    text-transform: uppercase;
+    margin-left: -0.04em;
+  }
+
+  .line {
+    display: block;
+    overflow: clip;
+    padding-bottom: 0.04em;
+  }
+
+  .word {
+    display: inline-block;
+  }
+
+  .hero-statement {
+    margin-top: var(--space-m);
+    max-width: 30ch;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-text);
+    font-size: var(--step-2);
+    line-height: 1.22;
+    letter-spacing: -0.015em;
+    color: var(--fg);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: var(--space-l);
+  }
+
+  .hero-links {
+    display: flex;
+    margin-inline-start: 0.75rem;
+  }
+
+  .hero-links a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
+    min-height: 48px;
+    padding-inline: 0.7rem;
+    font-family: var(--ff-body);
+    font-size: var(--step--1);
+    color: var(--fg-2);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .link-text {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.3em;
+    transition: text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+
+  .ext {
+    color: var(--fg-3);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      translate var(--dur-ui) var(--ease-out);
+  }
+
+  .hero-links a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .hero-links a:is(:hover, :focus-visible) .link-text {
+    text-decoration-color: var(--fg-2);
+  }
+
+  .hero-links a:is(:hover, :focus-visible) .ext {
+    color: var(--fg);
+  }
+
+  .hero-links a:focus-visible .ext {
+    translate: 2px -2px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .hero-links a:hover .ext {
+      translate: 2px -2px;
+    }
+  }
+
+  /* Where the links cannot share the buttons' row, they take their own row
+     and line up with the text edge. */
+  @container (max-width: 36rem) {
+    .hero-links {
+      flex-basis: 100%;
+      margin-inline-start: 0;
+    }
+    .hero-links li:first-child a {
+      padding-inline-start: 0;
+    }
+  }
+
+  /* Button renders the element, so its class needs :global to be reached. */
+  @media (max-width: 479px) {
+    .hero-actions :global(.hero-cta) {
+      flex: 1 1 100%;
+      justify-content: space-between;
+    }
+  }
+
+  /* Pointing at a phrase lights its plates beside it (LayerStack), so the
+     phrases hint at that only where a pointer and the stack are both there. */
+  @media (hover: hover) and (pointer: fine) and (min-width: 1000px) {
+    .lights {
+      text-decoration: underline dotted;
+      text-decoration-thickness: 1px;
+      text-decoration-color: var(--line-strong);
+      text-underline-offset: 0.18em;
+      transition: text-decoration-color var(--dur-fast) var(--ease-out);
+    }
+
+    .lights:hover {
+      text-decoration-color: var(--fg-2);
+    }
+  }
+
+  .hero-visual {
+    position: relative;
+    width: min(100%, 34rem);
+    justify-self: center;
+  }
+
+  .visual-caption {
+    position: absolute;
+    top: -0.25rem;
+    right: 0;
+  }
+
+  .now {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
+    margin-top: var(--space-l);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .now-item {
+    padding: var(--space-s) var(--space-m) var(--space-s) 0;
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .now-item dd {
+    margin-top: 0.25rem;
+    font-size: var(--step--1);
+    color: var(--fg-2);
+  }
+
+  @media (min-width: 1000px) {
+    .hero-grid {
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    }
+
+    .hero-visual {
+      justify-self: end;
+    }
+
+    .now {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .now-item {
+      border-bottom: 0;
+      padding-block: var(--space-xs);
+      padding-inline-start: var(--space-m);
+      border-inline-start: 1px solid var(--line-soft);
+    }
+
+    .now-item:first-child {
+      padding-inline-start: 0;
+      border-inline-start: 0;
+    }
+  }
+
+  @media (min-width: 1000px) and (max-height: 820px) {
+    .now {
+      margin-top: var(--space-m);
+    }
+  }
+
+  /* Entrance, once per load: the name rises, the rest follows within 900ms. */
+  @media (prefers-reduced-motion: no-preference) {
+    .word {
+      animation: rise 720ms var(--ease-out-expo) backwards;
+    }
+    .line:nth-child(2) .word {
+      animation-delay: 60ms;
+    }
+    .hero-meta,
+    .hero-actions,
+    .now {
+      animation: fade-up var(--dur-content) var(--ease-out-expo) backwards;
+    }
+    /* The statement is the LCP element: it settles into place but is never
+       transparent, so it paints (and counts) at first paint. */
+    .hero-statement {
+      animation: settle var(--dur-content) var(--ease-out-expo) backwards;
+    }
+    .hero-meta {
+      animation-delay: 120ms;
+    }
+    .hero-statement {
+      animation-delay: 180ms;
+    }
+    .hero-actions {
+      animation-delay: 240ms;
+    }
+    .now {
+      animation-delay: 300ms;
+    }
+  }
+
+  @keyframes rise {
+    from {
+      transform: translateY(105%);
+    }
+  }
+
+  @keyframes settle {
+    from {
+      translate: 0 10px;
+    }
+  }
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      translate: 0 10px;
+    }
+  }
+</style>

@@ -1,0 +1,321 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import StatusBadge from '@/components/ui/StatusBadge.astro';
+import LayerGlyph from '@/components/ui/LayerGlyph.astro';
+import ProjectArt from '@/components/work/ProjectArt.astro';
+import { useI18n } from '@/i18n';
+import { plural } from '@/i18n/format';
+import { work } from '@/i18n/ui/work';
+import { getProjects } from '@/lib/projects';
+
+const { locale, t, href } = useI18n(Astro);
+const w = t(work).index;
+const projects = await getProjects(locale);
+---
+
+<BaseLayout>
+  <section class="container intro" aria-labelledby="work-h1">
+    <p class="label">{plural(projects.length, locale, w.count)}</p>
+    <h1 id="work-h1" class="title" data-vt-lang="title">
+      {w.title}
+    </h1>
+    <p class="lede" data-vt-lang="lede">
+      {w.lede}
+    </p>
+  </section>
+
+  {/*
+    A register, not a card grid. Each project name is an h2 whose link is the
+    row's accessible name; the link's ::after stretches over the whole row so
+    everything stays clickable. Pointing at or focusing a row lights its plate
+    and dims the others: the same text-lights-drawing language as FIG. 01.
+  */}
+  <section class="container" aria-label={w.list}>
+    <ol class="register" role="list">
+      {projects.map((p, i) => (
+        <li class="row" data-accent={p.data.accent} data-vt-scope>
+          <span class="n" aria-hidden="true">
+            {String(i + 1).padStart(2, '0')}
+          </span>
+          <h2 class="name" data-vt-title={p.id}>
+            <a class="row-link" href={href(`/work/${p.id}`)}>
+              {p.data.name}
+            </a>
+          </h2>
+          <p class="kicker">{p.data.kicker}</p>
+          <p class="summary">{p.data.summary}</p>
+          <div class="facts">
+            <StatusBadge status={p.data.status} note={p.data.statusNote} />
+            <p class="years">{p.data.years}</p>
+            <p class="layers">
+              <LayerGlyph lit={p.data.layers} />
+              <span>{p.data.layerNames}</span>
+            </p>
+          </div>
+          <div class="thumb" data-vt-art={p.id}>
+            <ProjectArt slug={p.id} compact />
+          </div>
+        </li>
+      ))}
+    </ol>
+  </section>
+
+  <section class="container outro">
+    <p>
+      {w.outro.before}
+      <a class="text-link" href={href('/lab')}>
+        {w.outro.link}
+      </a>
+      {w.outro.after}
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-xl);
+  }
+
+  .title {
+    margin-top: var(--space-s);
+    font-size: var(--step-hero);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: -0.05em;
+    line-height: 0.88;
+  }
+
+  .intro .lede {
+    margin-top: var(--space-m);
+  }
+
+  /* ---------- Register ---------- */
+  .register {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /*
+   * Phones: the number and a small plate share the first line, the name runs
+   * full width under them. From 700px the plate sits beside the name block.
+   */
+  .row {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'n thumb'
+      'name name'
+      'kicker kicker'
+      'summary summary'
+      'facts facts';
+    column-gap: var(--space-m);
+    padding-block: var(--space-l);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* Press tint: one surface step, a little wider than the text column */
+  .row::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * var(--space-xs));
+    z-index: -1;
+    border-radius: var(--radius-s);
+    transition: background-color var(--dur-press) var(--ease-out);
+  }
+
+  .row:has(.row-link:active)::before {
+    background: var(--ink-1);
+  }
+
+  .n {
+    grid-area: n;
+    align-self: end;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.04em;
+    color: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-3));
+    transition: --lit var(--dur-ui) var(--ease-out);
+  }
+
+  /*
+   * data-vt-title/-art make the name and the plate stacking contexts; the
+   * name (a grid item) is lifted so its link overlay stays above the plate.
+   */
+  .name {
+    grid-area: name;
+    z-index: 1;
+    justify-self: start;
+    margin-top: var(--space-xs);
+    font-size: var(--step-4);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-display);
+    line-height: 0.95;
+    /* Room for the underline, which sits below the descenders */
+    padding-bottom: 0.1em;
+  }
+
+  /* The name keeps its ivory; the accent arrives as a 2px underline sweep. */
+  .row-link {
+    text-decoration: none;
+    background: linear-gradient(var(--accent), var(--accent)) no-repeat 0 100% /
+      calc(var(--lit) * 100%) 2px;
+    transition: --lit var(--dur-ui) var(--ease-out);
+  }
+
+  /* The whole row is the target; the focus ring draws around it. */
+  .row-link::after {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * var(--space-xs));
+    border-radius: var(--radius-s);
+  }
+
+  .row-link:focus-visible {
+    outline: none;
+  }
+
+  .row-link:focus-visible::after {
+    outline: 2px solid var(--fg);
+    outline-offset: -2px;
+  }
+
+  .kicker {
+    grid-area: kicker;
+    margin-top: 0.6rem;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    color: var(--fg-2);
+    line-height: 1.3;
+  }
+
+  .summary {
+    grid-area: summary;
+    margin-top: var(--space-xs);
+    max-width: 62ch;
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .facts {
+    grid-area: facts;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem 1.5rem;
+    margin-top: var(--space-s);
+  }
+
+  .years {
+    font-family: var(--ff-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.04em;
+    color: var(--fg-3);
+  }
+
+  .layers {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  .thumb {
+    grid-area: thumb;
+    width: clamp(6.5rem, 30vw, 8.5rem);
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  /* Lit row: number and underline take the accent, the plate lights */
+  .row:has(.row-link:is(:hover, :focus-visible)) :is(.n, .row-link) {
+    --lit: 1;
+  }
+
+  .row:has(.row-link:is(:hover, :focus-visible)) .thumb {
+    --plate-lit: 1;
+  }
+
+  /* ...and the other plates step back, so the lit one reads as "this one" */
+  .register:has(.row-link:is(:hover, :focus-visible))
+    .row:not(:has(.row-link:is(:hover, :focus-visible)))
+    .thumb {
+    opacity: 0.42;
+  }
+
+  @media (min-width: 700px) {
+    .row {
+      grid-template-rows: auto auto auto 1fr auto auto;
+      grid-template-areas:
+        'n thumb'
+        'name thumb'
+        'kicker thumb'
+        '. thumb'
+        'summary summary'
+        'facts facts';
+      column-gap: var(--space-l);
+    }
+
+    .n {
+      align-self: start;
+    }
+
+    .thumb {
+      width: clamp(10rem, 24vw, 13rem);
+    }
+  }
+
+  /* Desktop: number | project | plate, facts under the summary */
+  @media (min-width: 1000px) {
+    .row {
+      grid-template-columns: 3rem minmax(0, 1fr) 15rem;
+      grid-template-rows: auto auto 1fr auto;
+      grid-template-areas:
+        'n name thumb'
+        'n kicker thumb'
+        'n summary thumb'
+        'n facts thumb';
+    }
+
+    .n {
+      padding-top: 0.55rem;
+    }
+
+    .name {
+      margin-top: 0;
+    }
+
+    .thumb {
+      width: auto;
+    }
+  }
+
+  /* Wide: a fourth column so status, period and layers scan down the page */
+  @media (min-width: 1280px) {
+    .row {
+      grid-template-columns: 3rem minmax(0, 1fr) minmax(13rem, 17rem) 16rem;
+      grid-template-rows: auto auto 1fr;
+      grid-template-areas:
+        'n name facts thumb'
+        'n kicker facts thumb'
+        'n summary facts thumb';
+    }
+
+    .facts {
+      flex-direction: column;
+      align-items: flex-start;
+      align-self: start;
+      gap: 0.7rem;
+      margin-top: 0;
+      padding-top: 0.55rem;
+    }
+  }
+
+  .outro {
+    padding-top: var(--space-xl);
+    color: var(--fg-2);
+  }
+</style>

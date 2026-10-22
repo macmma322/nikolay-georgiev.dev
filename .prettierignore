@@ -1,0 +1,9 @@
+dist
+node_modules
+.astro
+package-lock.json
+public/*.pdf
+test-results
+playwright-report
+.remember
+.omc

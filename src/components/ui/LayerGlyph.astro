@@ -1,0 +1,56 @@
+---
+/**
+ * A miniature of the hero's six-layer stack with a project's layers lit, so
+ * every project points back to FIG. 01. Decorative: the layer names are
+ * always written next to it.
+ */
+import { layers, type LayerId } from '@/data/layers';
+
+interface Props {
+  lit: readonly LayerId[];
+}
+
+const { lit } = Astro.props;
+const PITCH = 6.2;
+const plates = layers.map((layer, i) => {
+  const y = 1.5 + i * PITCH;
+  return {
+    id: layer.id,
+    on: lit.includes(layer.id),
+    d: `M13 ${y}L25 ${y + 6}L13 ${y + 12}L1 ${y + 6}Z`,
+  };
+});
+---
+
+<svg
+  class="layer-glyph"
+  viewBox="0 0 26 46"
+  width="18"
+  height="32"
+  aria-hidden="true"
+  focusable="false"
+>
+  {[...plates].reverse().map((p) => (
+    <path d={p.d} data-layer={p.id} class:list={['lg-plate', { on: p.on }]} />
+  ))}
+</svg>
+
+<style>
+  .layer-glyph {
+    flex: none;
+    overflow: visible;
+  }
+
+  .lg-plate {
+    fill: var(--ink-1);
+    stroke: var(--line-strong);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+    stroke-linejoin: round;
+  }
+
+  .lg-plate.on {
+    fill: color-mix(in oklch, var(--accent) 24%, var(--ink-1));
+    stroke: var(--accent);
+  }
+</style>

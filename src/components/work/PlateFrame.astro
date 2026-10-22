@@ -1,0 +1,326 @@
+---
+/**
+ * Shared chrome for the project plates.
+ *
+ * The frame is drawn in SVG; the figure title and the bottom strip are HTML,
+ * so they stay readable at any plate width. Their words, the legend and the
+ * in-art labels live in src/i18n/ui/plates.ts. Each plate passes its drawing
+ * through the slot and marks explainable pieces as
+ *   <g class="part" data-part="key"> ... </g>
+ * With `legend`, an HTML parts list is rendered under the plate and each item
+ * lights its part (and hovering a part lights its item), in the same language
+ * as the hero's FIG. 01: siblings dim, the match takes the project accent.
+ *
+ * Parents can light the whole plate with `--plate-lit: 1` (for example when a
+ * chapter's title link is hovered or focused).
+ *
+ * Shared drawing vocabulary (use these classes so plates read as one set):
+ *   .ink      filled block: ink-1 fill, strong hairline
+ *   .wire     structural line in steel
+ *   .faint    secondary line
+ *   .accent   the project accent (one live path, never everything)
+ *   .planned  dashed, dimmer: something that does not exist yet
+ *   .t        mono annotation text (13 units; hidden in compact thumbnails)
+ *   .t-strong annotation text in ivory
+ *   .t-minor  annotation hidden when the plate is narrower than 480px
+ *   .context  structure that is not a part but dims with the parts
+ *   .no-lit   a shape inside a part that keeps its colour when lit
+ */
+import { useI18n } from '@/i18n';
+import { plates, type PlateSlug } from '@/i18n/ui/plates';
+
+interface Props {
+  slug: PlateSlug;
+  legend?: boolean | undefined;
+  compact?: boolean | undefined;
+}
+
+const { slug, legend = false, compact = false } = Astro.props;
+const { t } = useI18n(Astro);
+const { fig, strip, parts } = t(plates[slug]);
+// A strip that wraps breaks between its items, never inside one.
+const stripItems = strip
+  .split(' · ')
+  .map((item) => item.replaceAll(' ', '\u00a0'))
+  .join('\u00a0· ');
+const showLegend = legend && !compact;
+---
+
+<figure class:list={['project-plate', { compact }]} data-plate={slug} aria-hidden="true">
+  <div class="plate-canvas">
+    <svg class="plate-svg" viewBox="0 0 640 480" focusable="false">
+      <path class="plate-frame" d="M1 1H611L639 29V479H1Z"></path>
+      <line class="plate-rule" x1="1" y1="434" x2="639" y2="434"></line>
+      <slot />
+    </svg>
+    <span class="plate-fig">{fig}</span>
+    <span class="plate-strip">
+      <span>{stripItems}</span>
+    </span>
+  </div>
+  {showLegend && (
+    <ol class="plate-legend" role="list">
+      {Object.entries(parts).map(([part, label], i) => (
+        <li data-part={part}>
+          <span class="plate-key">{String(i + 1).padStart(2, '0')}</span>
+          {label}
+        </li>
+      ))}
+    </ol>
+  )}
+</figure>
+
+<script>
+  /*
+   * Lighting for plate parts: pointing at a legend item or at a part marks
+   * every element that shares its data-part key (the static styles below
+   * draw it). A class toggle instead of generated per-key CSS keeps the page
+   * CSP strict: a generated <style> in the page body is not hashed.
+   *
+   * Hit-testing uses elementsFromPoint, not events on the plate: on the
+   * homepage a link's invisible click target lies over the plate, so the
+   * plate itself never receives the pointer.
+   */
+  const lit = new Map<HTMLElement, string>();
+  const light = (plate: HTMLElement, key: string | null) => {
+    if ((lit.get(plate) ?? null) === key) return;
+    if (key === null) lit.delete(plate);
+    else lit.set(plate, key);
+    plate.classList.toggle('is-active', key !== null);
+    for (const el of plate.querySelectorAll('.is-lit')) el.classList.remove('is-lit');
+    if (key === null) return;
+    for (const el of plate.querySelectorAll(`[data-part="${CSS.escape(key)}"]`))
+      el.classList.add('is-lit');
+  };
+
+  let frame = 0;
+  let last: PointerEvent | null = null;
+  const update = () => {
+    frame = 0;
+    if (!last) return;
+    const stack = document.elementsFromPoint(last.clientX, last.clientY);
+    const plate = stack
+      .find((el) => el.closest('.project-plate'))
+      ?.closest<HTMLElement>('.project-plate');
+    for (const other of [...lit.keys()]) if (other !== plate) light(other, null);
+    if (!plate) return;
+    // Only entering a part changes the lit key. Most parts are 1px strokes,
+    // so clearing on the gaps between them would make the drawing flicker.
+    const part = stack.find((el) => plate.contains(el))?.closest('[data-part]');
+    if (part && plate.contains(part)) light(plate, part.getAttribute('data-part'));
+  };
+  if (document.querySelector('.project-plate')) {
+    document.addEventListener(
+      'pointermove',
+      (event) => {
+        if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+        last = event;
+        if (!frame) frame = requestAnimationFrame(update);
+      },
+      { passive: true },
+    );
+    document.documentElement.addEventListener('pointerleave', () => {
+      for (const plate of [...lit.keys()]) light(plate, null);
+    });
+  }
+</script>
+
+<style is:global>
+  .project-plate {
+    margin: 0;
+    width: 100%;
+    transition: --plate-lit var(--dur-ui) var(--ease-out);
+  }
+
+  .plate-canvas {
+    position: relative;
+    container-type: inline-size;
+    aspect-ratio: 4 / 3;
+  }
+
+  .plate-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  .plate-frame {
+    fill: var(--ink-deep);
+    stroke: color-mix(in oklch, var(--accent) calc(var(--plate-lit) * 75%), var(--line-strong));
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .plate-rule {
+    stroke: var(--line);
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .plate-fig,
+  .plate-strip {
+    position: absolute;
+    font-family: var(--ff-mono);
+    font-size: clamp(0.62rem, 1.9cqi, 0.72rem);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    line-height: 1.2;
+    pointer-events: none;
+  }
+
+  .plate-fig {
+    top: 4.2%;
+    left: 3.75%;
+    color: color-mix(in oklch, var(--accent) calc(var(--plate-lit) * 100%), var(--fg-3));
+  }
+
+  .plate-strip {
+    top: 90.42%;
+    bottom: 0;
+    left: 3.75%;
+    right: 7%;
+    display: flex;
+    align-items: center;
+    color: var(--fg-2);
+    /* two uppercase lines still fit the band on a 320px phone */
+    line-height: 1.1;
+  }
+
+  /* One line where it fits; a longer strip (Bulgarian runs longer) takes two
+     balanced lines instead of losing its end to an ellipsis. */
+  .plate-strip > span {
+    min-width: 0;
+    text-wrap: balance;
+  }
+
+  @container (max-width: 420px) {
+    .plate-fig,
+    .plate-strip {
+      letter-spacing: 0.06em;
+    }
+  }
+
+  /* Shared drawing vocabulary */
+  .project-plate .ink {
+    fill: var(--ink-1);
+    stroke: var(--line-strong);
+    stroke-width: 1;
+  }
+
+  .project-plate .wire {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-width: 1.2;
+  }
+
+  .project-plate .faint {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .project-plate .accent {
+    stroke: var(--accent);
+  }
+
+  .project-plate .planned {
+    stroke-dasharray: 4 4;
+    opacity: 0.75;
+  }
+
+  .project-plate .t,
+  .project-plate .t-strong {
+    font-family: var(--ff-mono);
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    fill: var(--fg-3);
+  }
+
+  .project-plate .t-strong {
+    fill: var(--fg);
+  }
+
+  /* Phones: the silhouette plus the key (strong) labels; the case hero keeps
+     its HTML parts list. */
+  @container (max-width: 400px) {
+    .project-plate .t:not(.t-strong) {
+      display: none;
+    }
+  }
+
+  @container (max-width: 480px) {
+    .project-plate .t-minor {
+      display: none;
+    }
+  }
+
+  /* Linking: any hovered part or legend item dims the others */
+  .project-plate :is(.part, .context) {
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  .project-plate .part :is(path, line, polyline, polygon, rect, circle, ellipse, text) {
+    transition:
+      stroke var(--dur-ui) var(--ease-out),
+      fill var(--dur-ui) var(--ease-out);
+  }
+
+  .project-plate.is-active :is(.part, .context) {
+    opacity: 0.32;
+  }
+
+  .project-plate.is-active .part.is-lit {
+    opacity: 1;
+  }
+
+  .project-plate
+    .part.is-lit
+    :is(path, line, polyline, polygon, rect, circle, ellipse):not(.no-lit) {
+    stroke: var(--accent);
+  }
+
+  .project-plate .part.is-lit text {
+    fill: var(--fg);
+  }
+
+  .plate-legend li.is-lit {
+    --lit: 1;
+  }
+
+  .plate-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+    margin: 0.85rem 0 0;
+    padding: 0;
+    list-style: none;
+    font-size: var(--text-caption);
+    line-height: 1.35;
+  }
+
+  .plate-legend li {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    color: color-mix(in oklch, var(--fg) calc(var(--lit) * 100%), var(--fg-3));
+    cursor: default;
+    transition: --lit var(--dur-ui) var(--ease-out);
+  }
+
+  .plate-key {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    color: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-3));
+  }
+
+  /* Thumbnails: no text, strokes keep one device pixel */
+  .project-plate.compact :is(.plate-fig, .plate-strip),
+  .project-plate.compact text {
+    display: none;
+  }
+
+  .project-plate.compact :is(path, line, polyline, polygon, rect, circle, ellipse) {
+    vector-effect: non-scaling-stroke;
+  }
+</style>

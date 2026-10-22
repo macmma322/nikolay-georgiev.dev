@@ -1,0 +1,38 @@
+---
+/**
+ * Authored vector plates, one visual language per project. They illustrate
+ * verified structure (lanes, modules, stages, radio link) and never show
+ * invented numbers or telemetry values. Each plate lives in ./art and is
+ * drawn inside PlateFrame, which owns the frame, the labels and the
+ * text-lights-drawing interaction.
+ */
+import Jarvis from './art/Jarvis.astro';
+import Zone from './art/Zone.astro';
+import Ussx from './art/Ussx.astro';
+import Kobait from './art/Kobait.astro';
+import Malrynth from './art/Malrynth.astro';
+import Stemini from './art/Stemini.astro';
+
+interface Props {
+  slug: string;
+  /** Thumbnail mode: no text, hairline strokes. */
+  compact?: boolean;
+  /** Render the HTML parts list under the plate (case-study hero). */
+  legend?: boolean;
+}
+
+const plates = {
+  jarvis: Jarvis,
+  'zone-32-19': Zone,
+  'uss-x-academy': Ussx,
+  kobait: Kobait,
+  malrynth: Malrynth,
+  stemini: Stemini,
+} as const;
+
+const { slug, compact = false, legend = false } = Astro.props;
+const Plate = plates[slug as keyof typeof plates];
+if (!Plate) throw new Error(`No plate drawn for project "${slug}" (add one in ./art)`);
+---
+
+<Plate compact={compact} legend={legend} />

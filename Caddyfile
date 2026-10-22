@@ -1,0 +1,131 @@
+# Static server for the production image. Railway terminates TLS and routes to
+# $PORT; Caddy only serves dist/ with security and cache headers.
+{
+	admin off
+	auto_https off
+	persist_config off
+}
+
+# Shared by normal responses and the 404 handler: header blocks that remove a
+# field are deferred, and deferred headers are not applied to error responses.
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		# Pages carry Astro's hashed CSP as a meta tag. These directives cannot
+		# live in a meta tag, and they add to it rather than replace it.
+		Content-Security-Policy "frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		X-Frame-Options "DENY"
+		Speculation-Rules "\"/speculation-rules.json\""
+		-Server
+	}
+}
+
+:{$PORT:8080} {
+	root * {$SITE_ROOT:/srv}
+	encode zstd gzip
+	import security_headers
+
+	# /og/ holds only content-hashed cards (scripts/og.mjs; the audit checks it).
+	@hashed path /_astro/* /icons/* /og/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+
+	@revalidate not path /_astro/* /icons/* /og/*
+	header @revalidate Cache-Control "public, max-age=0, must-revalidate"
+
+	@speculation path /speculation-rules.json
+	header @speculation Content-Type "application/speculationrules+json"
+
+	# Railway-generated hosts (previews, the service's own *.up.railway.app
+	# domain) serve the same pages as the real domain: keep them out of search.
+	@railwayHost host *.up.railway.app
+	header @railwayHost X-Robots-Tag "noindex"
+
+	# URLs of the previous Next.js portfolio (live Feb to Sep 2026), each mapped
+	# straight to its final address so no redirect chains through another. The
+	# old CV carried personal data; its URL now serves the redacted CV. First
+	# match wins; unmatched paths leave {legacy} unset.
+	map {path} {legacy} {
+		/cv-nikolay-georgiev.pdf /Nikolay-Georgiev-CV.pdf
+		/projects /work
+		/resume /about
+		/sitemap.xml /sitemap-index.xml
+		/opengraph-image /og/home-en.7b8e0f49df.png
+		/icon /favicon-32.png
+		/favicon.ico /favicon-32.png
+		# Retired slugs, under both /projects/ and /work/.
+		~^/(?:projects|work)/zone-32-19-platform$ /work/zone-32-19
+		~^/(?:projects|work)/(?:zone-bait-boat-controller|kobait-boat|kobait-boat-system)$ /work/kobait
+		~^/(?:projects|work)/stemini-saas-platform$ /work/stemini
+		~^/(?:projects|work)/nikolay-runtime-(?:portfolio|interface)$ /lab#lab-this-site
+		~^/(?:projects|work)/cyber-ui-experiments$ /lab
+		# Current slugs keep their page; any other old project URL goes to the index.
+		~^/projects/(zone-32-19|jarvis|uss-x-academy|kobait|malrynth|stemini)$ /work/${1}
+		~^/projects/ /work
+	}
+
+	# Railway's health check (Host: healthcheck.railway.app, path /) gets the
+	# page itself: no host, clean-URL or legacy redirect may answer it.
+	@healthcheck host healthcheck.railway.app
+	handle @healthcheck {
+		try_files {path} {path}.html
+		file_server
+	}
+
+	handle {
+		# One canonical host. www is live on this service. The old Next.js
+		# service's domain redirects only once it is attached to this service
+		# (Railway > Settings > Networking); until then that service answers
+		# on it. Legacy paths go straight to their final URL.
+		@otherHostLegacy {
+			host www.nikolay-georgiev.dev nikolayruntime-production.up.railway.app
+			not vars {legacy} ""
+		}
+		redir @otherHostLegacy https://nikolay-georgiev.dev{legacy} 308
+		@otherHost host www.nikolay-georgiev.dev nikolayruntime-production.up.railway.app
+		redir @otherHost https://nikolay-georgiev.dev{uri} 308
+
+		@legacy not vars {legacy} ""
+		redir @legacy {legacy} 308
+
+		# Clean URLs: /work/jarvis serves work/jarvis.html, and trailing slashes
+		# and .html suffixes redirect to it. The captures only allow ordinary
+		# path characters, so a crafted path (/%5Cevil.example/) cannot turn the
+		# Location into a protocol-relative URL on another host.
+		@trailing path_regexp trailing ^(/\w[\w/.~-]*)/$
+		redir @trailing {re.trailing.1} 308
+
+		@index path /index /index.html
+		redir @index / 308
+		@html {
+			path_regexp html ^(/\w[\w/.~-]*)\.html$
+			not path /index.html /404.html /bg/404.html
+		}
+		redir @html {re.html.1} 308
+
+		try_files {path} {path}.html
+
+		# The 404 pages are only ever served as an error, never with a 200.
+		@notFoundPage path /404 /404.html /bg/404 /bg/404.html
+		error @notFoundPage 404
+
+		file_server
+	}
+
+	handle_errors 404 {
+		import security_headers
+		# Replaces the immutable cache header that /_astro/*, /icons/* and /og/*
+		# requests already carry, so a missing asset is never cached for a year.
+		header Cache-Control "no-cache"
+		# A missing Bulgarian page gets the Bulgarian 404.
+		@bgMissing path /bg /bg/*
+		rewrite @bgMissing /bg/404.html
+		@enMissing not path /bg /bg/*
+		rewrite @enMissing /404.html
+		encode zstd gzip
+		file_server
+	}
+}

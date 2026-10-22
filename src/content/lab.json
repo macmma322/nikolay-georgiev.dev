@@ -1,0 +1,238 @@
+[
+  {
+    "id": "environment-controller",
+    "name": {
+      "en": "Railway Environment Controller",
+      "bg": "Контролер на средата в Railway"
+    },
+    "order": 1,
+    "group": "tooling",
+    "status": "prototype",
+    "kicker": {
+      "en": "Observe-first autoscaling for Zone 32-19",
+      "bg": "Zone 32-19: автоматично мащабиране, което първо наблюдава"
+    },
+    "summary": {
+      "en": "A small TypeScript service that reads Railway metrics every minute and decides whether services should scale, but by default only records what it would do.",
+      "bg": "Малка TypeScript услуга, която всяка минута чете метриките от Railway и решава дали някоя услуга трябва да се мащабира. По подразбиране само записва какво би направила."
+    },
+    "points": [
+      {
+        "en": "Reads CPU, memory, replica count and deployment status through the Railway GraphQL API.",
+        "bg": "Чете CPU, памет, брой реплики и статус на внедряването през Railway GraphQL API."
+      },
+      {
+        "en": "Scales on hysteresis with sustained windows, per-service and global cooldowns, min and max replicas and a budget cap.",
+        "bg": "Мащабира с хистерезис и устойчиви времеви прозорци, с периоди на изчакване за всяка услуга и глобално, минимален и максимален брой реплики и таван на разходите."
+      },
+      {
+        "en": "Refuses to replica-scale stateful services such as databases, Redis, volumes and singleton workers.",
+        "bg": "Отказва да добавя реплики на услуги със състояние като бази данни, Redis, томове и worker процеси, които трябва да работят в едно копие."
+      },
+      {
+        "en": "Writes one JSON audit line per service per run, including decisions it blocked or skipped.",
+        "bg": "При всяко изпълнение записва по един JSON ред за одит на всяка услуга, включително блокираните и пропуснатите решения."
+      },
+      {
+        "en": "Applying a change needs an explicit mode, dry-run off and, for production, an approval file. 61 tests cover policy, config, locks and scaling.",
+        "bg": "Прилагането на промяна изисква изричен режим, изключен dry-run, а за продукция – и файл с одобрение. 61 теста покриват политиките, конфигурацията, заключванията и мащабирането."
+      }
+    ],
+    "stack": ["typescript", "nodejs", "railway"],
+    "evidence": {
+      "en": "Zone-32-19 monorepo, Zone-32-19-Environment-Controller (v0.3.0)",
+      "bg": "Монорепо Zone-32-19, Zone-32-19-Environment-Controller (v0.3.0)"
+    },
+    "related": {
+      "project": "zone-32-19",
+      "note": {
+        "en": "The platform it was built for",
+        "bg": "Платформата, за която е създаден"
+      }
+    }
+  },
+  {
+    "id": "agent-governed-engineering",
+    "name": {
+      "en": "Agent-governed engineering",
+      "bg": "Разработка с AI агенти под контрол"
+    },
+    "order": 2,
+    "group": "tooling",
+    "status": "active",
+    "kicker": {
+      "en": "How I build with AI coding agents",
+      "bg": "Как работя с AI агенти за програмиране"
+    },
+    "summary": {
+      "en": "Most of my recent work is written together with AI coding agents. What makes that work is governance: written repository rules, decision logs, review agents and tests that hold the boundaries.",
+      "bg": "По-голямата част от скорошната ми работа е написана заедно с AI агенти за програмиране. Това работи благодарение на контрола: писмени правила в хранилищата, дневници на решенията, агенти за преглед и тестове, които пазят границите."
+    },
+    "points": [
+      {
+        "en": "Every major repository carries its own operating rules for agents, and architecture decisions are recorded as ADRs or decision logs.",
+        "bg": "Всяко голямо хранилище има собствени правила за работа на агентите, а архитектурните решения записвам като ADR или в дневник на решенията."
+      },
+      {
+        "en": "Zone 32-19 has custom review agents for routes, databases, migrations and security, plus checklists for schema changes.",
+        "bg": "Zone 32-19 има собствени агенти за преглед на маршрутите, базите данни, миграциите и сигурността, както и чеклисти за промени в схемата."
+      },
+      {
+        "en": "J.A.R.V.I.S. is developed by several agents on parallel branches that I integrate, and it exposes project context to agents over MCP, read-only except for five tools that record derived state.",
+        "bg": "J.A.R.V.I.S. се разработва от няколко агента в паралелни клонове, които интегрирам аз. Проектът дава на агентите контекст през MCP само за четене, с изключение на пет инструмента, които записват производно състояние."
+      },
+      {
+        "en": "I keep authorship and integration: architecture, boundaries, review and merges are mine.",
+        "bg": "Авторството и интеграцията остават при мен: архитектурата, границите, прегледът и сливанията са мои."
+      }
+    ],
+    "stack": ["claude", "mcp", "githubactions", "git"],
+    "evidence": {
+      "en": "Agent rule files across repositories, the Zone 32-19 review-agent definitions, and the J.A.R.V.I.S. branch history and decision log",
+      "bg": "Файлове с правила за агентите в хранилищата, дефинициите на агентите за преглед в Zone 32-19, историята на клоновете и записаните решения в J.A.R.V.I.S."
+    },
+    "related": {
+      "project": "jarvis",
+      "note": {
+        "en": "Several agents on parallel branches, one decision log",
+        "bg": "Няколко агента в паралелни клонове, един дневник на решенията"
+      }
+    }
+  },
+  {
+    "id": "this-site",
+    "name": {
+      "en": "This portfolio",
+      "bg": "Това портфолио"
+    },
+    "order": 3,
+    "group": "tooling",
+    "status": "active",
+    "kicker": {
+      "en": "NIKOLAY.RUNTIME, version three",
+      "bg": "NIKOLAY.RUNTIME, трета версия"
+    },
+    "summary": {
+      "en": "A static Astro and TypeScript site. Content is typed data, architecture diagrams are generated from that data, and nothing ships a client framework.",
+      "bg": "Статичен сайт на Astro и TypeScript. Съдържанието е типизирани данни, архитектурните диаграми се генерират от тях, а клиентски фреймуърк няма."
+    },
+    "points": [
+      {
+        "en": "Content collections with schemas for every case study, and a technology registry based on evidence rather than self-rating.",
+        "bg": "Колекции със съдържание и схема за всеки проект, както и регистър на технологиите, основан на доказателства, а не на самооценка."
+      },
+      {
+        "en": "A diagram engine that renders typed nodes and edges to SVG, with an accessible list version for phones and screen readers.",
+        "bg": "Механизъм за диаграми, който превръща типизирани възли и връзки в SVG, с достъпна версия като списък за телефони и екранни четци."
+      },
+      {
+        "en": "A strict Content Security Policy with hashed scripts, self-hosted fonts, no trackers and no cookies.",
+        "bg": "Строга Content Security Policy с хеширани скриптове, собствено хоствани шрифтове, без тракери и без бисквитки."
+      }
+    ],
+    "stack": ["astro", "typescript", "css"],
+    "evidence": {
+      "en": "This repository",
+      "bg": "Това хранилище"
+    }
+  },
+  {
+    "id": "ledgerforge",
+    "name": "LedgerForge",
+    "order": 4,
+    "group": "next",
+    "status": "planned",
+    "kicker": {
+      "en": "Banking and ledger platform in Java, Spring Boot and Angular (working name)",
+      "bg": "Банкова и счетоводна платформа на Java, Spring Boot и Angular (работно име)"
+    },
+    "summary": {
+      "en": "My next major system, and a deliberate step outside TypeScript: a financial platform where correctness is the product.",
+      "bg": "Следващата ми голяма система и съзнателна стъпка извън TypeScript: финансова платформа, в която коректността е самият продукт."
+    },
+    "points": [
+      {
+        "en": "Accounts, balances and a double-entry ledger with an immutable transaction history.",
+        "bg": "Сметки, салда и счетоводен регистър с двойно записване и неизменима история на транзакциите."
+      },
+      {
+        "en": "Transfers and payment flows with idempotency, clear transaction boundaries and reconciliation.",
+        "bg": "Преводи и платежни потоци с идемпотентност, ясни граници на транзакциите и равнение."
+      },
+      {
+        "en": "Audit logging, roles and permissions, risk signals, reporting and an administration console in Angular.",
+        "bg": "Одитен журнал, роли и права, сигнали за риск, отчети и административна конзола на Angular."
+      },
+      {
+        "en": "A modular monolith first, with strong test coverage and observability, rather than microservices for their own sake.",
+        "bg": "Първо модулен монолит с високо тестово покритие и наблюдаемост, вместо микроуслуги като самоцел."
+      }
+    ],
+    "stack": ["java", "springboot", "angular", "postgresql"],
+    "evidence": {
+      "en": "Planned. No repository exists yet.",
+      "bg": "Само план. Още няма хранилище."
+    },
+    "related": {
+      "project": "zone-32-19",
+      "note": {
+        "en": "Already has a double-entry ledger",
+        "bg": "Вече има счетоводен регистър с двойно записване"
+      }
+    }
+  },
+  {
+    "id": "voxel-world",
+    "name": {
+      "en": "Untitled voxel world",
+      "bg": "Безименен вокселен свят"
+    },
+    "order": 5,
+    "group": "next",
+    "status": "concept",
+    "kicker": {
+      "en": "Block-based fantasy sandbox",
+      "bg": "Фентъзи пясъчник от блокове"
+    },
+    "summary": {
+      "en": "A 3D open world built from blocks: survival and building in a medieval-fantasy setting with cities, creatures and dragons, designed from the start to be extended by mods.",
+      "bg": "Отворен 3D свят от блокове: оцеляване и строене в средновековна фентъзи обстановка с градове, същества и дракони, проектиран от самото начало да се разширява с модове."
+    },
+    "points": [
+      {
+        "en": "Engineering topics to solve: chunked world streaming, procedural terrain, persistence, an entity-component system, networking and a plugin API.",
+        "bg": "Инженерни задачи за решаване: поточно зареждане на света на части (chunks), процедурен терен, запазване на състоянието, entity-component система, мрежова игра и API за плъгини."
+      },
+      {
+        "en": "Inspired by the block-building sandbox genre, aiming for a more polished and extensible world.",
+        "bg": "Вдъхновен от жанра на пясъчниците с блокове, но с цел по-изпипан и по-лесно разширяем свят."
+      }
+    ],
+    "stack": [],
+    "evidence": {
+      "en": "Concept. No code yet.",
+      "bg": "Концепция. Още няма код."
+    }
+  },
+  {
+    "id": "velnethyrn",
+    "name": "Velnethyrn",
+    "order": 6,
+    "group": "paused",
+    "status": "paused",
+    "kicker": {
+      "en": "Realistic large-scale fantasy game",
+      "bg": "Реалистична мащабна фентъзи игра"
+    },
+    "summary": {
+      "en": "A long-term idea for a realistic, large-scale 3D fantasy world. It is paused, and the repository holds only a placeholder.",
+      "bg": "Дългосрочна идея за реалистичен, мащабен 3D фентъзи свят. Идеята е на пауза, а в хранилището има само заготовка."
+    },
+    "points": [],
+    "stack": [],
+    "evidence": {
+      "en": "Placeholder repository only.",
+      "bg": "Само хранилище със заготовка."
+    }
+  }
+]

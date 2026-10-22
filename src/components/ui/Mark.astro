@@ -1,0 +1,42 @@
+---
+interface Props {
+  size?: number;
+}
+const { size = 30 } = Astro.props;
+---
+
+<svg
+  class="mark"
+  viewBox="0 0 24 24"
+  width={size}
+  height={size}
+  aria-hidden="true"
+  focusable="false"
+>
+  <path class="mark-frame" d="M1 1h17.5L23 5.5V23H1z"></path>
+  <path class="mark-glyph" d="M5 16.5v-9l5.5 9v-9M19 7.5h-5.2v9H19v-4.2h-2.6"></path>
+  <rect class="mark-signal" x="19.6" y="19.6" width="1.8" height="1.8"></rect>
+</svg>
+
+<style>
+  .mark {
+    flex: none;
+    color: var(--fg);
+  }
+  .mark-frame {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+  .mark-glyph {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
+  }
+  .mark-signal {
+    fill: var(--signal);
+  }
+</style>

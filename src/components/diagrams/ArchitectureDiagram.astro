@@ -1,0 +1,953 @@
+---
+/**
+ * An architecture figure drawn from data (src/data/diagrams).
+ *
+ * Two representations of the same graph:
+ *   - an SVG drawing when the figure itself is wide enough for its text to
+ *     stay legible (container query, not the viewport);
+ *   - a tiered text list otherwise, and always for screen readers.
+ *
+ * Interaction follows the site's one idiom (text lights its drawing):
+ *   - hovering a node lights its edges and neighbours and dims the rest
+ *     (pointer only: the drawing is decorative and not focusable);
+ *   - the legend items are links to the case's Today / Next lists, and
+ *     hovering or focusing one dims the other category.
+ *
+ * Motion: a one-time build (core, first hop, the rest, edges draw, heads,
+ * labels, packets) triggered by the script below; it is skipped by any
+ * pointer or focus inside, and never runs without JS, under reduced motion,
+ * or for a figure that is already on screen.
+ *
+ * Text comes in the page's language; the geometry is the same in every
+ * language, and src/data/diagrams fails the build if any text would not fit.
+ */
+import {
+  CELL_H,
+  CELL_W,
+  TEXT_X,
+  TYPE,
+  edgeLabelW,
+  groupLabelW,
+  nodeBox,
+  routeEdge,
+  subLines,
+  tagOf,
+  type Diagram,
+} from '@/lib/diagram';
+import { useI18n, type L } from '@/i18n';
+import { diagram as ui } from '@/i18n/ui/diagram';
+
+interface Props {
+  diagram: Diagram;
+  figure?: string | undefined;
+  accent?: string | undefined;
+}
+
+const { diagram: d, figure, accent } = Astro.props;
+const { l, t } = useI18n(Astro);
+const s = t(ui);
+const W = d.cols * CELL_W;
+const H = d.rows * CELL_H;
+const byId = new Map(d.nodes.map((n) => [n.id, n]));
+const node = (id: string) => {
+  const n = byId.get(id);
+  if (!n) throw new Error(`Diagram ${d.id}: unknown node "${id}"`);
+  return n;
+};
+const lines = (text: L | undefined) => subLines(text && l(text));
+
+// Undirected neighbours, and the distance of every node from the core
+// (emphasis) nodes: the build reveals the graph outwards from there.
+const adj = new Map(d.nodes.map((n) => [n.id, new Set<string>()]));
+for (const e of d.edges) {
+  node(e.from);
+  node(e.to);
+  adj.get(e.from)?.add(e.to);
+  adj.get(e.to)?.add(e.from);
+}
+const dist = new Map<string, number>();
+let ring = d.nodes.filter((n) => n.emphasis).map((n) => n.id);
+if (ring.length === 0) ring = d.nodes.slice(0, 1).map((n) => n.id);
+for (let k = 0; ring.length > 0; k++) {
+  ring.forEach((id) => dist.set(id, k));
+  ring = [...new Set(ring.flatMap((id) => [...(adj.get(id) ?? [])]))].filter((id) => !dist.has(id));
+}
+const hops = (id: string) => dist.get(id) ?? 2;
+
+const edges = d.edges.map((e) => {
+  const a = node(e.from);
+  const b = node(e.to);
+  return {
+    ...routeEdge(e, nodeBox(a), nodeBox(b)),
+    key: `${e.from} ${e.to}`,
+    planned: Boolean(e.dashed || a.planned || b.planned),
+    step: Math.min(hops(e.from), hops(e.to), 3),
+  };
+});
+const hasPlanned = d.nodes.some((n) => n.planned) || edges.some((e) => e.planned);
+const PACKET_SPEED = 90; // SVG units per second, the same on every edge
+
+const outgoing = (id: string) =>
+  edges
+    .filter((e) => e.from === id || (e.both && e.to === id))
+    .map((e) => {
+      const other = node(e.from === id ? e.to : e.from);
+      return {
+        id: other.id,
+        target: l(other.label),
+        label: e.label && l(e.label),
+        both: e.both,
+        // The words around the target, in this language's order.
+        words: e.both ? s.list.both : s.list.to,
+        planned: e.planned,
+      };
+    });
+const headingId = `fig-${d.id}`;
+---
+
+<figure class="diagram" data-diagram={d.id} data-accent={accent} aria-labelledby={headingId}>
+  <div class="diagram-head">
+    {figure && <span class="label">{figure}</span>}
+    <p class="diagram-title" id={headingId}>
+      {l(d.title)}
+    </p>
+    <ul class="legend" role="list">
+      <li>
+        <a class="lg lg-built" href="#today">
+          <i aria-hidden="true"></i>
+          {s.legend.built}
+          <span class="visually-hidden">{s.legend.seeToday}</span>
+        </a>
+      </li>
+      {hasPlanned && (
+        <li>
+          <a class="lg lg-planned" href="#next">
+            <i aria-hidden="true" />
+            {s.legend.planned}
+            <span class="visually-hidden">{s.legend.seeNext}</span>
+          </a>
+        </li>
+      )}
+    </ul>
+  </div>
+
+  <div class="canvas">
+    <svg viewBox={`0 0 ${W} ${H}`} class="svg" aria-hidden="true" focusable="false">
+      {(d.groups ?? []).map((g) => {
+        const label = l(g.label).toUpperCase();
+        return (
+          <g class="group">
+            <rect
+              class="group-frame"
+              x={g.col * CELL_W + 4}
+              y={g.row * CELL_H + 3}
+              width={g.colSpan * CELL_W - 8}
+              height={g.rowSpan * CELL_H - 6}
+              rx="4"
+            />
+            <rect
+              class="group-mask"
+              x={g.col * CELL_W + 9}
+              y={g.row * CELL_H - 3}
+              width={groupLabelW(label) + 8}
+              height="12"
+            />
+            <text
+              class="group-label"
+              x={g.col * CELL_W + 14}
+              y={g.row * CELL_H + 6.8}
+              font-size={TYPE.group}
+            >
+              {label}
+            </text>
+          </g>
+        );
+      })}
+
+      <g class="edges">
+        {edges.map((e) => (
+          <path
+            d={e.d}
+            pathLength={e.planned ? undefined : 1}
+            class:list={['edge', { 'is-planned': e.planned }]}
+            data-e={e.key}
+            data-step={e.step}
+          />
+        ))}
+        {edges.map((e) => (
+          <path
+            d={e.head}
+            class:list={['head', { 'is-planned': e.planned }]}
+            data-e={e.key}
+            data-step={e.step}
+          />
+        ))}
+      </g>
+
+      <g class="packets">
+        {edges
+          .filter((e) => e.flow)
+          .map((e, i) => {
+            const dur = e.length / PACKET_SPEED;
+            // A negative begin starts every packet mid-flight, and the
+            // hidden-until-set visibility keeps it off the SVG origin
+            // before the animation timeline starts.
+            return (
+              <circle r="3" class="packet" data-e={e.key} visibility="hidden">
+                <set attributeName="visibility" to="visible" begin="0s" fill="freeze" />
+                <animateMotion
+                  dur={`${dur.toFixed(2)}s`}
+                  begin={`-${(((i * 0.37) % 1) * dur).toFixed(2)}s`}
+                  repeatCount="indefinite"
+                  path={e.d}
+                />
+              </circle>
+            );
+          })}
+      </g>
+
+      {d.nodes.map((n) => {
+        const b = nodeBox(n);
+        return (
+          <g
+            class:list={[
+              'node',
+              `kind-${n.kind}`,
+              { 'is-core': n.emphasis, 'is-planned': n.planned },
+            ]}
+            data-n={n.id}
+            data-nb={[...(adj.get(n.id) ?? [])].join(' ')}
+            data-step={Math.min(hops(n.id), 2)}
+          >
+            <rect class="node-box" x={b.x} y={b.y} width={b.w} height={b.h} rx="3" />
+            {n.kind === 'store' && (
+              <path class="node-detail" d={`M${b.x + 4} ${b.y + b.h - 4}H${b.x + b.w - 4}`} />
+            )}
+            {n.kind === 'gateway' && (
+              <path class="node-detail" d={`M${b.x + b.w - 12} ${b.y}L${b.x + b.w} ${b.y + 12}`} />
+            )}
+            <text class="node-tag" x={b.x + TEXT_X} y={b.y + 20} font-size={TYPE.tag}>
+              {l(tagOf(n)).toUpperCase()}
+            </text>
+            <text class="node-label" x={b.x + TEXT_X} y={b.y + 41} font-size={TYPE.label}>
+              {l(n.label)}
+            </text>
+            {lines(n.sub).map((line, i) => (
+              <text class="node-sub" x={b.x + TEXT_X} y={b.y + 59 + i * 15} font-size={TYPE.sub}>
+                {line}
+              </text>
+            ))}
+          </g>
+        );
+      })}
+
+      {edges
+        .flatMap((e) => (e.label ? [{ ...e, text: l(e.label) }] : []))
+        .map((e) => {
+          const w = edgeLabelW(e.text);
+          const [x, y] = e.labelAt;
+          return (
+            <g class:list={['edge-label', { 'is-planned': e.planned }]} data-e={e.key}>
+              <rect x={x - w / 2} y={y - 8.5} width={w} height="17" rx="2" />
+              <text x={x} y={y + 3.9} text-anchor="middle" font-size={TYPE.edge}>
+                {e.text}
+              </text>
+            </g>
+          );
+        })}
+    </svg>
+  </div>
+
+  <div class="list">
+    {d.tiers.map((tier, i) => (
+      <div class="tier">
+        <p class="label tier-label" id={`${d.id}-tier-${i}`}>
+          {l(tier.label)}
+        </p>
+        <ul role="list" class="tier-nodes" aria-labelledby={`${d.id}-tier-${i}`}>
+          {tier.nodes.map((id) => {
+            const n = node(id);
+            const out = outgoing(id);
+            return (
+              <li
+                id={`${d.id}-${id}`}
+                class:list={['li-node', { 'is-core': n.emphasis, 'is-planned': n.planned }]}
+              >
+                <p class="li-head">
+                  <span class="li-tag">{l(tagOf(n))}</span>
+                  <span class="li-label">{l(n.label)}</span>
+                  {n.planned && n.tag && <span class="visually-hidden">{s.list.plannedNode}</span>}
+                </p>
+                {n.sub && <p class="li-sub">{l(n.sub).replace(/-\n/g, '-').replace(/\n/g, ' ')}</p>}
+                {out.length > 0 && (
+                  <ul role="list" class="li-out">
+                    {out.map((o) => (
+                      <li>
+                        <span class="li-arrow" aria-hidden="true">
+                          {o.both ? '↔' : '→'}
+                        </span>
+                        <span class="li-to">
+                          <span class="visually-hidden">{o.words.before}</span>
+                          <a href={`#${d.id}-${o.id}`}>{o.target}</a>
+                          {o.words.after && <span class="visually-hidden">{o.words.after}</span>}
+                          {o.label && <span class="li-edge">{o.label}</span>}
+                          {o.planned && <span class="li-plan">{s.list.planned}</span>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <figcaption class="caption">{l(d.caption)}</figcaption>
+</figure>
+
+<script>
+  /*
+   * One script for every diagram on the page:
+   *   - build: arm figures that are still below the fold, play once when they
+   *     arrive, finish (data-build=done) so the packets fade in; pointer or
+   *     focus inside skips straight to the final state;
+   *   - packets: the SMIL clock only runs while the drawing is on screen;
+   *   - list links: while the drawing is shown the text list is visually
+   *     hidden, so its links leave the tab order (screen readers still reach
+   *     them; without JS the list reveals itself on focus instead).
+   */
+  const BUILD_MS = 1250;
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const nav = performance.getEntriesByType('navigation')[0] as
+    PerformanceNavigationTiming | undefined;
+  // Deep links, back/forward and reloads restore a scroll position: start final.
+  const restoring = location.hash !== '' || nav?.type === 'back_forward' || nav?.type === 'reload';
+
+  const build = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        const fig = entry.target as HTMLElement;
+        build.unobserve(fig);
+        fig.dataset.build = 'play';
+        window.setTimeout(() => (fig.dataset.build = 'done'), BUILD_MS);
+      }
+    },
+    { rootMargin: '0px 0px -30% 0px' },
+  );
+
+  const clock = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      const svg = entry.target as SVGSVGElement;
+      if (entry.isIntersecting && !reduce.matches) svg.unpauseAnimations();
+      else svg.pauseAnimations();
+    }
+  });
+
+  const syncList = (fig: Element) => {
+    const drawn = fig.querySelector<HTMLElement>('.canvas')?.offsetParent !== null;
+    for (const a of fig.querySelectorAll('.list a')) {
+      if (drawn) a.setAttribute('tabindex', '-1');
+      else a.removeAttribute('tabindex');
+    }
+  };
+  const resize = new ResizeObserver((entries) => entries.forEach((e) => syncList(e.target)));
+
+  // Pointer lighting: the hovered node, its neighbours and its edges.
+  const light = (svg: SVGSVGElement, id: string | null) => {
+    for (const el of svg.querySelectorAll('.is-lit')) el.classList.remove('is-lit');
+    if (!id) return;
+    const key = CSS.escape(id);
+    for (const el of svg.querySelectorAll(
+      `[data-n="${key}"],[data-nb~="${key}"],[data-e~="${key}"]`,
+    ))
+      el.classList.add('is-lit');
+  };
+
+  for (const fig of document.querySelectorAll<HTMLElement>('figure.diagram')) {
+    const svg = fig.querySelector('svg');
+    if (svg) {
+      svg.pauseAnimations();
+      clock.observe(svg);
+      svg.addEventListener('pointerover', (event) => {
+        const node = (event.target as Element).closest('[data-n]');
+        light(svg, node?.getAttribute('data-n') ?? null);
+      });
+      svg.addEventListener('pointerleave', () => light(svg, null));
+    }
+    resize.observe(fig);
+
+    if (reduce.matches || restoring || fig.getBoundingClientRect().top < window.innerHeight) {
+      continue;
+    }
+    fig.dataset.build = 'armed';
+    build.observe(fig);
+    const skip = () => {
+      build.unobserve(fig);
+      fig.dataset.build = 'done';
+    };
+    // Real pointer movement or a press, not pointerenter: wheel scrolling
+    // slides the figure under a resting pointer and would skip every build.
+    fig.addEventListener('pointermove', skip, { once: true });
+    fig.addEventListener('pointerdown', skip, { once: true });
+    fig.addEventListener('focusin', skip, { once: true });
+  }
+</script>
+
+<style>
+  .diagram {
+    --accent-line: color-mix(in oklch, var(--accent) 70%, transparent);
+    container: diagram / inline-size;
+    margin: 0;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-xs);
+    background: var(--ink-deep);
+  }
+
+  .diagram-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 var(--space-s);
+    padding: var(--space-3xs) var(--space-m);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .diagram-head > .label {
+    padding-block: 0.7rem;
+  }
+
+  .diagram-title {
+    padding-block: 0.6rem;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-semibold);
+    font-size: var(--step-0);
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+
+  /* ---------- Legend: links to Today / Next ---------- */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 var(--space-m);
+    margin-inline-start: auto;
+  }
+
+  .lg {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 44px;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-3);
+    text-decoration: none;
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .lg i {
+    width: 22px;
+    border-top: 1px solid var(--steel);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .lg-planned i {
+    border-top-style: dashed;
+  }
+
+  .lg:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .lg:is(:hover, :focus-visible) i {
+    border-top-color: var(--accent);
+  }
+
+  /* ---------- Drawing ---------- */
+  .canvas {
+    display: none;
+    padding: var(--space-m) var(--space-s);
+    /* Drafting grid: only under the drawing, where the nodes sit on a grid. */
+    background:
+      linear-gradient(to right, oklch(0.6 0.02 245 / 0.045) 1px, transparent 1px) 0 0 / 24px 24px,
+      linear-gradient(to bottom, oklch(0.6 0.02 245 / 0.045) 1px, transparent 1px) 0 0 / 24px 24px;
+  }
+
+  /*
+   * Scale about 0.8 to 1.1: never so large that type balloons on wide
+   * screens, and short enough that a whole drawing fits one screen (the
+   * viewBox letterboxes, centred, when the height cap applies).
+   */
+  .svg {
+    display: block;
+    width: 100%;
+    max-width: 68.75rem;
+    height: auto;
+    max-height: max(100svh - var(--header-h) - 8rem, 32rem);
+    margin-inline: auto;
+    overflow: visible;
+  }
+
+  .caption {
+    padding: var(--space-s) var(--space-m) var(--space-m);
+    /* The hairline spans the figure; the text keeps a reading measure. */
+    padding-inline-end: max(var(--space-m), 100% - 72ch);
+    border-top: 1px solid var(--line-soft);
+    font-size: var(--text-caption);
+    line-height: 1.6;
+    color: var(--fg-3);
+  }
+
+  /*
+   * Lighting. --lit (registered, 0 or 1) colours a part; --dim (0 or 1)
+   * fades it. Both are set by the pointer script (.is-lit) and the legend.
+   */
+  .node,
+  .edge,
+  .head,
+  .edge-label,
+  .packet,
+  .group {
+    opacity: calc(1 - var(--dim, 0) * 0.65);
+    transition:
+      opacity var(--dur-ui) var(--ease-out),
+      --lit var(--dur-ui) var(--ease-out);
+  }
+
+  @media (hover: hover) {
+    .svg:has(.node:hover) {
+      --dim: 1;
+    }
+
+    /* Set by the script: the hovered node, its neighbours and its edges. */
+    .svg .is-lit {
+      --dim: 0;
+      --lit: 1;
+    }
+  }
+
+  .diagram:has(.lg-planned:is(:hover, :focus-visible))
+    :is(.node, .edge, .head, .edge-label, .li-node):not(.is-planned),
+  .diagram:has(.lg-planned:is(:hover, :focus-visible)) .packet,
+  .diagram:has(.lg-built:is(:hover, :focus-visible)) .is-planned {
+    --dim: 1;
+  }
+
+  .diagram:has(.lg-planned:is(:hover, :focus-visible)) .svg .is-planned {
+    --lit: 1;
+  }
+
+  .li-node {
+    opacity: calc(1 - var(--dim, 0) * 0.6);
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  /* ---------- SVG parts ---------- */
+  .group-frame {
+    fill: none;
+    stroke: var(--line);
+  }
+
+  .group-mask {
+    fill: var(--ink-deep);
+  }
+
+  .group-label {
+    font-family: var(--ff-mono);
+    letter-spacing: var(--track-label);
+    fill: var(--fg-3);
+  }
+
+  .edge {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--steel-dim));
+    stroke-width: 1.2;
+  }
+
+  .edge.is-planned {
+    stroke-dasharray: 5 4;
+  }
+
+  .head {
+    fill: none;
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--steel));
+    stroke-width: 1.2;
+  }
+
+  .node {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .node-box {
+    fill: var(--ink-1);
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--line-strong));
+    stroke-width: 1;
+  }
+
+  /* Outside the system: hollow, still solid (dashes only ever mean planned). */
+  .kind-external .node-box {
+    fill: var(--ink-deep);
+  }
+
+  .is-planned .node-box {
+    fill: transparent;
+    stroke-dasharray: 5 4;
+  }
+
+  .is-core .node-box {
+    fill: color-mix(in oklch, var(--accent) 11%, var(--ink-1));
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--accent-line));
+    stroke-width: 1.3;
+  }
+
+  .node-detail {
+    fill: none;
+    stroke: var(--line);
+  }
+
+  .node-tag {
+    font-family: var(--ff-mono);
+    letter-spacing: var(--track-label);
+    fill: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-3));
+  }
+
+  .is-core .node-tag {
+    fill: var(--accent);
+  }
+
+  /* Weight and width are tuned so labels fit their boxes (see textEm). */
+  .node-label {
+    font-family: var(--ff-display);
+    font-stretch: 104%;
+    font-weight: 620;
+    letter-spacing: -0.005em;
+    fill: var(--fg);
+  }
+
+  .node-sub {
+    font-family: var(--ff-body);
+    font-weight: var(--w-text);
+    fill: var(--fg-2);
+  }
+
+  .edge-label rect {
+    fill: var(--ink-deep);
+    stroke: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--line-soft));
+  }
+
+  .edge-label text {
+    font-family: var(--ff-mono);
+    fill: color-mix(in oklch, var(--accent) calc(var(--lit) * 100%), var(--fg-2));
+  }
+
+  .packet {
+    fill: var(--accent);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .packets {
+      display: none;
+    }
+  }
+
+  /*
+   * Build (see the script): armed holds frame 0, play runs once. Core nodes
+   * at 0ms, first hop at +120ms, the rest at +240ms; edges draw from 360ms,
+   * 80ms per step out from the core; each head lands as its edge completes;
+   * labels at 900ms; the packets fade in once the figure is done (~1.25s).
+   */
+  [data-step='1'] {
+    --step: 1;
+  }
+
+  [data-step='2'] {
+    --step: 2;
+  }
+
+  [data-step='3'] {
+    --step: 3;
+  }
+
+  /* Screen only: a printed page always shows the finished figure. */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .diagram:is([data-build='armed'], [data-build='play']) .node {
+      animation: diagram-node var(--dur-content) var(--ease-out-expo)
+        calc(var(--step, 0) * var(--stagger) * 3) backwards;
+    }
+
+    .diagram:is([data-build='armed'], [data-build='play']) .group {
+      animation: diagram-fade var(--dur-content) var(--ease-out) calc(var(--stagger) * 3) backwards;
+    }
+
+    .diagram:is([data-build='armed'], [data-build='play']) .edge:not(.is-planned) {
+      stroke-dasharray: 1;
+      animation: diagram-draw var(--dur-content) var(--ease-in-out)
+        calc(360ms + var(--step, 0) * 80ms) backwards;
+    }
+
+    /* Planned edges do not draw (nothing flows there yet): they fade in. */
+    .diagram:is([data-build='armed'], [data-build='play']) .edge.is-planned {
+      animation: diagram-fade var(--dur-content) var(--ease-out) 600ms backwards;
+    }
+
+    .diagram:is([data-build='armed'], [data-build='play']) .head {
+      animation: diagram-fade var(--dur-fast) var(--ease-out) calc(720ms + var(--step, 0) * 80ms)
+        backwards;
+    }
+
+    .diagram:is([data-build='armed'], [data-build='play']) .edge-label {
+      animation: diagram-fade var(--dur-ui) var(--ease-out) 900ms backwards;
+    }
+
+    /*
+     * Armed holds frame 0 with static styles rather than paused animations, so
+     * nothing sits in a paused state below the fold; play then runs the same
+     * keyframes from exactly this frame.
+     */
+    .diagram[data-build='armed'] .node {
+      animation: none;
+      opacity: 0;
+      scale: 0.96;
+    }
+
+    .diagram[data-build='armed'] :is(.group, .edge.is-planned, .head, .edge-label) {
+      animation: none;
+      opacity: 0;
+    }
+
+    .diagram[data-build='armed'] .edge:not(.is-planned) {
+      animation: none;
+      stroke-dashoffset: 1;
+    }
+
+    .diagram:is([data-build='armed'], [data-build='play']) .packets {
+      opacity: 0;
+    }
+
+    .diagram[data-build='done'] .packets {
+      transition: opacity var(--dur-content) var(--ease-out);
+    }
+  }
+
+  @keyframes diagram-node {
+    from {
+      opacity: 0;
+      scale: 0.96;
+    }
+  }
+
+  @keyframes diagram-draw {
+    from {
+      stroke-dashoffset: 1;
+    }
+  }
+
+  @keyframes diagram-fade {
+    from {
+      opacity: 0;
+    }
+  }
+
+  /* ---------- Text list (narrow figures, screen readers) ---------- */
+  .list {
+    padding: var(--space-m);
+  }
+
+  .tier + .tier {
+    margin-top: var(--space-l);
+  }
+
+  .tier-label {
+    margin-bottom: var(--space-xs);
+    break-after: avoid;
+  }
+
+  .tier-nodes > li + li {
+    margin-top: var(--space-s);
+  }
+
+  /* Ledger rows: the left rule carries built (solid), planned (dashed) and core (accent). */
+  .li-node {
+    padding-inline-start: 0.85rem;
+    border-inline-start: 1px solid var(--line-strong);
+    scroll-margin-top: calc(var(--header-h) + var(--space-xl));
+    break-inside: avoid;
+  }
+
+  .li-node.is-core {
+    border-inline-start-color: var(--accent);
+  }
+
+  .li-node.is-planned {
+    border-inline-start: 2px dashed var(--line-strong);
+    padding-inline-start: calc(0.85rem - 1px);
+  }
+
+  .li-node:target {
+    border-inline-start-color: var(--accent);
+    background: linear-gradient(
+      to right,
+      color-mix(in oklch, var(--accent) 9%, transparent),
+      transparent
+    );
+  }
+
+  .li-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.1rem 0.65rem;
+  }
+
+  .li-tag {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .li-node.is-core .li-tag {
+    color: var(--accent);
+  }
+
+  .li-label {
+    font-family: var(--ff-display);
+    font-weight: var(--w-semibold);
+    font-size: var(--step-0);
+  }
+
+  .li-sub {
+    margin-top: 0.15rem;
+    font-size: var(--text-caption);
+    line-height: 1.5;
+    color: var(--fg-3);
+  }
+
+  .li-out {
+    margin-top: 0.3rem;
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  /* The arrow keeps its place; a long target wraps beside it, not below it. */
+  .li-out li,
+  .li-to {
+    display: flex;
+    align-items: baseline;
+    column-gap: 0.45rem;
+  }
+
+  .li-to {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  .li-arrow {
+    color: var(--fg-3);
+  }
+
+  /* 32px rows: comfortably above the 24px minimum without doubling the list. */
+  .li-out a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    color: var(--fg);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.2em;
+    transition: text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+
+  .li-out a:is(:hover, :focus-visible) {
+    text-decoration-color: var(--accent);
+  }
+
+  .li-edge {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  .li-plan {
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  @container diagram (max-width: 32rem) {
+    .list {
+      padding: var(--space-s);
+    }
+  }
+
+  /* Two balanced columns on tablets; rows never split, reading order stays linear. */
+  @container diagram (min-width: 38rem) {
+    .list {
+      columns: 2;
+      column-gap: var(--space-xl);
+    }
+  }
+
+  /* The drawing, once the figure can hold it at a legible scale (about 0.8). */
+  @container diagram (min-width: 52rem) {
+    .canvas {
+      display: block;
+    }
+
+    .list:not(:focus-within) {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+    }
+  }
+
+  /* ---------- Forced colors ---------- */
+  @media (forced-colors: active) {
+    .node-box,
+    .edge,
+    .head,
+    .group-frame,
+    .node-detail,
+    .edge-label rect {
+      stroke: CanvasText;
+    }
+
+    .node:not(.is-planned) .node-box,
+    .group-mask,
+    .edge-label rect {
+      fill: Canvas;
+    }
+
+    .node.is-core .node-box {
+      stroke: Highlight;
+      stroke-width: 2;
+    }
+
+    .svg text,
+    .node.is-core .node-tag {
+      fill: CanvasText;
+    }
+
+    .packet {
+      fill: Highlight;
+    }
+
+    .li-node,
+    .li-node.is-core {
+      border-inline-start-color: CanvasText;
+    }
+  }
+</style>

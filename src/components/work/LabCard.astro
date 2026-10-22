@@ -1,0 +1,455 @@
+---
+/**
+ * One lab entry as a ruled ledger row (never a card). Rows state their status
+ * first; built tools read strongest, planned and concept entries step back and
+ * carry a tiny dashed drawing instead of any imagery, and paused entries are a
+ * single dim line. `detailed` (the /lab page) adds points, stack and evidence;
+ * without it (the homepage) a row is status, name and one line.
+ * Rows share their hairlines, so they can sit directly in any plain list.
+ */
+import { getEntry, type CollectionEntry } from 'astro:content';
+import StatusBadge from '@/components/ui/StatusBadge.astro';
+import { getTech, techName } from '@/data/tech';
+import { useI18n } from '@/i18n';
+import { lab } from '@/i18n/ui/lab';
+
+interface Props {
+  entry: CollectionEntry<'lab'>;
+  detailed?: boolean;
+  headingLevel?: 'h2' | 'h3';
+}
+
+const { entry, detailed = false, headingLevel = 'h3' } = Astro.props;
+const { locale, t, href } = useI18n(Astro);
+const s = t(lab).card;
+const d = t(entry.data);
+const Heading = headingLevel;
+
+const kind =
+  d.status === 'paused'
+    ? 'paused'
+    : d.status === 'planned' || d.status === 'concept'
+      ? 'future'
+      : 'built';
+const stack = d.stack.map((id) => techName(getTech(id), locale)).join(' · ');
+// Tiny dashed drawings for the systems that do not exist yet.
+const glyph = ({ ledgerforge: 'ledger', 'voxel-world': 'chunks' } as const)[
+  entry.id as 'ledgerforge' | 'voxel-world'
+];
+const showSummary = detailed || kind === 'built';
+
+// The case study this entry genuinely belongs to (/lab only).
+const project = detailed && d.related ? await getEntry(d.related.project) : undefined;
+if (d.related && detailed && !project) {
+  throw new Error(`lab.json: ${entry.id} links to a missing case study "${d.related.project.id}"`);
+}
+---
+
+<article
+  class:list={['lab', `is-${kind}`, detailed ? 'detailed' : 'compact']}
+  aria-labelledby={`lab-${entry.id}`}
+>
+  <div class="state">
+    <StatusBadge status={d.status} />
+  </div>
+
+  <div class="head">
+    <Heading id={`lab-${entry.id}`} class="name">
+      {d.name}
+    </Heading>
+    {detailed && <p class="kicker">{d.kicker}</p>}
+  </div>
+
+  {glyph === 'ledger' && (
+    <svg class="drawing" viewBox="0 0 96 56" width="96" height="56" aria-hidden="true">
+      {/* A T-account: the double-entry ledger at the centre of the plan */}
+      <text x="24" y="10" text-anchor="middle">
+        {s.debit}
+      </text>
+      <text x="72" y="10" text-anchor="middle">
+        {s.credit}
+      </text>
+      <path class="g-line" d="M2 17H94M48 17V54" />
+      <path class="g-entry" d="M9 31H39M57 31H87" />
+    </svg>
+  )}
+  {glyph === 'chunks' && (
+    <svg class="drawing" viewBox="0 0 96 56" width="96" height="56" aria-hidden="true">
+      {/* A 3x3 chunk grid with one block standing on it */}
+      <path
+        class="g-line"
+        d="M48 10L88 30L48 50L8 30Z M61.3 16.7L21.3 36.7M74.7 23.3L34.7 43.3M34.7 16.7L74.7 36.7M21.3 23.3L61.3 43.3"
+      />
+      <path
+        class="g-entry g-block"
+        d="M48 13.3L61.3 20L48 26.7L34.7 20Z M34.7 20V30L48 36.7L61.3 30V20 M48 26.7V36.7"
+      />
+    </svg>
+  )}
+
+  <div class="body">
+    {!detailed && <p class="kicker">{d.kicker}</p>}
+    {showSummary && <p class="summary">{d.summary}</p>}
+
+    {detailed && kind === 'built' && d.points.length > 0 && (
+      <ul class="points" role="list">
+        {d.points.map((pt) => (
+          <li>{pt}</li>
+        ))}
+      </ul>
+    )}
+
+    {detailed && kind === 'future' && d.points.length > 0 && (
+      <details class="scope">
+        <summary>{d.status === 'planned' ? s.plannedScope : s.conceptNotes}</summary>
+        <ul class="points" role="list">
+          {d.points.map((pt) => (
+            <li>{pt}</li>
+          ))}
+        </ul>
+      </details>
+    )}
+
+    {detailed && kind !== 'paused' && (
+      <dl class="facts">
+        {stack && (
+          <div>
+            <dt class="label">{kind === 'future' ? s.plannedStack : s.stack}</dt>
+            <dd>{stack}</dd>
+          </div>
+        )}
+        <div>
+          <dt class="label">{s.evidence}</dt>
+          <dd>{d.evidence}</dd>
+        </div>
+        {project && d.related && (
+          <div>
+            <dt class="label">{s.caseStudy}</dt>
+            <dd class="related">
+              <a
+                class="text-link"
+                href={href(`/work/${project.id}`)}
+                data-accent={project.data.accent}
+              >
+                {project.data.name}
+              </a>
+              <span class="note">{d.related.note}</span>
+            </dd>
+          </div>
+        )}
+      </dl>
+    )}
+  </div>
+</article>
+
+<style>
+  /* ---------- Row ---------- */
+  .lab {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'state' 'head' 'body';
+    gap: var(--space-xs) var(--space-m);
+    padding-block: var(--space-l);
+    border-block: 1px solid var(--line-soft);
+    margin-block-start: -1px;
+    min-width: 0;
+  }
+
+  .lab:has(.drawing) {
+    grid-template-areas: 'state' 'head' 'drawing' 'body';
+  }
+
+  /* Homepage rows on phones: the drawing hangs to the right of the name */
+  .compact:has(.drawing) {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: 'state drawing' 'head drawing' 'body body';
+  }
+
+  .compact {
+    padding-block: var(--space-m);
+  }
+
+  .state {
+    grid-area: state;
+  }
+
+  .head {
+    grid-area: head;
+  }
+
+  .drawing {
+    grid-area: drawing;
+  }
+
+  .name {
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-heading);
+    line-height: 1.05;
+  }
+
+  .kicker {
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    color: var(--fg-2);
+    line-height: 1.35;
+  }
+
+  .head .kicker {
+    margin-top: 0.45rem;
+  }
+
+  .body {
+    grid-area: body;
+    display: grid;
+    align-content: start;
+    gap: var(--space-s);
+    min-width: 0;
+  }
+
+  .summary {
+    max-width: 62ch;
+    color: var(--fg-2);
+  }
+
+  .compact .summary {
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  /* Built tools read strongest; what is not built steps back */
+  .is-built .name {
+    font-size: var(--step-2);
+  }
+
+  .is-future .name {
+    font-size: var(--step-1);
+    color: var(--fg-2);
+  }
+
+  .is-future .summary {
+    color: var(--fg-3);
+  }
+
+  .compact.is-future .kicker {
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  /* Paused: one dim line */
+  .is-paused {
+    padding-block: var(--space-s);
+  }
+
+  .is-paused .name {
+    font-size: var(--step-0);
+    font-weight: var(--w-semibold);
+    color: var(--fg-3);
+  }
+
+  .is-paused :is(.kicker, .summary) {
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  /* ---------- Points: a hairline dash, the site's prose-list marker ---------- */
+  .points {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 68ch;
+  }
+
+  .points li {
+    position: relative;
+    padding-inline-start: 1.2rem;
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  .points li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.8em;
+    width: 8px;
+    height: 1px;
+    background: var(--line-strong);
+  }
+
+  /* ---------- Scope of a planned system, folded ---------- */
+  .scope summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    min-height: 44px;
+    list-style: none;
+    font-size: var(--text-caption);
+    font-weight: var(--w-medium);
+    color: var(--fg-2);
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.22em;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+
+  .scope summary::-webkit-details-marker {
+    display: none;
+  }
+
+  /* A plus that becomes a minus: two hairlines, the vertical one folds away */
+  .scope summary::before {
+    content: '';
+    flex: none;
+    width: 9px;
+    height: 9px;
+    background:
+      linear-gradient(currentColor, currentColor) center / 9px 1px no-repeat,
+      linear-gradient(currentColor, currentColor) center / 1px 9px no-repeat;
+    transition: background-size var(--dur-ui) var(--ease-out);
+  }
+
+  .scope[open] summary::before {
+    background-size:
+      9px 1px,
+      1px 0;
+  }
+
+  .scope summary:is(:hover, :focus-visible) {
+    color: var(--fg);
+    text-decoration-color: var(--line-strong);
+  }
+
+  /* Nested under the summary text, so its minus never reads as a list dash */
+  .scope .points {
+    margin-top: 0.2rem;
+    padding-bottom: var(--space-2xs);
+    padding-inline-start: calc(9px + 0.6rem);
+  }
+
+  /* ---------- Stack and evidence: short mono labels, sans values ---------- */
+  .facts {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: var(--space-2xs);
+  }
+
+  .facts div {
+    display: grid;
+    gap: 0.1rem var(--space-s);
+    align-items: baseline;
+  }
+
+  @media (min-width: 520px) {
+    .facts div {
+      grid-template-columns: 8.5rem minmax(0, 1fr);
+    }
+  }
+
+  .facts dd {
+    margin: 0;
+    font-size: var(--text-caption);
+    line-height: 1.5;
+    color: var(--fg-2);
+  }
+
+  .is-future .facts dd {
+    color: var(--fg-3);
+  }
+
+  /* The case study an entry belongs to: the name links, the note explains */
+  .related {
+    display: grid;
+    justify-items: start;
+    gap: 0.1rem;
+  }
+
+  .related a {
+    position: relative;
+    font-weight: var(--w-medium);
+  }
+
+  /* A 44px hit area without adding height to the row */
+  .related a::after {
+    content: '';
+    position: absolute;
+    inset: -12px -4px;
+  }
+
+  /* ---------- Glyphs for what is not built ---------- */
+  .drawing {
+    flex: none;
+    overflow: visible;
+    color: var(--fg-3);
+  }
+
+  .drawing text {
+    font-family: var(--ff-mono);
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    fill: currentColor;
+  }
+
+  .g-line,
+  .g-entry {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    stroke-dasharray: 3 2.5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .g-line {
+    opacity: 0.7;
+  }
+
+  .g-block {
+    fill: var(--ink-0);
+  }
+
+  /* ---------- Ledger columns from 800px ---------- */
+  @media (min-width: 800px) {
+    .lab {
+      column-gap: var(--space-xl);
+      align-items: start;
+    }
+
+    /* /lab: status, name and drawing on the left, the entry on the right */
+    .detailed,
+    .detailed:has(.drawing) {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      grid-template-rows: auto auto auto 1fr;
+      grid-template-areas: 'state body' 'head body' 'drawing body' '. body';
+    }
+
+    .detailed .drawing {
+      margin-top: var(--space-s);
+    }
+
+    /* Homepage: a register that scans as one list, drawings at the row end */
+    .compact,
+    .compact:has(.drawing) {
+      grid-template-columns: 13rem minmax(0, 5fr) minmax(0, 6fr) 6rem;
+      grid-template-areas: 'state head body drawing';
+    }
+
+    .compact .state {
+      padding-top: 0.3rem;
+    }
+
+    .compact .drawing {
+      justify-self: end;
+    }
+
+    .compact.is-built .kicker {
+      margin-top: 0.3rem;
+    }
+
+    .compact.is-future .kicker {
+      padding-top: 0.2rem;
+    }
+  }
+</style>

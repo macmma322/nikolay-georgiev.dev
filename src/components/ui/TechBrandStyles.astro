@@ -1,0 +1,20 @@
+---
+/**
+ * Brand colours for technology icons, emitted once per page as a static
+ * stylesheet (no inline style attributes, so the CSP stays strict).
+ */
+import { tech } from '@/data/tech';
+import { iconFor } from '@/lib/icons';
+import { styleHash } from '@/lib/csp';
+
+const css = tech
+  .map((t) => ({ id: t.id, icon: iconFor(t.icon) }))
+  .filter((t) => t.icon?.brandable)
+  .map((t) => `.tech[data-tech="${t.id}"]{--brand:${t.icon?.hex}}`)
+  .join('');
+
+// Generated from data, so register its hash with the page CSP (see lib/csp.ts).
+if (css) Astro.csp?.insertStyleHash(styleHash(css));
+---
+
+<style is:global set:html={css}></style>

@@ -1,0 +1,144 @@
+/*
+ * Design tokens. One committed dark theme: graphite surfaces tinted cool,
+ * ivory type, a cool metallic "steel" for structure and one signal red.
+ * Every project may override --accent through [data-accent] (see base.css).
+ */
+:root {
+  color-scheme: dark;
+
+  /* Surfaces: graphite, hue 255, chroma kept under 0.01 */
+  --ink-0: oklch(0.15 0.006 255);
+  --ink-1: oklch(0.178 0.007 255);
+  --ink-2: oklch(0.212 0.008 255);
+  --ink-3: oklch(0.262 0.009 255);
+  --ink-deep: oklch(0.12 0.005 255);
+
+  /* Hairlines */
+  --line: oklch(0.42 0.012 255 / 0.42);
+  --line-soft: oklch(0.42 0.012 255 / 0.24);
+  --line-strong: oklch(0.56 0.014 250 / 0.7);
+
+  /* Type: warm ivory on cool graphite */
+  --fg: oklch(0.945 0.012 85);
+  --fg-2: oklch(0.83 0.012 85);
+  --fg-3: oklch(0.7 0.014 250);
+
+  /* Metal + signal */
+  --steel: oklch(0.8 0.028 235);
+  --steel-dim: oklch(0.55 0.02 240);
+  --signal: oklch(0.68 0.19 30);
+  --signal-soft: oklch(0.68 0.19 30 / 0.14);
+
+  /* Project accents (identity per case study, never mixed on one element) */
+  --acc-zone: oklch(0.7 0.15 305);
+  --acc-jarvis: oklch(0.86 0.085 205);
+  --acc-ussx: oklch(0.78 0.11 250);
+  --acc-kobait: oklch(0.82 0.12 170);
+  --acc-malrynth: oklch(0.83 0.13 78);
+  --acc-stemini: oklch(0.8 0.13 58);
+  --accent: var(--steel);
+
+  /*
+   * Type families (variables are provided by Astro's font pipeline). The
+   * Cyrillic companions come first: their faces cover only Cyrillic, so Latin
+   * text skips them and never downloads them.
+   */
+  --ff-display: var(--font-cyr), var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --ff-body: var(--font-cyr), var(--font-body), ui-sans-serif, system-ui, sans-serif;
+  --ff-mono:
+    var(--font-mono-cyr), var(--font-mono), ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Fluid modular scale (~1.3 at small, ~1.42 at large) */
+  --step--2: clamp(0.7rem, 0.68rem + 0.08vw, 0.76rem);
+  --step--1: clamp(0.82rem, 0.79rem + 0.14vw, 0.9rem);
+  --step-0: clamp(1rem, 0.96rem + 0.18vw, 1.1rem);
+  --step-1: clamp(1.18rem, 1.08rem + 0.45vw, 1.42rem);
+  --step-2: clamp(1.42rem, 1.22rem + 0.9vw, 1.95rem);
+  --step-3: clamp(1.75rem, 1.38rem + 1.7vw, 2.8rem);
+  --step-4: clamp(2.2rem, 1.55rem + 3vw, 4.2rem);
+  --step-5: clamp(2.7rem, 1.6rem + 5.2vw, 6.4rem);
+  --step-hero: clamp(3.1rem, 0.9rem + 10.4vw, 11.5rem);
+
+  /* Space */
+  --space-3xs: 0.25rem;
+  --space-2xs: 0.5rem;
+  --space-xs: 0.75rem;
+  --space-s: 1rem;
+  --space-m: 1.5rem;
+  --space-l: 2.25rem;
+  --space-xl: clamp(2.5rem, 2rem + 2.5vw, 4rem);
+  --space-2xl: clamp(4rem, 3rem + 5vw, 7.5rem);
+  --space-3xl: clamp(5.5rem, 4rem + 8vw, 11rem);
+
+  --gutter: clamp(1rem, 0.6rem + 3.2vw, 3.25rem);
+  --max: 92rem;
+  --measure: 68ch;
+  --header-h: 4.25rem;
+
+  /* Shape: machined, not soft */
+  --radius-xs: 2px;
+  --radius-s: 4px;
+  --radius-m: 8px;
+  --chamfer: 14px;
+
+  /*
+   * Motion. One language, four tiers and four curves.
+   *   press/fast  feedback to a pointer or key (never slower than the input)
+   *   ui/panel    state changes of controls, menus, lighting of drawings
+   *   content     one-time reveals and figure builds
+   *   cinematic   the hero entrance only
+   */
+  --dur-press: 100ms;
+  --dur-fast: 150ms;
+  --dur-ui: 220ms;
+  --dur-panel: 280ms;
+  --dur-content: 420ms;
+  --dur-cinematic: 800ms;
+  --stagger: 40ms;
+
+  /* Responses to input */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* One-time entrances and reveals */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  /* Movement between two resting states (view transitions, line draws) */
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  /* Panels that slide or wipe in (the mobile menu) */
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Travel budget: nothing moves further than this */
+  --move-s: 4px;
+  --move-m: 12px;
+
+  /* Typographic axes (Hubot Sans width, weights, tracking) */
+  --wide-1: 106%;
+  --wide-2: 112%;
+  --wide-3: 118%;
+  --w-text: 460;
+  --w-medium: 560;
+  --w-semibold: 640;
+  --w-bold: 720;
+  --w-heavy: 760;
+  --track-display: -0.045em;
+  --track-heading: -0.02em;
+  --track-label: 0.14em;
+
+  /* Small text: one size for mono labels, one for captions and notes */
+  --text-label: var(--step--2);
+  --text-caption: var(--step--1);
+}
+
+/*
+ * Registered so they interpolate: --lit drives the "text lights its drawing"
+ * interaction (0 = resting, 1 = lit); --plate-lit lights a whole project plate.
+ */
+@property --lit {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
+
+@property --plate-lit {
+  syntax: '<number>';
+  inherits: true;
+  initial-value: 0;
+}
