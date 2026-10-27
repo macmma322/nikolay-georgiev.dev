@@ -6,7 +6,10 @@
 >
 > Copy it to the root of a repository as `CLAUDE.md` (project rules) or to
 > `~/.claude/CLAUDE.md` (personal defaults for every project), then replace
-> every `<PLACEHOLDER>` and delete the sections that do not apply.
+> every `<PLACEHOLDER>` and delete the sections that do not apply. Already
+> have a `CLAUDE.md`? Import this file next to it instead. Step-by-step setup
+> for Windows, macOS and Linux:
+> https://github.com/macmma322/engineering-blueprint/blob/main/SETUP.md
 
 ---
 

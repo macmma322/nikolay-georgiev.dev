@@ -3,20 +3,20 @@ export const openSource = {
   eyebrow: { en: 'Open source', bg: 'Отворен код' },
   title: { en: 'Open source', bg: 'Отворен код' },
   lede: {
-    en: 'What I share, what I publish, and the open-source work my projects stand on. Every license below was read from the project itself, not assumed.',
-    bg: 'Какво споделям, какво публикувам и върху какъв отворен код стъпват проектите ми. Всеки лиценз по-долу е проверен в самия проект, а не предположен.',
+    en: 'What I share, the code I publish, and the open-source projects my work depends on. Each license below is taken from the project itself.',
+    bg: 'Какво споделям, какъв код публикувам и на кои проекти с отворен код разчита работата ми. Всеки лиценз по-долу е взет от самия проект.',
   },
   blueprint: {
     label: { en: '01 · Developer blueprint', bg: '01 · Правила за разработка' },
-    title: { en: 'My CLAUDE.md, made portable', bg: 'Моят CLAUDE.md, готов за преизползване' },
+    title: { en: 'My CLAUDE.md, made portable', bg: 'Моят CLAUDE.md, готов за всеки проект' },
     lede: {
-      en: 'The operating manual I give AI coding agents in every repository: principles, an evidence hierarchy, risk-scaled workflow, Git, testing, security and documentation rules. Project specifics and private paths are removed; machine-specific settings are placeholders. Shared for educational and development use.',
-      bg: 'Наръчникът, който давам на AI агентите за програмиране във всяко хранилище: принципи, йерархия на доказателствата, работен процес според риска, Git, тестване, сигурност и документация. Подробностите за проектите и личните пътища са премахнати, а настройките за конкретна машина са заместени с полета за попълване. Споделен за обучение и разработка.',
+      en: 'The working rules I give AI coding agents in every repository: engineering principles, an evidence hierarchy, a workflow scaled to risk, and rules for Git, testing, security and documentation. Project details and private paths are removed, and machine-specific settings are placeholders. Shared for learning and development use.',
+      bg: 'Правилата, които давам на AI агентите за програмиране във всяко хранилище: инженерни принципи, йерархия на доказателствата, работен процес според риска и правила за Git, тестване, сигурност и документация. Подробностите за проектите и личните пътища са премахнати, а настройките за конкретна машина са заменени с полета за попълване. Споделям ги за обучение и разработка.',
     },
     read: { en: 'Read online', bg: 'Прочети онлайн' },
     download: { en: 'Download CLAUDE.md', bg: 'Изтегли CLAUDE.md' },
     copyLabel: { en: 'Copy CLAUDE.md as Markdown', bg: 'Копирай CLAUDE.md като Markdown' },
-    source: { en: 'Source on GitHub', bg: 'Кодът в GitHub' },
+    source: { en: 'Source on GitHub', bg: 'Изходен код в GitHub' },
     license: { en: 'MIT License', bg: 'Лиценз MIT' },
     facts: {
       format: { en: 'Format', bg: 'Формат' },
@@ -25,25 +25,38 @@ export const openSource = {
       english: { en: 'English', bg: 'Английски' },
       sections: { en: 'Sections', bg: 'Раздели' },
     },
-    setupTitle: { en: 'Setup and customisation', bg: 'Настройка' },
-    setup: [
-      {
-        en: 'Download the file and save it as CLAUDE.md in the root of a repository, or as ~/.claude/CLAUDE.md to make it your default for every project.',
-        bg: 'Изтеглете файла и го запазете като CLAUDE.md в корена на хранилището или като ~/.claude/CLAUDE.md, за да важи за всеки проект.',
+    quick: {
+      title: { en: 'Quick start', bg: 'Бърз старт' },
+      installUrl: 'https://code.claude.com/docs/en/setup',
+      install: {
+        before: { en: 'Install', bg: 'Инсталирайте' },
+        link: { en: 'Claude Code', bg: 'Claude Code' },
+        after: {
+          en: 'and sign in. The blueprint is instructions only: it does not install anything or give access to models.',
+          bg: 'и влезте в акаунта си. Файлът съдържа само инструкции: не инсталира нищо и не дава достъп до модели.',
+        },
       },
-      {
-        en: 'Fill in section 0: replace every <PLACEHOLDER> with your project’s stack, branches and the exact commands for running, testing and building it.',
-        bg: 'Попълнете раздел 0: заменете всяко <PLACEHOLDER> със стека, клоновете и точните команди за стартиране, тестване и компилиране на проекта.',
+      run: {
+        en: 'In the root of your project, download the file. The command leaves an existing CLAUDE.md untouched.',
+        bg: 'В корена на проекта изтеглете файла. Командата не променя вече съществуващ CLAUDE.md.',
       },
-      {
-        en: 'Delete what does not apply (the frontend and motion rules in a backend repository, for example) and add the rules only your project needs. Project rules override the generic ones.',
-        bg: 'Изтрийте ненужното (например правилата за интерфейс и анимация в бекенд хранилище) и добавете правилата, нужни само на вашия проект. Правилата на проекта имат предимство пред общите.',
+      system: { en: 'Your system', bg: 'Вашата система' },
+      copy: { en: 'Copy setup command', bg: 'Копирай командата за настройка' },
+      fill: {
+        en: 'Fill in section 0 with your stack, branches and commands, and delete the sections you do not need.',
+        bg: 'Попълнете раздел 0 със стека, клоновете и командите на проекта и изтрийте разделите, които не ви трябват.',
       },
-      {
-        en: 'Keep it short enough to be read on every session. When a rule turns out to be wrong, change the file, not the agent’s memory.',
-        bg: 'Пазете го достатъчно кратък, за да се чете при всяка сесия. Когато правило се окаже грешно, променете файла, а не паметта на агента.',
+      check: {
+        en: 'Start claude in the project and run /context: CLAUDE.md should be listed under Memory files.',
+        bg: 'Стартирайте claude в проекта и изпълнете /context: CLAUDE.md трябва да е в списъка Memory files.',
       },
-    ],
+      existing: {
+        en: 'Already have a CLAUDE.md, or want these rules in every project? The setup guide shows how to import the blueprint next to your own instructions and how to update it.',
+        bg: 'Вече имате CLAUDE.md или искате правилата във всеки проект? Ръководството показва как да включите файла до собствените си инструкции и как да го обновявате.',
+      },
+      guide: { en: 'Read the setup guide', bg: 'Ръководство за настройка' },
+      contribute: { en: 'Contribute on GitHub', bg: 'Предложи промяна в GitHub' },
+    },
     licenseNote: {
       en: 'MIT License: use, copy, modify and redistribute it, commercially or not, as long as the copyright and license notice stay with it.',
       bg: 'Лиценз MIT: можете да го използвате, копирате, променяте и разпространявате, включително с търговска цел, стига бележката за авторското право и лиценза да остане с него.',
@@ -55,7 +68,7 @@ export const openSource = {
     title: { en: 'Public repositories', bg: 'Публични хранилища' },
     lede: {
       en: 'Public repositories I own or contribute to, with the license GitHub reports for each. Most of my larger systems are private; their case studies say so.',
-      bg: 'Публичните хранилища, които притежавам или в които участвам, с лиценза, който GitHub отчита за всяко. Повечето от по-големите ми системи са частни и проектите им го казват.',
+      bg: 'Публичните хранилища, които са мои или в които участвам, с лиценза, който GitHub показва за всяко. Повечето от по-големите ми системи са частни и това е отбелязано в описанията им.',
     },
     groups: {
       original: { en: 'Original projects', bg: 'Собствени проекти' },
@@ -78,15 +91,18 @@ export const openSource = {
     label: { en: '03 · Built with', bg: '03 · Изградено с' },
     title: { en: 'Credits and licenses', bg: 'Благодарности и лицензи' },
     lede: {
-      en: 'The open-source projects and third-party tools that carry the most weight in my work, with their authors and licenses. “Used” means the code ships or runs in the project; “reference” means it informed the design and none of its code is included. Listing a project implies no endorsement or affiliation.',
-      bg: 'Проектите с отворен код и външните инструменти, които носят най-голяма тежест в работата ми, с авторите и лицензите им. „Използван“ означава, че кодът е част от проекта или работи в него; „ориентир“ – че е повлиял на дизайна, без да е включен негов код. Изброяването не означава одобрение или връзка с авторите.',
+      en: 'The open-source projects and third-party tools that matter most in my work, with their authors and licenses. “Used” means the code ships or runs in the project; “reference” means it informed the design and none of its code is included. Listing a project implies no endorsement or affiliation.',
+      bg: 'Проектите с отворен код и външните инструменти, които имат най-голяма роля в работата ми, с авторите и лицензите им. „Използван“ означава, че кодът е част от проекта или работи в него; „ориентир“ – че е повлиял на дизайна, без да е включен негов код. Изброяването не означава одобрение или връзка с авторите.',
     },
     used: { en: 'Used', bg: 'Използван' },
     reference: { en: 'Reference', bg: 'Ориентир' },
     by: { en: 'by', bg: 'от' },
     caseStudy: { en: 'Case study', bg: 'Проект' },
     /** The block under a case study's stack. */
-    builtWith: { en: 'Built with and credits', bg: 'Изградено с и благодарности' },
+    builtWith: {
+      en: 'Built with: credits and licenses',
+      bg: 'Изградено с: благодарности и лицензи',
+    },
     all: { en: 'All credits and licenses', bg: 'Всички благодарности и лицензи' },
     caption: { en: 'Credits for', bg: 'Благодарности за' },
     cols: {

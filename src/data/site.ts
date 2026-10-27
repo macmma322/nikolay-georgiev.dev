@@ -73,6 +73,7 @@ export const site = {
 export const nav: readonly { href: string; label: L }[] = [
   { href: '/work', label: { en: 'Work', bg: 'Проекти' } },
   { href: '/lab', label: { en: 'Lab', bg: 'Лаборатория' } },
+  { href: '/setup', label: { en: 'Setup', bg: 'Техника' } },
   { href: '/about', label: { en: 'About', bg: 'За мен' } },
   { href: '/contact', label: { en: 'Contact', bg: 'Контакт' } },
 ];

@@ -45,14 +45,14 @@ export const plates = {
       tree: { en: 'One skeleton per living tree', bg: 'Един скелет за всяко живо дърво' },
       authority: {
         en: 'Deterministic, engine-free rules',
-        bg: 'Детерминистични правила без енджин',
+        bg: 'Детерминирани правила, независими от енджина',
       },
       present: {
         en: 'Presentation reads, never writes',
         bg: 'Визуализацията само чете',
       },
-      save: { en: 'One checksummed commit', bg: 'Един проверен запис' },
-      server: { en: 'Headless server, planned', bg: 'Сървър без графика, планиран' },
+      save: { en: 'One checksummed commit', bg: 'Един запис с контролна сума' },
+      server: { en: 'Headless server, planned', bg: 'Headless сървър, планиран' },
     },
     art: {
       authority: { en: 'AUTHORITY', bg: 'ПРАВИЛА' },
@@ -120,7 +120,7 @@ export const plates = {
       modules: { en: '· 39 MODULES', bg: '· 39 МОДУЛА' },
       presence: { en: 'SOCKETS · PRESENCE', bg: 'СОКЕТИ · ПРИСЪСТВИЕ' },
       rateLimits: { en: 'RATE LIMITS', bg: 'ЛИМИТИ НА ЗАЯВКИ' },
-      tables: { en: 'POSTGRESQL · ~426 TABLES', bg: 'POSTGRESQL · ~426 ТАБЛИЦИ' },
+      tables: { en: 'POSTGRESQL · ~438 TABLES', bg: 'POSTGRESQL · ~438 ТАБЛИЦИ' },
       effect: { en: '1 EFFECT', bg: '1 ЕФЕКТ' },
     },
   },
@@ -157,7 +157,7 @@ export const plates = {
     fig: { en: 'Link and failsafe', bg: 'Връзка и аварийно спиране' },
     strip: {
       en: 'Two boards · own radio protocol · bench-tested',
-      bg: 'Две платки · собствен радиопротокол · тестван на стенд',
+      bg: 'Две платки · собствен радиопротокол · изпитан на стенд',
     },
     parts: {
       remote: { en: 'Handheld remote', bg: 'Ръчно дистанционно' },

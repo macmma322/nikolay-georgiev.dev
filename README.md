@@ -3,7 +3,8 @@
 Portfolio of Nikolay Georgiev, software engineer in Varna, Bulgaria. A static
 Astro + TypeScript site: seven case studies, a lab of tooling and planned
 systems, an open-source page (the MIT-licensed CLAUDE.md blueprint and
-upstream credits), an about page and a generated one-page CV.
+upstream credits), a setup page (hardware, environment, decisions and
+roadmap), an about page and a generated one-page CV.
 
 Every claim on the site comes from the project repositories, and each project
 states its real status. [PRODUCT.md](PRODUCT.md) covers the content rules and
@@ -59,6 +60,16 @@ scripts/
 tests/e2e/                Playwright suites (pages, navigation, axe)
 ```
 
+## Languages
+
+English is at `/`, Bulgarian under `/bg`, with the same slugs. Interface text
+lives in `src/i18n/ui/*.ts` as `{ en, bg }` pairs, so a missing translation
+fails the typecheck; Bulgarian case studies mirror the English list shapes
+(`src/lib/projects.ts` checks them). Terms are fixed in
+[docs/i18n-glossary.md](docs/i18n-glossary.md). The post-build audit also
+fails on unresolved values in visible text (`undefined`, `${`, `[object …]`)
+and on Bulgarian text in an English page outside a `lang="bg"` element.
+
 ## Adding or updating a project
 
 1. Edit or add `src/content/projects/<slug>.md`. The schema in
@@ -82,11 +93,15 @@ tests/e2e/                Playwright suites (pages, navigation, axe)
 
 ## Open source page and blueprint
 
-`blueprint/CLAUDE.md` is the single source of the public developer blueprint
-(MIT, `blueprint/LICENSE`). `/open-source/blueprint` renders it,
+`blueprint/` mirrors the public repository `macmma322/engineering-blueprint`:
+`CLAUDE.md` (the rules), `README.md`, `SETUP.md` and `SETUP.bg.md` (setup
+guides), `examples/` and `LICENSE` (MIT). `blueprint/CLAUDE.md` is the single
+source of the rules. `/open-source/blueprint` renders it,
 `/open-source/CLAUDE.md` and `/open-source/LICENSE.txt` serve it byte for
 byte, and the copy button carries the same text. The public copy lives in
-`macmma322/engineering-blueprint`; keep the two in step. `npm run build`
+`macmma322/engineering-blueprint`; copy `blueprint/` over a clone of it to
+publish, and keep the quick-start commands on `/open-source` identical to the
+ones in `blueprint/README.md` (an e2e test checks this). `npm run build`
 scans the served Markdown for leaks like every other text file.
 
 Credits in `src/data/open-source.ts` are curated, not a dependency dump. State

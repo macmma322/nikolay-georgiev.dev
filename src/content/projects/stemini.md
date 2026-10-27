@@ -84,7 +84,7 @@ hard:
     problem: OctoPrint, Moonraker, PrusaLink and Bambu printers all speak differently, and the operator's network should not accept inbound connections.
     solution: One bridge command protocol with claim leasing and five adapters. Remote print start on Bambu printers is deliberately deferred until bed-clear and camera checks exist.
   - title: Changing frameworks under a working system
-    problem: The core API was moving from NestJS to Express to match the rest of the platform, without freezing the generation and printing path.
+    problem: The Core API was moving from NestJS to Express to match the rest of the platform, without freezing the generation and printing path.
     solution: A strangler migration with shared read and write helpers, and parity tests that compare response bodies and recorded SQL between the two implementations.
 decisions:
   - decision: Split generation into a cheap concept phase and an expensive mesh phase.
@@ -114,6 +114,6 @@ notes:
 
 Stemini turns an idea into a physical object. A user describes a model, the system proposes a concept image, and once the user approves it, a 3D mesh is generated, converted, sliced and delivered to a printer.
 
-**Why it exists.** Designing printable 3D models is a skill most people, including students, do not have. Stemini puts AI generation in front of a real printing workflow, with a person approving each step that costs money.
+**Why it exists.** Designing printable 3D models is a skill most people, including students, do not have. Stemini puts AI generation at the start of a real printing workflow, with a person approving each step that costs money.
 
 **Where it stands.** The services are built and deployed as a pre-launch prototype. Its own architecture reviews list what must be fixed before real users arrive, and those items are tracked openly.

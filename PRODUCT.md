@@ -74,6 +74,17 @@ software. It has to work for three readers:
 - **Stemini** is a pre-launch prototype whose development slowed from late
   June 2026.
 
+## Setup page
+
+`/setup` (`src/data/setup.ts`) lists hardware with a source per item: read
+from the machine (2026-10-27), measured in project docs, or stated by the
+owner. Re-read the machine before changing a "machine" item. The main PC has a
+Samsung 990 PRO and a 990 EVO Plus (both 1 TB); no 970 EVO Plus was found.
+Planned items (Sony a6400, the secondary PC's SATA SSD) stay visibly planned.
+Manufacturer links only, no shops or affiliate links, and the non-sponsorship
+disclosure stays. KObait bench parts are named by kind there too. Never
+publish serials, MAC or IP addresses, Bluetooth device names or local paths.
+
 ## Privacy
 
 Never publish: secrets or `.env` values, internal hostnames, local file paths,

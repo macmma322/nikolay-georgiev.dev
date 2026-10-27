@@ -56,6 +56,16 @@ export const seo = {
       bg: 'Свържете се с Николай Георгиев, софтуерен инженер от Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
     },
   },
+  setup: {
+    title: {
+      en: 'Setup: hardware, tools and decisions',
+      bg: 'Техника: хардуер, инструменти и решения',
+    },
+    description: {
+      en: 'The workstation, audio chain and hardware behind Nikolay Georgiev’s projects, the decisions its limits forced, and an honest roadmap. Not sponsored.',
+      bg: 'Компютърът, звукът и хардуерът зад проектите на Николай Георгиев, решенията, наложени от ограниченията им, и честна пътна карта. Без спонсори.',
+    },
+  },
   openSource: {
     title: {
       en: 'Open source: CLAUDE.md and credits',
@@ -87,6 +97,7 @@ export const seo = {
     home: { en: 'Home', bg: 'Начало' },
     work: { en: 'Work', bg: 'Проекти' },
     lab: { en: 'Lab', bg: 'Лаборатория' },
+    setup: { en: 'Setup', bg: 'Техника' },
     about: { en: 'About', bg: 'За мен' },
     contact: { en: 'Contact', bg: 'Контакт' },
     openSource: { en: 'Open source', bg: 'Отворен код' },

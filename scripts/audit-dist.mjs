@@ -231,6 +231,23 @@ for (const [file, html] of htmlPages) {
     if (CYRILLIC.test(description)) fail(file, 'English page with Cyrillic in the description');
   }
 
+  // Visible text: nothing unresolved from a dictionary or a template, and on
+  // English pages no Cyrillic outside an element that declares lang="bg"
+  // (the language switch). Drawings and scripts are not text here.
+  const body = html
+    .slice(html.indexOf('<body'))
+    .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/g, '');
+  // Tags become spaces so the text of neighbouring elements never runs together.
+  const words = (markup) => decode(markup.replace(/<[^>]+>/g, ' '));
+  const text = words(body);
+  const unresolved = text.match(/\b(undefined|NaN)\b|\[object \w+\]|\$\{|\{\{/);
+  if (unresolved) fail(file, `unresolved value in the text: "${unresolved[0]}"`);
+  if (lang === 'en') {
+    const latin = words(body.replace(/<(\w+)\b[^>]*\slang="bg"[^>]*>[\s\S]*?<\/\1>/g, ''));
+    const stray = latin.match(/\S*[Ѐ-ӿ]+\S*/);
+    if (stray) fail(file, `English page with Bulgarian text "${stray[0]}"`);
+  }
+
   // Open Graph.
   const ogLocale = meta(head, 'property', 'og:locale');
   if (ogLocale !== LANGS[lang].og)

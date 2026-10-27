@@ -27,8 +27,13 @@ for (const locale of locales) {
         blueprint.locator(`a[href="${localize('/open-source/blueprint', locale)}"]`),
       ).toBeVisible();
       await expect(blueprint.locator('a[href="/open-source/CLAUDE.md"][download]')).toBeVisible();
-      await expect(blueprint.locator('button[data-copy]')).toHaveAttribute('data-copy', source);
-      await expect(blueprint.locator('a[href^="https://github.com/macmma322/"]')).toBeVisible();
+      await expect(blueprint.locator('.doc-side > .actions button[data-copy]')).toHaveAttribute(
+        'data-copy',
+        source,
+      );
+      await expect(
+        blueprint.locator('a[href="https://github.com/macmma322/engineering-blueprint"]'),
+      ).toBeVisible();
     });
 
     test('credits link to their upstream projects', async ({ page }) => {
@@ -44,6 +49,32 @@ for (const locale of locales) {
     });
   });
 }
+
+test('quick start shows the command for the chosen system', async ({ page }) => {
+  await page.goto('/open-source');
+  const quick = page.locator('fieldset.os');
+  const sh = quick.locator('.os-panel[data-os="sh"]');
+  const ps = quick.locator('.os-panel[data-os="ps"]');
+  await expect(sh).toBeVisible();
+  await expect(ps).toBeHidden();
+  await quick.getByRole('radio', { name: 'Windows PowerShell' }).check();
+  await expect(ps).toBeVisible();
+  await expect(sh).toBeHidden();
+  // The same commands the public README documents, and neither overwrites a file.
+  const readme = readFileSync(new URL('../../blueprint/README.md', import.meta.url), 'utf8');
+  for (const panel of [sh, ps]) {
+    const command = (await panel.locator('code').textContent()) ?? '';
+    expect(readme).toContain(command);
+    await expect(panel.locator('button[data-copy]')).toHaveAttribute('data-copy', command);
+  }
+});
+
+test('the setup guide link follows the page language', async ({ page }) => {
+  await page.goto('/bg/open-source');
+  await expect(page.locator('a[href$="/SETUP.bg.md"]').first()).toBeVisible();
+  await page.goto('/open-source');
+  await expect(page.locator('a[href$="/SETUP.md"]').first()).toBeVisible();
+});
 
 test('a case study shows its own credits', async ({ page }) => {
   await page.goto('/work/caelora');

@@ -79,14 +79,14 @@ export const CATEGORY_LABEL: Record<TechCategory, { title: L; blurb: L }> = {
     title: { en: 'System software', bg: 'Системен софтуер' },
     blurb: {
       en: 'Rust, boot, kernels, desktop shells.',
-      bg: 'Rust, зареждане, ядра, десктоп среди.',
+      bg: 'Rust, зареждане, ядра, графични обвивки.',
     },
   },
   game: {
     title: { en: 'Game development', bg: 'Разработка на игри' },
     blurb: {
       en: 'Voxel worlds, deterministic simulation, saves.',
-      bg: 'Воксел светове, детерминистична симулация, записи.',
+      bg: 'Воксел светове, детерминирана симулация, записи.',
     },
   },
   infra: {

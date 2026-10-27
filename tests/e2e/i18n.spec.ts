@@ -19,6 +19,30 @@ async function pointerClick(page: Page, target: Locator) {
   await expect
     .poll(() => page.evaluate(() => document.documentElement.matches(':active-view-transition')))
     .toBe(false);
+  // Click only once the target has settled and really receives the pointer at
+  // its centre. The phone menu reveals itself with a clip-path transition and
+  // staggered entrance animations; a click on a part that is still clipped
+  // falls through to the backdrop, which light-dismisses the menu. That race
+  // failed the switch tests on slower CI runners.
+  await expect
+    .poll(() =>
+      target.evaluate((el) => {
+        const moving = document.getAnimations().some(
+          (a) =>
+            a.playState === 'running' &&
+            // Time-based only: scroll-driven ones (the header) never finish.
+            a.timeline === document.timeline &&
+            a.effect instanceof KeyframeEffect &&
+            a.effect.target instanceof Element &&
+            a.effect.target.contains(el) &&
+            a.effect.getComputedTiming().endTime !== Infinity,
+        );
+        const r = el.getBoundingClientRect();
+        const hit = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
+        return !moving && hit !== null && el.contains(hit);
+      }),
+    )
+    .toBe(true);
   const box = await target.boundingBox();
   expect(box).not.toBeNull();
   if (box) await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
@@ -80,6 +104,51 @@ test('back, forward and reload keep the language and the address', async ({ page
   await expect(html(page)).toHaveAttribute('lang', 'bg');
 });
 
+test('after switching, the menu and navigation stay in the new language', async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto('/lab');
+  await switchTo(page, 'bg', isMobile);
+  await onPath(page, '/bg/lab');
+
+  let nav = page.locator('.site-header .nav-desktop');
+  if (isMobile) {
+    await pointerClick(page, page.getByRole('button', { name: ui.menu.bg, exact: true }));
+    nav = page.locator('#mobile-menu');
+    await expect(nav).toBeVisible();
+  }
+  // Every link is localized and no English label is left behind.
+  for (const key of ['work', 'lab', 'about', 'contact'] as const) {
+    await expect(nav.getByRole('link', { name: ui[key].bg })).toHaveAttribute('href', `/bg/${key}`);
+  }
+  await expect(nav.getByRole('link', { name: ui.about.en, exact: true })).toHaveCount(0);
+  await pointerClick(page, nav.getByRole('link', { name: ui.about.bg }));
+  await onPath(page, '/bg/about');
+  await expect(html(page)).toHaveAttribute('lang', 'bg');
+});
+
+test('the switch works from the keyboard', async ({ page, isMobile }) => {
+  await page.goto('/contact');
+  if (isMobile) {
+    const button = page.getByRole('button', { name: ui.menu.en, exact: true });
+    await button.focus();
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#mobile-menu')).toBeVisible();
+  }
+  const scope = isMobile ? page.locator('#mobile-menu') : page.locator('.site-header');
+  const bg = scope.locator('a[hreflang="bg"]').filter({ visible: true }).first();
+  // Tab until the Bulgarian link has focus: the order is the reading order.
+  for (let i = 0; i < 40; i++) {
+    if (await bg.evaluate((el) => el === document.activeElement)) break;
+    await page.keyboard.press('Tab');
+  }
+  await expect(bg).toBeFocused();
+  await page.keyboard.press('Enter');
+  await onPath(page, '/bg/contact');
+  await expect(html(page)).toHaveAttribute('lang', 'bg');
+});
+
 test('a scrolled page keeps its section across the switch', async ({ page, isMobile }) => {
   await page.goto('/work/jarvis');
   const built = page.locator('#built');
@@ -117,12 +186,16 @@ test.describe('stored language choice', () => {
   test('a link to the home page from within the site is not redirected', async ({ page }) => {
     await page.goto('/work');
     await page.evaluate(() => localStorage.setItem('ng-lang', 'bg'));
+    const visited: string[] = [];
+    page.on('framenavigated', (frame) => {
+      if (frame === page.mainFrame()) visited.push(new URL(frame.url()).pathname);
+    });
     await page.locator('.site-header a[href="/"]').first().click();
     await page.waitForURL((url) => url.pathname === '/');
     await page.waitForLoadState('load');
-    await page.waitForTimeout(500);
-    expect(new URL(page.url()).pathname).toBe('/');
+    // HeadBoot decides in the head, before load: a redirect would already have started.
     await expect(html(page)).toHaveAttribute('lang', 'en');
+    expect(visited).toEqual(['/']);
   });
 
   test.describe('in a Bulgarian browser', () => {
@@ -130,9 +203,10 @@ test.describe('stored language choice', () => {
 
     test('the browser language alone only hints, never redirects', async ({ page }) => {
       await page.goto('/');
-      await page.waitForTimeout(500);
-      expect(new URL(page.url()).pathname).toBe('/');
+      // The hint is set by the same head script that would redirect.
       await expect(html(page)).toHaveAttribute('data-lang-hint', 'bg');
+      expect(new URL(page.url()).pathname).toBe('/');
+      await expect(html(page)).toHaveAttribute('lang', 'en');
     });
   });
 });

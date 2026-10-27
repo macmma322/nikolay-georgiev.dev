@@ -1,0 +1,633 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import SectionHeader from '@/components/ui/SectionHeader.astro';
+import { decisions, groups, roadmap, tools, type Stage } from '@/data/setup';
+import { useI18n } from '@/i18n';
+import { setup } from '@/i18n/ui/setup';
+import { getProjects } from '@/lib/projects';
+
+const { locale, t, href } = useI18n(Astro);
+const u = t(setup);
+const projects = await getProjects(locale);
+const project = (slug: string) => projects.find((p) => p.id === slug);
+const stages = Object.keys(roadmap) as Stage[];
+---
+
+<BaseLayout>
+  <div class="setup">
+    <section class="container intro" aria-labelledby="setup-h1">
+      <p class="label">{u.eyebrow}</p>
+      <h1 id="setup-h1" class="title" data-vt-lang="title">
+        {u.title}
+      </h1>
+      <p class="lede" data-vt-lang="lede">
+        {u.lede}
+      </p>
+      <p class="disclosure">{u.disclosure}</p>
+      <p class="hint label">{u.hint}</p>
+    </section>
+
+    {groups.map((g) => (
+      <section id={g.id} class="container group" aria-labelledby={`g-${g.id}`}>
+        <SectionHeader label={t(g.label)} id={`g-${g.id}`} title={t(g.title)} lede={t(g.lede)} />
+
+        {g.id === 'audio' && (
+          <ol class="flow reveal" aria-label={u.chain.label}>
+            {u.chain.steps.map((step) => (
+              <li>{step}</li>
+            ))}
+          </ol>
+        )}
+        {g.id === 'expansion' && (
+          <div
+            class="lanes reveal"
+            role="img"
+            aria-label={`${u.lanes.label}: ${u.lanes.wifi}; ${u.lanes.usb}, ${u.lanes.shared}`}
+          >
+            <span class="lane-board">{u.lanes.board}</span>
+            <span class="lane">{u.lanes.wifi}</span>
+            <span class="lane">
+              {u.lanes.usb}
+              <span class="ports" aria-hidden="true">
+                {Array.from({ length: 7 }, () => (
+                  <i />
+                ))}
+              </span>
+              <small>{u.lanes.shared}</small>
+            </span>
+          </div>
+        )}
+
+        <ul role="list" class="parts reveal">
+          {g.parts.map((p) => (
+            <li class:list={['part', `use-${p.use}`]} data-for={p.for?.join(' ')}>
+              <p class="kind label">{t(p.kind)}</p>
+              <div class="body">
+                {p.name && <h3 class="name">{p.name}</h3>}
+                <p class:list={['spec', { lead: !p.name }]}>{t(p.spec)}</p>
+                {p.note && <p class="note">{t(p.note)}</p>}
+                {p.for && p.for.length > 0 && (
+                  <p class="for">
+                    <span class="label">{u.usedFor}</span>
+                    {p.for.map((slug) => {
+                      const target = project(slug);
+                      return target ? (
+                        <a
+                          href={href(`/work/${slug}`)}
+                          data-slug={slug}
+                          data-accent={target.data.accent}
+                        >
+                          {target.data.name}
+                        </a>
+                      ) : null;
+                    })}
+                  </p>
+                )}
+              </div>
+              <div class="meta">
+                <span class:list={['use', `use-${p.use}`]}>
+                  <i aria-hidden="true" />
+                  {u.use[p.use]}
+                </span>
+                <span class="source label">{u.source[p.source]}</span>
+                {p.link && (
+                  <a class="maker" href={p.link} rel="noopener noreferrer">
+                    {u.manufacturer}
+                    <span class="visually-hidden">: {p.name}</span>
+                  </a>
+                )}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    <section id="decisions" class="container group" aria-labelledby="g-decisions">
+      <SectionHeader
+        label={u.decisions.label}
+        id="g-decisions"
+        title={u.decisions.title}
+        lede={u.decisions.lede}
+      />
+      <div class="decisions">
+        {decisions.map((d) => {
+          const target = project(d.project);
+          return (
+            <article class="decision reveal" data-for={d.project} aria-labelledby={`d-${d.id}`}>
+              <h3 id={`d-${d.id}`} class="d-title">
+                {t(d.title)}
+              </h3>
+              <dl class="steps">
+                {d.steps.map((step, i) => (
+                  <div>
+                    <dt class="label">{u.decisions.steps[i]}</dt>
+                    <dd>{t(step)}</dd>
+                  </div>
+                ))}
+              </dl>
+              {target && (
+                <a
+                  class="d-link"
+                  href={href(`/work/${d.project}`)}
+                  data-slug={d.project}
+                  data-accent={target.data.accent}
+                >
+                  {u.decisions.caseStudy}: {target.data.name}
+                  <span aria-hidden="true">→</span>
+                </a>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+
+    <section id="environment" class="container group" aria-labelledby="g-tools">
+      <SectionHeader label={u.tools.label} id="g-tools" title={u.tools.title} lede={u.tools.lede} />
+      <ul role="list" class="tools reveal">
+        {tools.map((tool) => (
+          <li class:list={['tool', `usage-${tool.usage}`]}>
+            <span class="tool-name">{tool.name}</span>
+            <span class="tool-what">{t(tool.what)}</span>
+            <span class="tool-usage label">{u.tools.usage[tool.usage]}</span>
+          </li>
+        ))}
+      </ul>
+      <p class="tools-more">
+        <a href={href('/open-source#blueprint')}>
+          {u.tools.blueprint}
+          <span aria-hidden="true">→</span>
+        </a>
+      </p>
+    </section>
+
+    <section id="roadmap" class="container group" aria-labelledby="g-roadmap">
+      <SectionHeader
+        label={u.roadmap.label}
+        id="g-roadmap"
+        title={u.roadmap.title}
+        lede={u.roadmap.lede}
+      />
+      <div class="stages reveal">
+        {stages.map((stage) => (
+          <section class:list={['stage', `stage-${stage}`]} aria-labelledby={`s-${stage}`}>
+            <h3 id={`s-${stage}`} class="label">
+              {u.roadmap.stages[stage]}
+            </h3>
+            <ul role="list">
+              {roadmap[stage].map((item) => (
+                <li>{t(item)}</li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
+    </section>
+
+    <section class="container group closing" aria-labelledby="g-next">
+      <h2 id="g-next" class="closing-title">
+        {u.next.title}
+      </h2>
+      <div class="closing-actions">
+        <Button href={href('/work')}>{u.next.work}</Button>
+        <Button href={href('/open-source')} variant="secondary">
+          {u.next.openSource}
+        </Button>
+      </div>
+    </section>
+  </div>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-l);
+    container-type: inline-size;
+  }
+
+  .title {
+    margin-top: var(--space-s);
+    font-size: var(--step-hero);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: -0.05em;
+    line-height: 0.88;
+  }
+
+  .title:lang(bg) {
+    font-size: min(var(--step-hero), 15cqi);
+  }
+
+  .intro .lede {
+    margin-top: var(--space-m);
+  }
+
+  .disclosure {
+    margin-top: var(--space-m);
+    max-width: 62ch;
+    padding-left: var(--space-s);
+    border-left: 2px solid var(--line-strong);
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  .hint {
+    margin-top: var(--space-s);
+  }
+
+  .group {
+    padding-top: var(--space-2xl);
+  }
+
+  /* ---------- Hardware rows ---------- */
+  .parts {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .part {
+    display: grid;
+    gap: var(--space-2xs) var(--space-m);
+    padding-block: var(--space-m);
+    border-bottom: 1px solid var(--line-soft);
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  @media (min-width: 60rem) {
+    .part {
+      grid-template-columns: 11rem minmax(0, 1fr) 13rem;
+      align-items: start;
+    }
+  }
+
+  .name {
+    font-size: var(--step-1);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-heading);
+    color: color-mix(in oklch, var(--accent) calc(var(--lit, 0) * 100%), var(--fg));
+    transition: color var(--dur-ui) var(--ease-out);
+  }
+
+  .spec {
+    margin-top: var(--space-3xs);
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.02em;
+    color: var(--fg-2);
+  }
+
+  .spec.lead {
+    margin-top: 0;
+    font-family: var(--ff-body, inherit);
+    font-size: var(--step-0);
+    color: var(--fg);
+  }
+
+  .note {
+    margin-top: var(--space-2xs);
+    max-width: 66ch;
+    color: var(--fg-2);
+  }
+
+  .for {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.9rem;
+    margin-top: var(--space-xs);
+  }
+
+  .for a,
+  .d-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 32px;
+    color: var(--fg-2);
+    text-decoration-color: var(--line-strong);
+  }
+
+  .for a:is(:hover, :focus-visible),
+  .d-link:is(:hover, :focus-visible) {
+    color: var(--accent);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-s);
+    align-items: center;
+  }
+
+  @media (min-width: 60rem) {
+    .meta {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  .use {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: var(--text-caption);
+    color: var(--fg);
+  }
+
+  /* Shape carries the state: solid in use, half owned and idle, dashed planned. */
+  .use i {
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--fg-2);
+  }
+
+  .use-in-use i {
+    background: var(--fg-2);
+  }
+
+  .use-spare i {
+    background: linear-gradient(90deg, var(--fg-2) 50%, transparent 50%);
+  }
+
+  .use-planned i {
+    border-style: dashed;
+  }
+
+  .part.use-planned :is(.name, .spec.lead) {
+    color: var(--fg-2);
+  }
+
+  .maker {
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  /*
+   * Linked hover (the site's signature): pointing at or focusing a project tag
+   * lights every part and decision that project runs on and dims the rest.
+   * One static rule per project; generated styles would break the CSP.
+   */
+  .setup:has([data-slug]:is(:hover, :focus-visible)) :is(.part, .decision) {
+    opacity: 0.4;
+  }
+
+  .setup:has([data-slug='caelora']:is(:hover, :focus-visible))
+    :is(.part, .decision)[data-for~='caelora'] {
+    opacity: 1;
+    --lit: 1;
+    --accent: var(--acc-caelora);
+  }
+
+  .setup:has([data-slug='jarvis']:is(:hover, :focus-visible))
+    :is(.part, .decision)[data-for~='jarvis'] {
+    opacity: 1;
+    --lit: 1;
+    --accent: var(--acc-jarvis);
+  }
+
+  .setup:has([data-slug='uss-x-academy']:is(:hover, :focus-visible))
+    :is(.part, .decision)[data-for~='uss-x-academy'] {
+    opacity: 1;
+    --lit: 1;
+    --accent: var(--acc-ussx);
+  }
+
+  .setup:has([data-slug='zone-32-19']:is(:hover, :focus-visible))
+    :is(.part, .decision)[data-for~='zone-32-19'] {
+    opacity: 1;
+    --lit: 1;
+    --accent: var(--acc-zone);
+  }
+
+  .setup:has([data-slug='kobait']:is(:hover, :focus-visible))
+    :is(.part, .decision)[data-for~='kobait'] {
+    opacity: 1;
+    --lit: 1;
+    --accent: var(--acc-kobait);
+  }
+
+  /* ---------- Small diagrams ---------- */
+  .flow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin-bottom: var(--space-l);
+    counter-reset: flow;
+  }
+
+  .flow li {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2xs);
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+    font-size: var(--text-caption);
+    color: var(--fg);
+  }
+
+  .flow li:not(:last-child)::after {
+    content: '→';
+    margin-left: var(--space-2xs);
+    color: var(--fg-3);
+  }
+
+  .lanes {
+    display: grid;
+    gap: var(--space-2xs);
+    margin-bottom: var(--space-l);
+    max-width: 40rem;
+  }
+
+  .lane-board {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .lane {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-2xs) var(--space-s);
+    margin-left: var(--space-s);
+    padding: 0.6rem 0.9rem;
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--accent);
+    background: var(--ink-1);
+    font-size: var(--text-caption);
+    color: var(--fg);
+  }
+
+  .lane small {
+    color: var(--fg-3);
+  }
+
+  .ports {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .ports i {
+    width: 12px;
+    height: 7px;
+    border: 1px solid var(--fg-3);
+  }
+
+  /* ---------- Decisions ---------- */
+  .decisions {
+    display: grid;
+    gap: var(--space-l);
+  }
+
+  @media (min-width: 60rem) {
+    .decisions {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .decision {
+    padding: var(--space-m);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  .d-title {
+    font-size: var(--step-1);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    color: color-mix(in oklch, var(--accent) calc(var(--lit, 0) * 100%), var(--fg));
+  }
+
+  .steps {
+    display: grid;
+    gap: var(--space-xs);
+    margin-top: var(--space-s);
+  }
+
+  .steps div {
+    display: grid;
+    gap: var(--space-3xs);
+  }
+
+  @media (min-width: 40rem) {
+    .steps div {
+      grid-template-columns: 8.5rem minmax(0, 1fr);
+      gap: var(--space-s);
+    }
+  }
+
+  .steps dd {
+    color: var(--fg-2);
+  }
+
+  .d-link {
+    margin-top: var(--space-s);
+  }
+
+  /* ---------- Tools ---------- */
+  .tools {
+    display: grid;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .tool {
+    display: grid;
+    gap: var(--space-3xs) var(--space-m);
+    padding-block: var(--space-xs);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  @media (min-width: 48rem) {
+    .tool {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 5fr) 11rem;
+      align-items: baseline;
+    }
+  }
+
+  .tool-name {
+    color: var(--fg);
+    font-weight: var(--w-medium);
+  }
+
+  .tool-what {
+    color: var(--fg-2);
+  }
+
+  .usage-idle :is(.tool-name, .tool-what) {
+    color: var(--fg-3);
+  }
+
+  .tools-more {
+    margin-top: var(--space-m);
+  }
+
+  .tools-more a {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-height: 44px;
+    color: var(--fg);
+  }
+
+  /* ---------- Roadmap ---------- */
+  .stages {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  @media (min-width: 52rem) {
+    .stages {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  .stage {
+    padding-top: var(--space-xs);
+    border-top: 2px solid var(--fg-2);
+  }
+
+  /* Further from today, fainter and dashed: the same vocabulary as the diagrams. */
+  .stage-building {
+    border-top-color: var(--fg-3);
+  }
+
+  .stage-planned,
+  .stage-vision {
+    border-top-style: dashed;
+    border-top-color: var(--line-strong);
+  }
+
+  .stage ul {
+    display: grid;
+    gap: var(--space-xs);
+    margin-top: var(--space-s);
+    color: var(--fg-2);
+  }
+
+  .stage-vision ul {
+    color: var(--fg-3);
+  }
+
+  /* ---------- Closing ---------- */
+  .closing-title {
+    font-size: var(--step-3);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-heading);
+  }
+
+  .closing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-m);
+  }
+</style>

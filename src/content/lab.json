@@ -23,11 +23,11 @@
       },
       {
         "en": "Scales on hysteresis with sustained windows, per-service and global cooldowns, min and max replicas and a budget cap.",
-        "bg": "Мащабира с хистерезис и устойчиви времеви прозорци, с периоди на изчакване за всяка услуга и глобално, минимален и максимален брой реплики и таван на разходите."
+        "bg": "Мащабира с хистерезис и продължителни времеви прозорци, с периоди на изчакване за всяка услуга и глобално, минимален и максимален брой реплики и таван на разходите."
       },
       {
         "en": "Refuses to replica-scale stateful services such as databases, Redis, volumes and singleton workers.",
-        "bg": "Отказва да добавя реплики на услуги със състояние като бази данни, Redis, томове и worker процеси, които трябва да работят в едно копие."
+        "bg": "Отказва да добавя реплики на услуги със състояние като бази данни, Redis, томове и фонови процеси, които трябва да работят в едно копие."
       },
       {
         "en": "Writes one JSON audit line per service per run, including decisions it blocked or skipped.",
@@ -79,7 +79,7 @@
       },
       {
         "en": "Zone 32-19 has custom review agents for routes, databases, migrations and security, plus checklists for schema changes.",
-        "bg": "Zone 32-19 има собствени агенти за преглед на маршрутите, базите данни, миграциите и сигурността, както и чеклисти за промени в схемата."
+        "bg": "Zone 32-19 има собствени агенти за преглед на маршрутите, базите данни, миграциите и сигурността, както и контролни списъци за промени в схемата."
       },
       {
         "en": "J.A.R.V.I.S. is developed by several agents on parallel branches that I integrate, and it exposes project context to agents over MCP, read-only except for five tools that record derived state.",
@@ -131,7 +131,7 @@
       },
       {
         "en": "A strict Content Security Policy with hashed scripts, self-hosted fonts, no trackers and no cookies.",
-        "bg": "Строга Content Security Policy с хеширани скриптове, собствено хоствани шрифтове, без тракери и без бисквитки."
+        "bg": "Строга политика за сигурност на съдържанието (CSP) с хеширани скриптове, шрифтове, хоствани на самия сайт, без тракери и без бисквитки."
       }
     ],
     "stack": ["astro", "typescript", "css"],

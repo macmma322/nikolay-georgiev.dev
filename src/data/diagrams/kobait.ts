@@ -211,7 +211,7 @@ export const kobaitSystem: Diagram = {
       fromSide: 'bottom',
       toSide: 'top',
       fromOffset: -100,
-      label: { en: '25 Hz', bg: '25 Хц' },
+      label: { en: 'periodic', bg: 'периодично' },
     },
     {
       from: 'rfw',

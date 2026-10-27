@@ -16,7 +16,7 @@ export const caeloraWorld: Diagram = {
   title: { en: 'Authority, sections and saves', bg: 'Правила, секции и записи' },
   caption: {
     en: 'Player input reaches the game only as commands. An engine-free, deterministic authority owns the world, stored as versioned voxel sections. Background jobs mesh dirty sections, and a result is accepted only if its version stamps are still current; presentation renders the accepted meshes and never writes to the authority. Living trees come from one skeleton that feeds wood, leaves, structure and collision. Only edited sections are saved, under one commit file. The dashed row is planned and not built.',
-    bg: 'Действията на играча достигат играта само като команди. Детерминистичен слой с правилата, независим от енджина, владее света, записан като версионирани воксел секции. Фонови задачи изграждат мрежите на променените секции, а резултатът се приема само ако версиите му още са актуални; визуализацията рисува приетите мрежи и никога не пише в правилата. Живите дървета идват от един скелет, който захранва дървесината, листата, структурата и колизиите. Записват се само променените секции, под един файл за потвърждение. Пунктираният ред е планиран и не е изграден.',
+    bg: 'Действията на играча достигат играта само като команди. Детерминиран слой с правилата, независим от енджина, владее света, записан като версионирани воксел секции. Фонови задачи изграждат мрежите на променените секции, а резултатът се приема само ако версиите му още са актуални; визуализацията рисува приетите мрежи и никога не пише в правилата. Живите дървета идват от един скелет, който захранва дървесината, листата, структурата и колизиите. Записват се само променените секции, под един файл за потвърждение. Пунктираният ред е планиран и не е изграден.',
   },
   cols: 5,
   rows: 3,
@@ -34,7 +34,7 @@ export const caeloraWorld: Diagram = {
       label: { en: 'Authority', bg: 'Правила' },
       sub: {
         en: 'engine-free, integer\nmath, keyed RNG',
-        bg: 'без енджин, цели\nчисла, ключов RNG',
+        bg: 'без енджин, цели\nчисла, RNG с ключ',
       },
       kind: 'service',
       col: 1,
@@ -102,7 +102,7 @@ export const caeloraWorld: Diagram = {
     },
     {
       id: 'server',
-      label: { en: 'Headless server', bg: 'Сървър без графика' },
+      label: { en: 'Headless server', bg: 'Headless сървър' },
       sub: {
         en: 'the authority runs\nwithout Unity',
         bg: 'правилата работят\nбез Unity',

@@ -14,6 +14,24 @@ import { getProjects } from '@/lib/projects';
 const { locale, t, href } = useI18n(Astro);
 const u = t(openSource);
 const b = u.blueprint;
+const q = b.quick;
+
+// The setup guide in the reader's language; commands are the same everywhere.
+const setupGuide = `${BLUEPRINT_REPO}/blob/main/${locale === 'bg' ? 'SETUP.bg.md' : 'SETUP.md'}`;
+const RAW = `${BLUEPRINT_REPO.replace('github.com', 'raw.githubusercontent.com')}/main/CLAUDE.md`;
+// Kept in step with blueprint/SETUP.md (step 2); neither overwrites a CLAUDE.md.
+const commands = [
+  {
+    os: 'sh',
+    label: 'macOS · Linux · WSL',
+    text: `[ -e CLAUDE.md ] || curl -fsSL ${RAW} -o CLAUDE.md`,
+  },
+  {
+    os: 'ps',
+    label: 'Windows PowerShell',
+    text: `if (-not (Test-Path CLAUDE.md)) { Invoke-WebRequest ${RAW} -OutFile CLAUDE.md }`,
+  },
+];
 
 // Top-level "## N. Title" headings of the blueprint, listed as its contents.
 const sections = [...blueprint.matchAll(/^## \d+\. (.+)$/gm)].map((m) => m[1]);
@@ -93,12 +111,50 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
           </Button>
         </div>
 
-        <h3 class="sub">{b.setupTitle}</h3>
+        <h3 class="sub" id="quick-start">
+          {q.title}
+        </h3>
         <ol class="setup">
-          {b.setup.map((step) => (
-            <li>{step}</li>
-          ))}
+          <li>
+            {q.install.before} <a href={q.installUrl}>{q.install.link}</a>
+            {q.install.after}
+          </li>
+          <li>
+            {q.run}
+            <fieldset class="os">
+              <legend class="label">{q.system}</legend>
+              <span class="os-options">
+                <label>
+                  <input type="radio" name="os" value="sh" checked />
+                  <span>macOS · Linux · WSL</span>
+                </label>
+                <label>
+                  <input type="radio" name="os" value="ps" />
+                  <span>Windows PowerShell</span>
+                </label>
+              </span>
+              {commands.map((c) => (
+                <div class="os-panel" data-os={c.os}>
+                  <pre class="cmd"><code>{c.text}</code></pre>
+                  <CopyButton value={c.text} label={`${q.copy} (${c.label})`} />
+                </div>
+              ))}
+            </fieldset>
+          </li>
+          <li>{q.fill}</li>
+          <li>{q.check}</li>
         </ol>
+        <p class="note">
+          {q.existing} <a href={setupGuide}>{q.guide}</a>
+        </p>
+        <div class="actions">
+          <Button href={setupGuide} variant="secondary" icon="external" external>
+            {q.guide}
+          </Button>
+          <Button href={`${BLUEPRINT_REPO}/issues`} variant="ghost" icon="external" external>
+            {q.contribute}
+          </Button>
+        </div>
         <p class="license-note">
           {b.licenseNote} <a href="/open-source/LICENSE.txt">{b.fullLicense}</a>
         </p>
@@ -310,6 +366,86 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
   .setup li::marker {
     font-family: var(--ff-mono);
     color: var(--fg-3);
+  }
+
+  .setup a,
+  .note a {
+    color: var(--fg);
+  }
+
+  /* System picker: two native radios; the checked one shows its panel. No
+     script, and both panels are in the page for readers without CSS. */
+  .os {
+    margin: var(--space-xs) 0 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+
+  .os-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin-top: var(--space-3xs);
+  }
+
+  .os label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding: 0 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+
+  .os label:has(:checked) {
+    border-color: var(--fg-2);
+    color: var(--fg);
+  }
+
+  .os label:has(:focus-visible) {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .os input {
+    accent-color: var(--fg);
+  }
+
+  .os:has(input[value='sh']:checked) .os-panel[data-os='ps'],
+  .os:has(input[value='ps']:checked) .os-panel[data-os='sh'] {
+    display: none;
+  }
+
+  .os-panel {
+    display: grid;
+    gap: var(--space-2xs);
+    justify-items: start;
+    margin-top: var(--space-xs);
+  }
+
+  .cmd {
+    max-width: 100%;
+    padding: var(--space-xs) var(--space-s);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-s);
+    background: var(--ink-deep);
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    line-height: 1.6;
+    color: var(--fg);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+
+  .note {
+    margin-top: var(--space-s);
+    max-width: 62ch;
+    color: var(--fg-2);
   }
 
   .license-note {

@@ -90,7 +90,7 @@ hard:
   - title: Voice latency dominated by model round trips
     figure: { value: '2 → 0', label: 'provider round trips for questions about its own state' }
     problem: Physical testing showed that spoken requests were slow because every request made two provider round trips, even questions the system could answer from its own state.
-    solution: I moved lane selection in front of the models. Questions about the assistant's own state are answered from compiled evidence with zero provider calls, and only open-ended requests reach a model.
+    solution: I moved lane selection ahead of the models. Questions about the assistant's own state are answered from compiled evidence with zero provider calls, and only open-ended requests reach a model.
   - title: Cancelling the work, not just the screen
     problem: Physical testing showed that cancelling a turn cleared the window while its provider call ran on for about 26 seconds, and the next request then started a second call.
     solution: The stop signal now reaches every provider path, a cancelled call is reported as cancelled rather than as a failure, and an integration test pins it.
