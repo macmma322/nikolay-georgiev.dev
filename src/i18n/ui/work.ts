@@ -14,7 +14,7 @@ export const work = {
     title: { en: 'Work', bg: 'Проекти' },
     lede: {
       en: 'Every project here is described from its current source code, with its real status. Some are in production, some are prototypes on a bench, and one is an operating system at its first milestones. The difference is stated on every page.',
-      bg: 'Описвам всеки проект по текущия му изходен код и с реалния му статус. Някои са в продукция, други са прототипи на работната маса, а един е операционна система в първите си етапи. Всяка страница казва ясно кое е кое.',
+      bg: 'Описвам всеки проект по текущия му изходен код и с реалния му статус. Някои вече се използват от реални потребители, други са прототипи на работната маса, а един е операционна система в първите си етапи. Всяка страница казва ясно кое е кое.',
     },
     list: { en: 'Case studies', bg: 'Списък на проектите' },
     outro: {

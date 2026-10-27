@@ -49,12 +49,12 @@ export const roles: Role[] = [
     kind: 'independent',
     points: [
       {
-        en: 'Build and run Zone 32-19, my own community and commerce platform, and deliver USS X Academy, a production education platform for a training centre.',
-        bg: 'Изграждам и поддържам Zone 32-19, собствена платформа за общност и онлайн търговия, и разработвам USS X Academy, образователна платформа в продукция за учебен център.',
+        en: 'Build and run Zone 32-19, my own community and commerce platform, and deliver USS X Academy, a live education platform for a training centre.',
+        bg: 'Изграждам и поддържам Zone 32-19, собствена платформа за общност и онлайн търговия, и разработвам USS X Academy, работеща образователна платформа за учебен център.',
       },
       {
         en: 'Develop J.A.R.V.I.S., KObait and Malrynth as long-running personal systems across AI, embedded hardware and operating systems.',
-        bg: 'Развивам J.A.R.V.I.S., KObait и Malrynth – дългосрочни лични системи в областта на изкуствения интелект, вградения хардуер и операционните системи.',
+        bg: 'Развивам J.A.R.V.I.S., KObait и Malrynth – дългосрочни лични системи в областта на изкуствения интелект, вградената електроника и операционните системи.',
       },
     ],
   },

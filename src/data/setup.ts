@@ -18,7 +18,7 @@ import type { L } from '@/i18n';
  */
 
 export type Source = 'machine' | 'docs' | 'owner';
-/** current: owned and in use · spare: owned, no role · past: replaced · planned: not bought */
+/** current: owned and in use · spare: owned, not in use · past: replaced · planned: not bought */
 export type Status = 'current' | 'spare' | 'past' | 'planned';
 export type View = 'desk' | 'inside' | 'secondary' | 'laptop';
 
@@ -59,7 +59,7 @@ export const parts: readonly Part[] = [
     ),
     purpose: t(
       'Moves between sitting and standing height, so long sessions are not spent in one position.',
-      'Сменя височината между седнало и право положение, за да не минават дългите сесии в една поза.',
+      'Сменя височината за работа седнал или прав, за да не прекарвам дългите сесии в една поза.',
     ),
     specs: [t('160 × 76 cm top, brown and black', 'Плот 160 × 76 см, кафяво и черно')],
     status: 'current',
@@ -195,12 +195,12 @@ export const parts: readonly Part[] = [
     model: 'Scarlett 2i2 4th Gen',
     purpose: t(
       'Powers the microphone chain: a proper preamp and gain set on hardware, then USB into Windows.',
-      'Сърцето на звуковата верига: истински предусилвател и усилване на хардуера, после USB към Windows.',
+      'Основата на микрофонната верига: качествен предусилвател и усилване, настроено на хардуера, а после USB към Windows.',
     ),
     specs: [t('Two mic/line inputs, USB', 'Два микрофонни/линейни входа, USB')],
     workflow: t(
       'A quiet dynamic microphone needs real gain; setting it on the interface keeps the level clean before any software processing.',
-      'Тихият динамичен микрофон има нужда от истинско усилване; когато е настроено на интерфейса, нивото е чисто още преди софтуерната обработка.',
+      'Тихият динамичен микрофон има нужда от сериозно усилване; когато е настроено на интерфейса, нивото е чисто още преди софтуерната обработка.',
     ),
     status: 'current',
     source: 'machine',
@@ -244,7 +244,7 @@ export const parts: readonly Part[] = [
     specs: [
       t(
         'Cherry MX mechanical switches, RGB backlight',
-        'Механични бутони Cherry MX, RGB подсветка',
+        'Механични превключватели Cherry MX, RGB подсветка',
       ),
     ],
     status: 'current',
@@ -400,7 +400,7 @@ export const parts: readonly Part[] = [
     ],
     workflow: t(
       'Only about 8 GB is free at idle, which is the tightest limit in the setup and decided which model J.A.R.V.I.S. runs.',
-      'В покой свободни са само около 8 GB – това е най-тясното ограничение в цялата техника и то реши кой модел работи в J.A.R.V.I.S.',
+      'В покой са свободни само около 8 GB. Това е най-тясното ограничение в цялата техника и то определи кой модел използва J.A.R.V.I.S.',
     ),
     status: 'current',
     source: 'machine',
@@ -444,7 +444,7 @@ export const parts: readonly Part[] = [
     id: 'hdd',
     view: 'inside',
     n: 7,
-    kind: t('Bulk storage', 'Архив'),
+    kind: t('Bulk storage', 'Дискове за архив'),
     maker: 'Seagate · WD · Toshiba',
     model: 'SkyHawk 1 TB · Purple 1 TB · 500 GB',
     purpose: t(
@@ -589,7 +589,7 @@ export const parts: readonly Part[] = [
     model: 'GeForce GTX 1080 Ti 11 GB',
     purpose: t(
       'More VRAM than the main PC, which makes it interesting for a second model host.',
-      'Повече видеопамет от основния компютър, което я прави интересна за втори хост на модели.',
+      'Повече видеопамет от основния компютър, което я прави интересна за втори сървър за локални модели.',
     ),
     specs: [
       t(
@@ -621,7 +621,7 @@ export const parts: readonly Part[] = [
     id: 'old-ssd',
     view: 'secondary',
     n: 6,
-    kind: t('Planned upgrade', 'Планиран ъпгрейд'),
+    kind: t('Planned upgrade', 'Планирано надграждане'),
     maker: '—',
     model: t('2.5-inch SATA SSD, 1 TB or 2 TB', '2,5-инчов SATA SSD, 1 TB или 2 TB'),
     purpose: t(
@@ -679,7 +679,7 @@ export const parts: readonly Part[] = [
     model: 'GeForce GTX 1050 Ti 4 GB',
     purpose: t(
       'Measured to fit roughly a 6B-parameter model at 4-bit: a development machine, not a model host.',
-      'Измерено: побира приблизително модел с 6 милиарда параметъра при 4 бита – машина за разработка, а не хост на модели.',
+      'Според измерването побира модел с около 6 милиарда параметъра при 4 бита – машина за разработка, а не сървър за модели.',
     ),
     specs: [t('4 GB VRAM, compute capability 6.1', '4 GB видеопамет, compute capability 6.1')],
     status: 'current',
@@ -769,7 +769,7 @@ export const secondaryRoles: readonly L[] = [
   t('A CI or test runner for my repositories', 'CI или тестов агент за хранилищата ми'),
   t(
     'A second model host for J.A.R.V.I.S., thanks to its 11 GB GPU',
-    'Втори хост на модели за J.A.R.V.I.S. заради видеокартата с 11 GB',
+    'Втори сървър за модели на J.A.R.V.I.S. заради видеокартата с 11 GB',
   ),
   t('A dedicated streaming PC', 'Отделен компютър за стрийминг'),
 ];
@@ -786,7 +786,7 @@ export const reuseLimits: readonly L[] = [
   ),
   t(
     'Hard drives are too slow until the SSD arrives',
-    'Твърдите дискове са твърде бавни, докато не дойде SSD',
+    'Твърдите дискове са твърде бавни, докато не сложа SSD',
   ),
   t(
     '16 GB is already the board’s maximum, and its slots are PCIe 2.0',
@@ -819,7 +819,7 @@ export const decisions: readonly Decision[] = [
       },
       {
         en: 'A supervised llama.cpp server with its own CUDA 12.4 runtime next to the app; no system-wide CUDA toolkit.',
-        bg: 'Наблюдаван llama.cpp сървър със собствен CUDA 12.4 runtime до приложението, без системно инсталиран CUDA toolkit.',
+        bg: 'llama.cpp сървър под надзор, със собствен CUDA 12.4 runtime до приложението и без системно инсталиран CUDA toolkit.',
       },
       {
         en: 'A 16K context was measured at 6.93 GiB, leaving about 1 GiB: too thin, so it was rejected. A 4-bit model also gives up some quality.',
@@ -845,7 +845,7 @@ export const decisions: readonly Decision[] = [
     steps: [
       {
         en: 'Would a speech engine fight the language model for the GPU and make the assistant stutter?',
-        bg: 'Дали гласовият модел ще се бори с езиковия за видеокартата и асистентът ще започне да засича?',
+        bg: 'Дали гласовият модел ще се конкурира с езиковия за видеокартата и асистентът ще започне да засича?',
       },
       {
         en: 'Speech runs on the 12-core CPU; the GPU belongs to the language model.',
@@ -918,7 +918,7 @@ export const decisions: readonly Decision[] = [
       },
       {
         en: 'Plain .NET projects compile the same source files, so the rules can be tested and benchmarked from the command line.',
-        bg: 'Обикновени .NET проекти компилират същите изходни файлове, така че правилата се тестват и измерват от командния ред.',
+        bg: 'Обикновени .NET проекти компилират същите изходни файлове, така че правилата се тестват и измерват с бенчмаркове от командния ред.',
       },
       {
         en: 'Presentation can only read the world and request changes, which means more interfaces to maintain.',
@@ -960,7 +960,7 @@ export const tools: readonly Tool[] = [
   {
     name: 'GitHub · Actions · CLI',
     usage: 'daily',
-    what: { en: 'Repositories, CI, pull requests', bg: 'Хранилища, CI, pull requests' },
+    what: { en: 'Repositories, CI, pull requests', bg: 'Хранилища, CI, pull request-и' },
   },
   {
     name: 'Node.js 24 · TypeScript · npm · pnpm',
@@ -1117,7 +1117,7 @@ export const roadmap: Record<Stage, readonly Milestone[]> = {
       ),
       why: t(
         'Removes the hard-drive bottleneck that rules out any server role today.',
-        'Маха тясното място с твърдия диск, което днес изключва всяка сървърна роля.',
+        'Премахва тясното място при твърдите дискове, заради което днес машината не става за сървър.',
       ),
     },
     {
@@ -1141,14 +1141,14 @@ export const roadmap: Record<Stage, readonly Milestone[]> = {
     {
       item: t(
         'KObait water tests, starting tethered',
-        'Изпитания на KObait във вода, първо с въже',
+        'Изпитания на KObait във вода, първо вързана с въже',
       ),
       why: t('The step after bench testing.', 'Следващата стъпка след изпитанията на стенд.'),
     },
   ],
   vision: [
     {
-      item: t('A second model host for J.A.R.V.I.S.', 'Втори хост на модели за J.A.R.V.I.S.'),
+      item: t('A second model host for J.A.R.V.I.S.', 'Втори сървър за модели на J.A.R.V.I.S.'),
       why: t(
         'The 11 GB GPU could take load the 10 GB card cannot.',
         'Видеокартата с 11 GB би поела това, което картата с 10 GB не може.',

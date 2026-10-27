@@ -35,7 +35,7 @@
       },
       {
         "en": "Applying a change needs an explicit mode, dry-run off and, for production, an approval file. It fails closed when it cannot confirm which environment it is running in.",
-        "bg": "Прилагането на промяна изисква изричен режим, изключен dry-run, а за продукция – и файл с одобрение. Спира, ако не може да потвърди в коя среда работи."
+        "bg": "Прилагането на промяна изисква изричен режим, изключен dry-run, а за продукционната среда – и файл с одобрение. Ако не може да потвърди в коя среда работи, спира, без да променя нищо."
       },
       {
         "en": "Running in observe-only mode on the development environment: it records what it would do and has applied nothing.",

@@ -63,7 +63,7 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
     <SectionHeader label={b.label} id="g-blueprint" title={b.title} lede={b.lede} />
 
     <div class="blueprint reveal">
-      <div class="doc" aria-hidden="true">
+      <div class="doc" aria-hidden="true" lang="en">
         <p class="doc-name">CLAUDE.md</p>
         <ol role="list" class="doc-toc">
           {sections.map((name, i) => (

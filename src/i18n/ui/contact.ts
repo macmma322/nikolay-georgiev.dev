@@ -15,8 +15,8 @@ export const contact = {
     en: 'I put the second list in code and tests.',
     bg: 'Втория списък превръщам в код и тестове.',
   },
-  copyEmail: { en: 'Copy email address', bg: 'Копирай имейла' },
-  copyPhone: { en: 'Copy phone number', bg: 'Копирай телефона' },
+  copyEmail: { en: 'Copy email address', bg: 'Копирайте имейла' },
+  copyPhone: { en: 'Copy phone number', bg: 'Копирайте телефона' },
   /** Personal profiles, a step down from the professional links. */
   elsewhere: { en: 'Elsewhere', bg: 'Още профили' },
   /** Visually hidden before the number. */
@@ -37,7 +37,7 @@ export const contact = {
   },
   /** CopyButton: visible states and the live-region messages. */
   copy: {
-    idle: { en: 'Copy', bg: 'Копирай' },
+    idle: { en: 'Copy', bg: 'Копирайте' },
     done: { en: 'Copied', bg: 'Копирано' },
     failed: { en: 'Failed', bg: 'Неуспешно' },
     doneMessage: { en: 'Copied to clipboard', bg: 'Копирано в клипборда' },

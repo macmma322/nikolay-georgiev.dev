@@ -22,10 +22,10 @@ const s = t(openSource).credits;
     <li class="credit">
       <p class="who">
         <a href={c.url} rel="noopener">
-          {c.name}
+          {t(c.name)}
         </a>
         <span class="by">
-          {s.by} {c.by}
+          {s.by} {t(c.by)}
         </span>
       </p>
       <p class="use">{t(c.use)}</p>
@@ -33,7 +33,7 @@ const s = t(openSource).credits;
         <span class:list={['kind', `kind-${c.kind}`]}>
           {c.kind === 'used' ? s.used : s.reference}
         </span>
-        <span>{c.license}</span>
+        <span>{t(c.license)}</span>
       </p>
     </li>
   ))}

@@ -91,7 +91,7 @@ for (const locale of locales) {
       await page.goto(localize('/setup', locale));
       await page.locator('button[data-pick="camera"]').click();
       await expect(page.locator('#detail-camera .status')).toContainText(
-        locale === 'en' ? 'not bought' : 'не е купено',
+        locale === 'en' ? 'Planned purchase' : 'Планирана покупка',
       );
     });
   });

@@ -13,7 +13,7 @@ export const seo = {
   home: {
     description: {
       en: 'Nikolay Georgiev, software engineer in Varna, Bulgaria: production web platforms, a voxel sandbox game, a local-first AI assistant, hardware and a Rust OS.',
-      bg: 'Николай Георгиев, софтуерен инженер от Варна: уеб платформи в продукция, воксел игра, локален AI асистент, вграден хардуер и операционна система на Rust.',
+      bg: 'Николай Георгиев, софтуерен инженер от Варна: работещи уеб платформи, воксел игра, локален AI асистент, вградени системи и операционна система на Rust.',
     },
   },
   work: {
@@ -33,7 +33,7 @@ export const seo = {
     },
     description: {
       en: 'Tools Nikolay Georgiev built around his main systems, how he works with AI coding agents, and what comes next, such as a Java and Spring Boot ledger.',
-      bg: 'Инструментите около основните системи на Николай Георгиев, работата му с AI агенти и какво предстои – например банкова платформа на Java и Spring Boot.',
+      bg: 'Инструментите около основните системи на Николай Георгиев, работата му с AI агенти и какво предстои – например счетоводна платформа на Java и Spring Boot.',
     },
   },
   about: {
@@ -43,7 +43,7 @@ export const seo = {
     },
     description: {
       en: 'Nikolay Georgiev is a software engineer in Varna, Bulgaria, and a backend developer at DXC Technology. He also builds platforms, AI systems, hardware and an OS.',
-      bg: 'Николай Георгиев е софтуерен инженер от Варна и бекенд разработчик в DXC Technology. Изгражда платформи, AI системи, вграден хардуер и операционна система.',
+      bg: 'Николай Георгиев е софтуерен инженер от Варна и бекенд разработчик в DXC Technology. Изгражда уеб платформи, AI системи, вградени системи и операционна система.',
     },
   },
   contact: {
@@ -63,7 +63,7 @@ export const seo = {
     },
     description: {
       en: 'The workstation, audio chain and hardware behind Nikolay Georgiev’s projects, the decisions its limits forced, and an honest roadmap. Not sponsored.',
-      bg: 'Компютърът, звукът и хардуерът зад проектите на Николай Георгиев, решенията, наложени от ограниченията им, и честна пътна карта. Без спонсори.',
+      bg: 'Компютрите, аудиотехниката и хардуерът зад проектите на Николай Георгиев, решенията, наложени от ограниченията им, и честен план за развитие. Без спонсори.',
     },
   },
   openSource: {

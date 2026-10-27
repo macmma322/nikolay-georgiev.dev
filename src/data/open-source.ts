@@ -44,11 +44,12 @@ export const repos: readonly Repo[] = [
 ];
 
 export interface Credit {
-  name: string;
-  by: string;
+  /** Plain when it is only names; per locale when it has words around them. */
+  name: string | L;
+  by: string | L;
   url: string;
   /** As the upstream project declares it (SPDX where it uses one). */
-  license: string;
+  license: string | L;
   use: L;
   /** used: the code ships or runs in the project. reference: design input only. */
   kind: 'used' | 'reference';
@@ -67,10 +68,16 @@ export const credits: readonly CreditGroup[] = [
     name: 'Caelora',
     items: [
       {
-        name: 'Unity 6 with Burst, Collections, Mathematics and URP',
+        name: {
+          en: 'Unity 6 with Burst, Collections, Mathematics and URP',
+          bg: 'Unity 6 с Burst, Collections, Mathematics и URP',
+        },
         by: 'Unity Technologies',
         url: 'https://unity.com',
-        license: 'Unity Companion License (not open source)',
+        license: {
+          en: 'Unity Companion License (not open source)',
+          bg: 'Unity Companion License (не е с отворен код)',
+        },
         kind: 'used',
         use: {
           en: 'The engine, renderer and job system the game runs on.',
@@ -81,11 +88,14 @@ export const credits: readonly CreditGroup[] = [
         name: 'SplitMix64',
         by: 'Sebastiano Vigna',
         url: 'https://prng.di.unimi.it',
-        license: 'Public domain (reference C code)',
+        license: {
+          en: 'Public domain (reference C code)',
+          bg: 'Обществено достояние (примерен код на C)',
+        },
         kind: 'reference',
         use: {
           en: 'The hashing behind deterministic terrain noise, reimplemented in C# with fixed-point maths.',
-          bg: 'Хеширането зад детерминистичния шум на терена, реализирано наново на C# с фиксирана запетая.',
+          bg: 'Хеширането зад детерминирания шум на терена, реализирано наново на C# с фиксирана запетая.',
         },
       },
       {
@@ -100,8 +110,11 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Cinzel, EB Garamond and Caveat',
-        by: 'Natanael Gama; Georg Duffner and Octavio Pardo; Impallari Type',
+        name: { en: 'Cinzel, EB Garamond and Caveat', bg: 'Cinzel, EB Garamond и Caveat' },
+        by: {
+          en: 'Natanael Gama; Georg Duffner and Octavio Pardo; Impallari Type',
+          bg: 'Natanael Gama; Georg Duffner и Octavio Pardo; Impallari Type',
+        },
         url: 'https://fonts.google.com/specimen/Cinzel',
         license: 'OFL-1.1',
         kind: 'used',
@@ -128,7 +141,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Next.js and React',
+        name: { en: 'Next.js and React', bg: 'Next.js и React' },
         by: 'Vercel; Meta',
         url: 'https://github.com/vercel/next.js',
         license: 'MIT',
@@ -140,7 +153,7 @@ export const credits: readonly CreditGroup[] = [
       },
       {
         name: 'Express',
-        by: 'OpenJS Foundation and contributors',
+        by: { en: 'OpenJS Foundation and contributors', bg: 'OpenJS Foundation и сътрудници' },
         url: 'https://github.com/expressjs/express',
         license: 'MIT',
         kind: 'used',
@@ -150,7 +163,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'node-postgres and ioredis',
+        name: { en: 'node-postgres and ioredis', bg: 'node-postgres и ioredis' },
         by: 'Brian Carlson; Zihua Li',
         url: 'https://github.com/brianc/node-postgres',
         license: 'MIT',
@@ -172,7 +185,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'DTLN and dtln-rs',
+        name: { en: 'DTLN and dtln-rs', bg: 'DTLN и dtln-rs' },
         by: 'Nils Westhausen; Datadog',
         url: 'https://github.com/breizhn/DTLN',
         license: 'MIT',
@@ -212,7 +225,7 @@ export const credits: readonly CreditGroup[] = [
     items: [
       {
         name: 'llama.cpp',
-        by: 'ggml-org and contributors',
+        by: { en: 'ggml-org and contributors', bg: 'ggml-org и сътрудници' },
         url: 'https://github.com/ggml-org/llama.cpp',
         license: 'MIT',
         kind: 'used',
@@ -258,7 +271,10 @@ export const credits: readonly CreditGroup[] = [
         name: 'openWakeWord',
         by: 'David Scripka',
         url: 'https://github.com/dscripka/openWakeWord',
-        license: 'Apache-2.0 (code); pre-trained models CC BY-NC-SA 4.0',
+        license: {
+          en: 'Apache-2.0 (code); pre-trained models CC BY-NC-SA 4.0',
+          bg: 'Apache-2.0 (кодът); CC BY-NC-SA 4.0 (обучените модели)',
+        },
         kind: 'used',
         use: {
           en: 'The opt-in wake-word sensor.',
@@ -278,7 +294,7 @@ export const credits: readonly CreditGroup[] = [
       },
       {
         name: 'Tauri',
-        by: 'Tauri contributors',
+        by: { en: 'Tauri contributors', bg: 'сътрудниците на Tauri' },
         url: 'https://github.com/tauri-apps/tauri',
         license: 'Apache-2.0 OR MIT',
         kind: 'used',
@@ -288,8 +304,11 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'three.js and React Three Fiber',
-        by: 'Ricardo Cabello and contributors; Poimandres',
+        name: { en: 'three.js and React Three Fiber', bg: 'three.js и React Three Fiber' },
+        by: {
+          en: 'Ricardo Cabello and contributors; Poimandres',
+          bg: 'Ricardo Cabello и сътрудници; Poimandres',
+        },
         url: 'https://github.com/pmndrs/react-three-fiber',
         license: 'MIT',
         kind: 'used',
@@ -305,7 +324,7 @@ export const credits: readonly CreditGroup[] = [
     name: 'Zone 32-19',
     items: [
       {
-        name: 'Next.js and React',
+        name: { en: 'Next.js and React', bg: 'Next.js и React' },
         by: 'Vercel; Meta',
         url: 'https://github.com/vercel/next.js',
         license: 'MIT',
@@ -316,8 +335,11 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Express and node-postgres',
-        by: 'OpenJS Foundation and contributors; Brian Carlson',
+        name: { en: 'Express and node-postgres', bg: 'Express и node-postgres' },
+        by: {
+          en: 'OpenJS Foundation and contributors; Brian Carlson',
+          bg: 'OpenJS Foundation и сътрудници; Brian Carlson',
+        },
         url: 'https://github.com/expressjs/express',
         license: 'MIT',
         kind: 'used',
@@ -327,8 +349,8 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Socket.IO and its Redis adapter',
-        by: 'Socket.IO contributors',
+        name: { en: 'Socket.IO and its Redis adapter', bg: 'Socket.IO и адаптерът му за Redis' },
+        by: { en: 'Socket.IO contributors', bg: 'сътрудниците на Socket.IO' },
         url: 'https://github.com/socketio/socket.io',
         license: 'MIT',
         kind: 'used',
@@ -371,8 +393,14 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Caddy, Coraza and the OWASP Core Rule Set',
-        by: 'Caddy contributors; OWASP Coraza; OWASP CRS',
+        name: {
+          en: 'Caddy, Coraza and the OWASP Core Rule Set',
+          bg: 'Caddy, Coraza и OWASP Core Rule Set',
+        },
+        by: {
+          en: 'Caddy contributors; OWASP Coraza; OWASP CRS',
+          bg: 'сътрудниците на Caddy; OWASP Coraza; OWASP CRS',
+        },
         url: 'https://github.com/corazawaf/coraza-caddy',
         license: 'Apache-2.0',
         kind: 'used',
@@ -385,7 +413,10 @@ export const credits: readonly CreditGroup[] = [
         name: 'GSAP',
         by: 'GreenSock (Webflow)',
         url: 'https://github.com/greensock/GSAP',
-        license: 'GSAP Standard No Charge License (not open source)',
+        license: {
+          en: 'GSAP Standard No Charge License (not open source)',
+          bg: 'GSAP Standard No Charge License (не е с отворен код)',
+        },
         kind: 'used',
         use: {
           en: 'Motion on the landing page.',
@@ -410,7 +441,10 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Adafruit sensor and display drivers',
+        name: {
+          en: 'Adafruit sensor and display drivers',
+          bg: 'Драйвери на Adafruit за сензори и дисплеи',
+        },
         by: 'Adafruit Industries',
         url: 'https://github.com/adafruit',
         license: 'MIT, BSD, Apache-2.0',
@@ -443,7 +477,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Servo and the Arduino AVR core',
+        name: { en: 'Servo and the Arduino AVR core', bg: 'Servo и ядрото Arduino AVR' },
         by: 'Arduino',
         url: 'https://github.com/arduino/ArduinoCore-avr',
         license: 'LGPL-2.1',
@@ -454,10 +488,13 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'A community display driver',
+        name: { en: 'A community display driver', bg: 'Драйвер за дисплей от общността' },
         by: 'David Prentice',
         url: 'https://github.com/prenticedavid',
-        license: 'No license of its own; bundles BSD and LGPL code',
+        license: {
+          en: 'No license of its own; bundles BSD and LGPL code',
+          bg: 'Без собствен лиценз; съдържа код под BSD и LGPL',
+        },
         kind: 'used',
         use: {
           en: 'Drives the remote’s display.',
@@ -493,8 +530,11 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'bitflags, log, cfg-if and the syn family',
-        by: 'The Rust project and community',
+        name: {
+          en: 'bitflags, log, cfg-if and the syn family',
+          bg: 'bitflags, log, cfg-if и семейството syn',
+        },
+        by: { en: 'The Rust project and community', bg: 'проекта и общността на Rust' },
         url: 'https://github.com/bitflags/bitflags',
         license: 'MIT OR Apache-2.0',
         kind: 'used',
@@ -504,7 +544,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'QEMU and OVMF',
+        name: { en: 'QEMU and OVMF', bg: 'QEMU и OVMF' },
         by: 'QEMU project, TianoCore',
         url: 'https://www.qemu.org',
         license: 'GPL-2.0; BSD-2-Clause-Patent',
@@ -522,7 +562,10 @@ export const credits: readonly CreditGroup[] = [
     items: [
       {
         name: 'Astro',
-        by: 'The Astro Technology Company and contributors',
+        by: {
+          en: 'The Astro Technology Company and contributors',
+          bg: 'The Astro Technology Company и сътрудници',
+        },
         url: 'https://github.com/withastro/astro',
         license: 'MIT',
         kind: 'used',
@@ -532,7 +575,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Hubot Sans and Mona Sans',
+        name: { en: 'Hubot Sans and Mona Sans', bg: 'Hubot Sans и Mona Sans' },
         by: 'GitHub',
         url: 'https://github.com/github/mona-sans',
         license: 'OFL-1.1',
@@ -566,7 +609,7 @@ export const credits: readonly CreditGroup[] = [
       },
       {
         name: 'Simple Icons',
-        by: 'Simple Icons contributors',
+        by: { en: 'Simple Icons contributors', bg: 'сътрудниците на Simple Icons' },
         url: 'https://github.com/simple-icons/simple-icons',
         license: 'CC0-1.0',
         kind: 'used',
@@ -576,7 +619,7 @@ export const credits: readonly CreditGroup[] = [
         },
       },
       {
-        name: 'Playwright and axe-core',
+        name: { en: 'Playwright and axe-core', bg: 'Playwright и axe-core' },
         by: 'Microsoft; Deque Systems',
         url: 'https://github.com/microsoft/playwright',
         license: 'Apache-2.0; MPL-2.0',
@@ -588,13 +631,13 @@ export const credits: readonly CreditGroup[] = [
       },
       {
         name: 'Caddy',
-        by: 'Matthew Holt and contributors',
+        by: { en: 'Matthew Holt and contributors', bg: 'Matthew Holt и сътрудници' },
         url: 'https://github.com/caddyserver/caddy',
         license: 'Apache-2.0',
         kind: 'used',
         use: {
           en: 'Serves the built pages in production with the security and cache headers.',
-          bg: 'Сървърът, който обслужва страниците в продукция със заглавките за сигурност и кеширане.',
+          bg: 'Сървърът, който обслужва публикуваните страници със заглавките за сигурност и кеширане.',
         },
       },
     ],

@@ -6,7 +6,7 @@ export const header = {
   primary: { en: 'Primary', bg: 'Основна' },
   mobile: { en: 'Mobile', bg: 'Мобилна' },
   menu: { en: 'Menu', bg: 'Меню' },
-  close: { en: 'Close', bg: 'Затвори' },
+  close: { en: 'Close', bg: 'Затворете' },
   siteMenu: { en: 'Site menu', bg: 'Меню на сайта' },
   navigation: { en: 'Navigation', bg: 'Навигация' },
   // Same wording as the footer facts (contact.ts).

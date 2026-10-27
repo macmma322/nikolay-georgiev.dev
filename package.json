@@ -9,7 +9,8 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/audit-dist.mjs",
+    "build": "npm run check:i18n && astro build && node scripts/audit-dist.mjs",
+    "check:i18n": "node --experimental-strip-types --disable-warning=ExperimentalWarning scripts/check-i18n.mjs",
     "preview": "astro preview",
     "check": "astro check",
     "typecheck": "astro check && tsc --noEmit",

@@ -13,9 +13,9 @@ export const openSource = {
       en: 'The working rules I give AI coding agents in every repository: engineering principles, an evidence hierarchy, a workflow scaled to risk, and rules for Git, testing, security and documentation. Project details and private paths are removed, and machine-specific settings are placeholders. Shared for learning and development use.',
       bg: 'Правилата, които давам на AI агентите за програмиране във всяко хранилище: инженерни принципи, йерархия на доказателствата, работен процес според риска и правила за Git, тестване, сигурност и документация. Подробностите за проектите и личните пътища са премахнати, а настройките за конкретна машина са заменени с полета за попълване. Споделям ги за обучение и разработка.',
     },
-    read: { en: 'Read online', bg: 'Прочети онлайн' },
-    download: { en: 'Download CLAUDE.md', bg: 'Изтегли CLAUDE.md' },
-    copyLabel: { en: 'Copy CLAUDE.md as Markdown', bg: 'Копирай CLAUDE.md като Markdown' },
+    read: { en: 'Read online', bg: 'Прочетете онлайн' },
+    download: { en: 'Download CLAUDE.md', bg: 'Изтеглете CLAUDE.md' },
+    copyLabel: { en: 'Copy CLAUDE.md as Markdown', bg: 'Копирайте CLAUDE.md като Markdown' },
     source: { en: 'Source on GitHub', bg: 'Изходен код в GitHub' },
     license: { en: 'MIT License', bg: 'Лиценз MIT' },
     facts: {
@@ -41,10 +41,10 @@ export const openSource = {
         bg: 'В корена на проекта изтеглете файла. Командата не променя вече съществуващ CLAUDE.md.',
       },
       system: { en: 'Your system', bg: 'Вашата система' },
-      copy: { en: 'Copy setup command', bg: 'Копирай командата за настройка' },
+      copy: { en: 'Copy setup command', bg: 'Копирайте командата за настройка' },
       fill: {
         en: 'Fill in section 0 with your stack, branches and commands, and delete the sections you do not need.',
-        bg: 'Попълнете раздел 0 със стека, клоновете и командите на проекта и изтрийте разделите, които не ви трябват.',
+        bg: 'Попълнете раздел 0 със стека, клоновете и командите на проекта и изтрийте разделите, които не са ви нужни.',
       },
       check: {
         en: 'Start claude in the project and run /context: CLAUDE.md should be listed under Memory files.',
@@ -52,10 +52,10 @@ export const openSource = {
       },
       existing: {
         en: 'Already have a CLAUDE.md, or want these rules in every project? The setup guide shows how to import the blueprint next to your own instructions and how to update it.',
-        bg: 'Вече имате CLAUDE.md или искате правилата във всеки проект? Ръководството показва как да включите файла до собствените си инструкции и как да го обновявате.',
+        bg: 'Вече имате CLAUDE.md или искате тези правила във всеки проект? Ръководството показва как да импортирате файла до собствените си инструкции и как да го обновявате.',
       },
       guide: { en: 'Read the setup guide', bg: 'Ръководство за настройка' },
-      contribute: { en: 'Contribute on GitHub', bg: 'Предложи промяна в GitHub' },
+      contribute: { en: 'Contribute on GitHub', bg: 'Предложете промяна в GitHub' },
     },
     licenseNote: {
       en: 'MIT License: use, copy, modify and redistribute it, commercially or not, as long as the copyright and license notice stay with it.',
@@ -68,7 +68,7 @@ export const openSource = {
     title: { en: 'Public repositories', bg: 'Публични хранилища' },
     lede: {
       en: 'Public repositories I own or contribute to, with the license GitHub reports for each. Most of my larger systems are private; their case studies say so.',
-      bg: 'Публичните хранилища, които са мои или в които участвам, с лиценза, който GitHub показва за всяко. Повечето от по-големите ми системи са частни и това е отбелязано в описанията им.',
+      bg: 'Публичните хранилища, които са мои или в които допринасям, с лиценза, който GitHub показва за всяко от тях. Повечето от по-големите ми системи са частни и това е отбелязано в описанията им.',
     },
     groups: {
       original: { en: 'Original projects', bg: 'Собствени проекти' },

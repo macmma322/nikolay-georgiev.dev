@@ -4,7 +4,7 @@ import type { L } from '@/i18n';
 export type Status = (typeof STATUSES)[number];
 
 export const STATUS_LABEL: Record<Status, L> = {
-  production: { en: 'Production', bg: 'В продукция' },
+  production: { en: 'Production', bg: 'В експлоатация' },
   'live-pre-launch': { en: 'Live, pre-launch', bg: 'Онлайн, преди старта' },
   active: { en: 'Active development', bg: 'Активна разработка' },
   prototype: { en: 'Prototype', bg: 'Прототип' },

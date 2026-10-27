@@ -9,7 +9,7 @@ import type { Diagram } from '@/lib/diagram';
  */
 export const ussxPlatform: Diagram = {
   id: 'ussx-platform',
-  title: { en: 'Production services', bg: 'Услуги в продукция' },
+  title: { en: 'Production services', bg: 'Услуги в продукционната среда' },
   caption: {
     en: 'Two Next.js frontends, an Express 5 API and a separate auth service, all deployed on Railway. PostgreSQL is the system of record with core, academy and stemini schemas; the auth service owns identity in the core schema. LiveKit carries only media: who may join, admission, locking and moderation are decided by the API. Email goes through a transactional outbox to Resend, and background loops run inside the API process.',
     bg: 'Два фронтенда на Next.js, API на Express 5 и отделна услуга за автентикация, всички внедрени в Railway. PostgreSQL е меродавната база данни със схемите core, academy и stemini; услугата за автентикация отговаря за идентичността в схемата core. LiveKit пренася само медията, а API решава кой може да влезе и отговаря за допускането, заключването и модерирането. Имейлите минават през транзакционен outbox към Resend, а фоновите цикли работят в процеса на API.',

@@ -18,6 +18,14 @@ if (!existsSync(dist)) {
 }
 
 const ORIGIN = 'https://nikolay-georgiev.dev';
+// Same heuristic as scripts/check-i18n.mjs: four or more words, two or more
+// of them English function words, and no Cyrillic.
+const EN_WORDS =
+  /\b(the|and|of|to|is|are|with|for|on|in|it|that|this|not|by|from|an?|be|or|as|at|was|has|have|only|every|its|into|your|you|when|which)\b/gi;
+const looksEnglish = (text) =>
+  !/[Ѐ-ӿ]/.test(text) &&
+  text.split(/\s+/).filter((w) => /[A-Za-z]{2,}/.test(w)).length >= 4 &&
+  (text.match(EN_WORDS) ?? []).length >= 2;
 const LANGS = { en: { og: 'en_GB', prefix: '' }, bg: { og: 'bg_BG', prefix: '/bg' } };
 const NOT_FOUND = new Set(['404.html', 'bg/404.html']);
 const CONTACT = new Set(['contact.html', 'bg/contact.html']);
@@ -246,6 +254,20 @@ for (const [file, html] of htmlPages) {
     const latin = words(body.replace(/<(\w+)\b[^>]*\slang="bg"[^>]*>[\s\S]*?<\/\1>/g, ''));
     const stray = latin.match(/\S*[Ѐ-ӿ]+\S*/);
     if (stray) fail(file, `English page with Bulgarian text "${stray[0]}"`);
+  } else {
+    // Bulgarian pages: no English sentence left in the text or in an
+    // accessible name (an untranslated fallback or a hardcoded string).
+    // Names, code and elements that declare lang="en" are allowed.
+    const own = body
+      .replace(/<(code|pre|kbd|samp)\b[\s\S]*?<\/\1>/g, ' ')
+      .replace(/<(\w+)\b[^>]*\slang="en"[^>]*>[\s\S]*?<\/\1>/g, ' ');
+    const names = [...own.matchAll(/\s(?:aria-label|alt|title|placeholder)="([^"]*)"/g)];
+    // Attribute values may hold '>' (data-copy), so they go before the split.
+    const segments = own.replace(/\s[\w:-]+="[^"]*"/g, '').split(/<[^>]*>/);
+    for (const raw of [...names.map((m) => m[1]), ...segments]) {
+      const text = decode(raw);
+      if (looksEnglish(text)) fail(file, `Bulgarian page with English text "${text.slice(0, 80)}"`);
+    }
   }
 
   // Open Graph.
@@ -529,5 +551,5 @@ if (failures.length) {
   process.exit(1);
 }
 console.log(
-  `audit: ${files.length} files, ${count} pages (${pages.size} indexable), no leaks; SEO, hreflang, JSON-LD, sitemap, a11y basics and links OK`,
+  `audit: ${files.length} files, ${count} pages (${pages.size} indexable), no leaks; SEO, hreflang, JSON-LD, sitemap, a11y basics, links and page language OK`,
 );
