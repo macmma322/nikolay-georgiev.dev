@@ -16,6 +16,8 @@ export default defineConfig({
   use: {
     baseURL: EXTERNAL ?? `http://127.0.0.1:${PORT}`,
     trace: 'retain-on-failure',
+    // Software WebGL, so the /setup 3D views render in headless runs too.
+    launchOptions: { args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader'] },
   },
   projects: [
     {

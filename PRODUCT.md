@@ -81,10 +81,22 @@ from the machine (2026-10-27), measured in project docs, or stated by the
 owner. Re-read the machine before changing a "machine" item. The main PC has a
 Samsung 990 PRO and a 990 EVO Plus (both 1 TB); no 970 EVO Plus was found.
 Planned items (Sony a6400, the secondary PC's SATA SSD) stay visibly planned.
-Manufacturer links only, no shops or affiliate links, and the non-sponsorship
-disclosure stays. KObait appears there only by area (embedded electronics,
+Manufacturer links by default, never affiliate links, prices or buy buttons,
+and the non-sponsorship disclosure stays. The one exception is the StableArm
+arm, which has no maker page: its plain eMAG listing is shown labelled as a
+shop listing (owner decision, 2026-10-27). The GPU is an EVGA RTX 3080 FTW3
+Ultra Gaming (PCI subsystem 3842:3897, part 10G-P5-3897). The printer is an
+HP LaserJet Pro MFP M125nw (Windows print queue). The ASUS RT-BE88U is a
+candidate, not a purchase: never present it as bought, and never say it
+replaces the provider's optical terminal.
+
+The 3D views (`src/scripts/setup3d`) are illustrations built in code from
+published dimensions: the layout of the desk is idealised, the case models are
+not recorded (both cases are neutral), and the laptop's internals show the
+general arrangement, not a teardown. Do not add third-party models or
+textures without a licence that allows it. KObait appears there only by area (embedded electronics,
 wireless communication, sensors, motor control), with no component list
-(owner decision, 2026-10-27). The secondary PC (ASRock H81M, i7-4790K, GTX 1080 Ti, 16 GB DDR3, 1 TB +
+(owner decision, 2026-10-27), in the 3D views too. The secondary PC (ASRock H81M, i7-4790K, GTX 1080 Ti, 16 GB DDR3, 1 TB +
 500 GB HDDs) and the laptop's storage (Samsung 970 EVO, a Toshiba HDD) and
 current Ubuntu version are owner-stated or unverified; say so on the page.
 The Stream Deck is an MK.2 (owner, 2026-10-27; its

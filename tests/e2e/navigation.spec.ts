@@ -26,6 +26,20 @@ for (const locale of locales) {
       await expect(nav.locator('a[aria-current="page"]')).toHaveText(ui.work[locale]);
     });
 
+    test('Open Source is in the primary navigation', async ({ page, isMobile }) => {
+      test.skip(isMobile, 'desktop navigation only');
+      await page.goto(at('/'));
+      const nav = page.locator('.nav-desktop');
+      const link = nav.getByRole('link', { name: ui.openSource[locale], exact: true });
+      await expect(link).toBeVisible();
+      await link.click();
+      await expect(page).toHaveURL((url) => url.pathname === at('/open-source'));
+      await expect(nav.locator('a[aria-current="page"]')).toHaveText(ui.openSource[locale]);
+      // The blueprint subpage still marks Open Source as the current section.
+      await page.goto(at('/open-source/blueprint'));
+      await expect(nav.locator('a[aria-current="page"]')).toHaveText(ui.openSource[locale]);
+    });
+
     test('Contact leads to the contact page', async ({ page, isMobile }) => {
       test.skip(isMobile, 'desktop navigation only');
       await page.goto(at('/work'));
@@ -49,6 +63,17 @@ for (const locale of locales) {
         await expect(menu.locator('a[aria-current="page"]')).toContainText(ui.lab[locale]);
         await page.keyboard.press('Escape');
         await expect(menu).toBeHidden();
+      });
+
+      test('lists Open Source and opens it', async ({ page }) => {
+        await page.goto(at('/'));
+        await page.getByRole('button', menuButton).click();
+        await page
+          .locator('#mobile-menu')
+          .getByRole('link', { name: new RegExp(ui.openSource[locale]) })
+          .click();
+        await expect(page).toHaveURL((url) => url.pathname === at('/open-source'));
+        await expect(page.locator('#mobile-menu')).toBeHidden();
       });
 
       test('navigates to a page', async ({ page }) => {

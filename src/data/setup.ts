@@ -39,6 +39,8 @@ export interface Part {
   source: Source;
   /** Per locale when the maker has a page in each language. */
   link?: string | L;
+  /** A retailer's plain product listing, shown as such, when the maker has no page. */
+  shop?: { href: string; name: string };
   /** Case-study slugs this part is used for. */
   for?: readonly string[];
 }
@@ -118,6 +120,10 @@ export const parts: readonly Part[] = [
     specs: [t('Dual-monitor arm', 'Стойка-рамо за два монитора')],
     status: 'current',
     source: 'owner',
+    shop: {
+      href: 'https://www.emag.bg/stojka-za-monitor-stablearm-lifter-duo-2-ramena-lesno-regulirane-na-pruzhinata-matovo-cherno-sd-115-2-ne/pd/D9FKPB2BM/',
+      name: 'eMAG',
+    },
   },
   {
     id: 'webcam',
@@ -322,6 +328,58 @@ export const parts: readonly Part[] = [
     source: 'owner',
     link: 'https://rode.com/en-bg/products/podmic',
   },
+  {
+    id: 'printer',
+    view: 'desk',
+    n: 14,
+    kind: t('Printer', 'Принтер'),
+    maker: 'HP',
+    model: 'LaserJet Pro MFP M125nw',
+    purpose: t(
+      'A small monochrome laser printer with a flatbed scanner on top, shared over the network.',
+      'Малък монохромен лазерен принтер със скенер отгоре, достъпен през мрежата.',
+    ),
+    specs: [
+      t('Prints, copies and scans; A4, monochrome', 'Печат, копиране и сканиране; A4, черно-бяло'),
+      t('USB, Ethernet and Wi-Fi', 'USB, Ethernet и Wi-Fi'),
+    ],
+    status: 'current',
+    source: 'machine',
+    link: 'https://support.hp.com/us-en/product/hp-laserjet-pro-mfp-m125-series/5396664',
+  },
+  {
+    id: 'router',
+    view: 'desk',
+    n: 15,
+    kind: t('Router', 'Рутер'),
+    maker: 'ASUS',
+    model: 'RT-BE88U',
+    purpose: t(
+      'A candidate, not a purchase: multi-gigabit wired links for the workstation and room to grow into a home lab.',
+      'Кандидат, а не покупка: многогигабитови кабелни връзки за работната станция и място за бъдещ домашен сървър.',
+    ),
+    specs: [
+      t(
+        'Wi-Fi 7 (BE7200) on 2.4 and 5 GHz, four external antennas',
+        'Wi-Fi 7 (BE7200) на 2,4 и 5 GHz, четири външни антени',
+      ),
+      t(
+        '10G SFP+, 10G Ethernet, four 2.5G and four 1G ports',
+        '10G SFP+, 10G Ethernet, четири порта 2,5G и четири 1G',
+      ),
+      t('AiMesh: main router or mesh node', 'AiMesh: основен рутер или възел в mesh мрежа'),
+    ],
+    workflow: t(
+      'My fibre line ends in a green (angled-polish) optical connector at the provider’s terminal. The SFP+ cage takes 10G Ethernet modules; the router is not an optical terminal itself, so it would sit behind the provider’s equipment on its 10G or 2.5G port. Plugging the fibre in directly would need a compatible module, support from the router and permission from the provider, none of it verified. It has no 6 GHz band, so the Wi-Fi card’s 6 GHz support would stay unused.',
+      'Оптичната ми линия завършва със зелен (APC) конектор на терминала на доставчика. SFP+ слотът приема 10G Ethernet модули; самият рутер не е оптичен терминал, затова би стоял след оборудването на доставчика, на своя 10G или 2.5G порт. Директно свързване на оптиката би изисквало съвместим модул, поддръжка от рутера и съгласие от доставчика – нищо от това не е проверено. Рутерът няма 6 GHz лента, така че поддръжката на 6 GHz в безжичната карта би останала неизползвана.',
+    ),
+    status: 'planned',
+    source: 'owner',
+    link: t(
+      'https://www.asus.com/networking-iot-servers/wifi-routers/asus-gaming-routers/rt-be88u/',
+      'https://www.asus.com/bg/networking-iot-servers/wifi-routers/asus-gaming-routers/rt-be88u/',
+    ),
+  },
 
   // ---------- Inside the PC ----------
   {
@@ -389,14 +447,18 @@ export const parts: readonly Part[] = [
     view: 'inside',
     n: 4,
     kind: t('Graphics', 'Видеокарта'),
-    maker: 'NVIDIA',
-    model: 'GeForce RTX 3080 10 GB',
+    maker: 'EVGA',
+    model: 'GeForce RTX 3080 FTW3 Ultra Gaming 10 GB',
     purpose: t(
       'Runs the local language model for J.A.R.V.I.S. and renders Caelora.',
       'Изпълнява локалния езиков модел на J.A.R.V.I.S. и рендира Caelora.',
     ),
     specs: [
       t('10,240 MiB VRAM, compute capability 8.6', '10 240 MiB видеопамет, compute capability 8.6'),
+      t(
+        'Triple-fan EVGA card, identified by its PCI subsystem ID (part 10G-P5-3897)',
+        'Карта на EVGA с три вентилатора, разпозната по PCI subsystem ID (модел 10G-P5-3897)',
+      ),
     ],
     workflow: t(
       'Only about 8 GB is free at idle, which is the tightest limit in the setup and decided which model J.A.R.V.I.S. runs.',

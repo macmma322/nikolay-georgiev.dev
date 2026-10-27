@@ -57,6 +57,7 @@ export const ui = {
   work: { en: 'Work', bg: 'Проекти' },
   lab: { en: 'Lab', bg: 'Лаборатория' },
   setup: { en: 'Setup', bg: 'Техника' },
+  openSource: { en: 'Open Source', bg: 'Отворен код' },
   about: { en: 'About', bg: 'За мен' },
   contact: { en: 'Contact', bg: 'Контакт' },
   copied: { en: 'Copied', bg: 'Копирано' },

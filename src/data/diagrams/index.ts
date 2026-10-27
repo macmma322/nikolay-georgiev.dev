@@ -4,6 +4,7 @@ import { jarvisRequestPath, jarvisTopology } from './jarvis';
 import { kobaitSystem } from './kobait';
 import { malrynthBoot } from './malrynth';
 import { setupEcosystem } from './setup';
+import { setupConnections, setupFuture, setupHardware } from './setup-views';
 import { steminiPipeline } from './stemini';
 import { ussxPlatform, ussxSso } from './ussx';
 import { zonePayments, zonePlatform } from './zone';
@@ -20,6 +21,9 @@ const all = [
   steminiPipeline,
   malrynthBoot,
   setupEcosystem,
+  setupHardware,
+  setupConnections,
+  setupFuture,
 ];
 
 // SVG text does not wrap: text that would overflow, in any language, fails the build.

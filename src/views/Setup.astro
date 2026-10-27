@@ -9,6 +9,7 @@ import InsideArt from '@/components/setup/InsideArt.astro';
 import SecondaryArt from '@/components/setup/SecondaryArt.astro';
 import LaptopArt from '@/components/setup/LaptopArt.astro';
 import { setupEcosystem } from '@/data/diagrams/setup';
+import { setupConnections, setupFuture, setupHardware } from '@/data/diagrams/setup-views';
 import {
   decisions,
   parts,
@@ -29,6 +30,13 @@ const projects = await getProjects(locale);
 const project = (slug: string) => projects.find((p) => p.id === slug);
 const stages = Object.keys(roadmap) as Stage[];
 const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside');
+/** The ecosystem's four views; Projects opens first, as before. */
+const ecoViews = [
+  ['hardware', setupHardware],
+  ['connections', setupConnections],
+  ['projects', setupEcosystem],
+  ['future', setupFuture],
+] as const;
 ---
 
 <BaseLayout>
@@ -54,7 +62,12 @@ const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside'
       id="workstation"
       views={[
         { view: 'desk', label: u.explorer.desk, art: DeskArt },
-        { view: 'inside', label: u.explorer.insidePc, art: InsideArt },
+        {
+          view: 'inside',
+          label: u.explorer.insidePc,
+          art: InsideArt,
+          modes: ['cutaway', 'exploded'],
+        },
       ]}
       parts={workstation}
     />
@@ -70,7 +83,15 @@ const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside'
     />
     <Explorer
       id="secondary"
-      views={[{ view: 'secondary', label: u.secondary.label, art: SecondaryArt }]}
+      views={[
+        {
+          view: 'secondary',
+          label: u.secondary.label,
+          art: SecondaryArt,
+          modes: ['cutaway', 'exploded'],
+          upgrade: true,
+        },
+      ]}
       parts={partsIn('secondary')}
     />
     <div class="two-lists reveal">
@@ -102,7 +123,7 @@ const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside'
     />
     <Explorer
       id="laptop"
-      views={[{ view: 'laptop', label: u.laptop.label, art: LaptopArt }]}
+      views={[{ view: 'laptop', label: u.laptop.label, art: LaptopArt, modes: ['cutaway'] }]}
       parts={partsIn('laptop')}
     />
   </section>
@@ -114,7 +135,22 @@ const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside'
       title={u.ecosystem.title}
       lede={u.ecosystem.lede}
     />
-    <ArchitectureDiagram diagram={setupEcosystem} todayHref="#workstation" nextHref="#roadmap" />
+    <div class="eco">
+      <fieldset class="eco-switch">
+        <legend class="visually-hidden">{u.ecosystem.view}</legend>
+        {ecoViews.map(([key], i) => (
+          <label>
+            <input type="radio" name="eco-view" value={key} checked={i === 2} />
+            <span>{u.ecosystem.modes[key]}</span>
+          </label>
+        ))}
+      </fieldset>
+      {ecoViews.map(([key, diagram]) => (
+        <div class="eco-pane" data-eco={key}>
+          <ArchitectureDiagram diagram={diagram} todayHref="#workstation" nextHref="#roadmap" />
+        </div>
+      ))}
+    </div>
   </section>
 
   <section id="journey" class="container group" aria-labelledby="g-journey">
@@ -244,6 +280,54 @@ const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside'
 </BaseLayout>
 
 <style>
+  /* ---------- Ecosystem views: native radios, one diagram at a time ---------- */
+  .eco-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin: 0 0 var(--space-m);
+    padding: 0;
+    border: 0;
+  }
+
+  .eco-switch label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+
+  .eco-switch label:has(:checked) {
+    border-color: var(--fg-2);
+    color: var(--fg);
+  }
+
+  .eco-switch label:has(:focus-visible) {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .eco-switch input {
+    accent-color: var(--fg);
+  }
+
+  /* Without :has() every view stacks, which is still complete. */
+  .eco:has(.eco-switch) .eco-pane {
+    display: none;
+  }
+
+  .eco:has(input[value='hardware']:checked) [data-eco='hardware'],
+  .eco:has(input[value='connections']:checked) [data-eco='connections'],
+  .eco:has(input[value='projects']:checked) [data-eco='projects'],
+  .eco:has(input[value='future']:checked) [data-eco='future'] {
+    display: block;
+  }
+
   .intro {
     padding-top: var(--space-2xl);
     padding-bottom: var(--space-l);

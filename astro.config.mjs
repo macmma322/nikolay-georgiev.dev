@@ -143,6 +143,10 @@ export default defineConfig({
   security: {
     csp: true,
   },
+  vite: {
+    // Three.js (about 155 kB gzipped) is one lazy chunk loaded only by /setup.
+    build: { chunkSizeWarningLimit: 700 },
+  },
   markdown: {
     syntaxHighlight: false,
   },

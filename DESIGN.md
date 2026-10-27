@@ -111,8 +111,27 @@ moves things between two resting states (view transitions, line draws), and
   the index, the homepage and its case study (`data-vt-title`, `data-vt-art`).
 - `prefers-reduced-motion: reduce` removes all movement and keeps short colour
   and opacity changes. Diagram packets and view transitions are off.
-- There is no loader, no fake terminal, no WebGL, no scroll hijacking, and no
-  animation library.
+- There is no loader, no fake terminal, no scroll hijacking, and no animation
+  library. WebGL appears on `/setup` only (below).
+
+## 3D on /setup
+
+The equipment explorers load an isolated Three.js module
+(`src/scripts/setup3d`) when a view nears the screen, and release its GPU
+resources when it leaves. It is an enhancement: the SVG drawing and the parts
+list stay the accessible version and the fallback (no WebGL, Save-Data, a
+failed load, no JavaScript). Rules:
+
+- Models are built in code (bevelled boxes, extrusions, canvas textures); no
+  model or texture files are downloaded.
+- Render on demand, never an idle loop. The wheel scrolls the page and one
+  finger scrolls on touch; turning and zoom are buttons. Drag turns the model
+  with a fine pointer only.
+- The chosen part gets corner brackets in `--signal` and the rest darkens,
+  the 3D version of "the rest steps back". Numbered pins repeat the list's
+  numbers and select on click.
+- Planned kit is a ghost: translucent steel with dashed edges.
+- Reduced motion makes camera moves and exploded views instant.
 
 ## Icons
 

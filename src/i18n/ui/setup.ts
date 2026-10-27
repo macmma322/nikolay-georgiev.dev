@@ -26,6 +26,7 @@ export const setup = {
     owner: { en: 'Stated by me', bg: 'По мои данни' },
   },
   manufacturer: { en: 'Manufacturer page', bg: 'Страница на производителя' },
+  shop: { en: 'Shop listing', bg: 'Обява в магазин' },
   usedFor: { en: 'Used for', bg: 'Използва се за' },
   explorer: {
     view: { en: 'View', bg: 'Изглед' },
@@ -33,6 +34,30 @@ export const setup = {
     desk: { en: 'The desk', bg: 'Бюрото' },
     insidePc: { en: 'Inside the PC', bg: 'Вътре в компютъра' },
     inside: { en: 'Look inside the PC', bg: 'Вижте вътре в компютъра' },
+  },
+  /** The 3D stage's controls (src/components/setup/Explorer.astro). */
+  stage: {
+    tools: { en: '3D view controls', bg: 'Управление на 3D изгледа' },
+    left: { en: 'Turn left', bg: 'Завъртане наляво' },
+    right: { en: 'Turn right', bg: 'Завъртане надясно' },
+    zoomIn: { en: 'Zoom in', bg: 'Приближаване' },
+    zoomOut: { en: 'Zoom out', bg: 'Отдалечаване' },
+    reset: { en: 'Reset view', bg: 'Начален изглед' },
+    mode: { en: 'Display', bg: 'Показване' },
+    modes: {
+      assembled: { en: 'Assembled', bg: 'Сглобен' },
+      cutaway: { en: 'Cutaway', bg: 'В разрез' },
+      exploded: { en: 'Exploded', bg: 'Разглобен' },
+    },
+    upgrade: { en: 'Preview the planned SSD', bg: 'Преглед на планирания SSD' },
+    hint: {
+      en: 'Drag to turn the model. Pick a part in the drawing or the list below.',
+      bg: 'Влачете, за да завъртите модела. Изберете част в рисунката или в списъка отдолу.',
+    },
+    hintTouch: {
+      en: 'Tap a part or a number. Use the buttons to turn and zoom.',
+      bg: 'Докоснете част или номер. Завъртането и мащабът са с бутоните.',
+    },
   },
   workstation: {
     label: { en: '01 · Main workstation', bg: '01 · Основна станция' },
@@ -70,8 +95,15 @@ export const setup = {
     label: { en: '04 · How it fits together', bg: '04 · Как се свързва всичко' },
     title: { en: 'Machines, kit and projects', bg: 'Машини, техника и проекти' },
     lede: {
-      en: 'Which hardware each project actually depends on. This maps how things are used, not my network.',
-      bg: 'От кой хардуер реално зависи всеки проект. Картата показва употребата, а не мрежата ми.',
+      en: 'Four views of the same kit: what I own, how it connects, what each project depends on and what comes next. They map use, not my network.',
+      bg: 'Четири погледа към една и съща техника: какво притежавам, как се свързва, от какво зависи всеки проект и какво предстои. Показват употребата, а не мрежата ми.',
+    },
+    view: { en: 'View', bg: 'Изглед' },
+    modes: {
+      hardware: { en: 'Hardware', bg: 'Хардуер' },
+      connections: { en: 'Connections', bg: 'Връзки' },
+      projects: { en: 'Projects', bg: 'Проекти' },
+      future: { en: 'Future', bg: 'Бъдеще' },
     },
   },
   journey: {
