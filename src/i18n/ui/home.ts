@@ -79,6 +79,15 @@ export const home = {
     },
     link: { en: 'Open the lab', bg: 'Към лабораторията' },
   },
+  /** One line under the lab: the open-source page. */
+  openSource: {
+    label: { en: 'Open source', bg: 'Отворен код' },
+    text: {
+      en: 'The CLAUDE.md I give AI coding agents is public under the MIT License, next to the credits for the open source my projects build on.',
+      bg: 'CLAUDE.md, който давам на AI агентите, е публичен под лиценз MIT, заедно с благодарностите към отворения код, върху който стъпват проектите ми.',
+    },
+    link: { en: 'Open source', bg: 'Към отворения код' },
+  },
   /** ProjectChapter's call to action; a visually hidden ": {name}" follows it. */
   chapter: {
     read: { en: 'Read the case study', bg: 'Към проекта' },

@@ -1,4 +1,5 @@
 import { diagramProblems, type Diagram } from '@/lib/diagram';
+import { caeloraWorld } from './caelora';
 import { jarvisRequestPath, jarvisTopology } from './jarvis';
 import { kobaitSystem } from './kobait';
 import { malrynthBoot } from './malrynth';
@@ -7,6 +8,7 @@ import { ussxPlatform, ussxSso } from './ussx';
 import { zonePayments, zonePlatform } from './zone';
 
 const all = [
+  caeloraWorld,
   jarvisRequestPath,
   jarvisTopology,
   zonePlatform,

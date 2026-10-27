@@ -70,6 +70,7 @@ built:
   - title: Live classroom
     points:
       - LiveKit join tokens scoped by room and role, and a waiting room with host approval, lock, mute, mute-all, remove and readmit.
+      - 'Guest-first access: an invited guest joins a lesson from a signed invitation link, without creating an account first.'
       - Host presence, student check-in and attendance records.
       - A meeting interface with pre-join checks, an adaptive participant grid, chat and participant panels, and mobile wake-lock and volume fixes.
       - An enhanced microphone mode that uses native voice isolation where available, otherwise a DTLN neural model in an AudioWorklet, with a watchdog fallback.
@@ -99,6 +100,9 @@ hard:
   - title: Two products, one schema and one identity
     problem: The academy and Stemini each started with their own database, which would have meant two accounts per person.
     solution: I consolidated them into namespaced core, academy and stemini schemas, with a data-migration plan and verification SQL.
+  - title: Recording a lesson through an external media service
+    problem: The recorder runs outside the app. Its webhooks can arrive late, twice or out of order, a lesson can end while a recording is still starting, and the recorder must neither take a student's seat nor keep an empty room alive.
+    solution: 'Recording status only moves forward and every write checks the current status first, so a duplicate or stale event changes nothing. A verified webhook drives the status and a read-time check repairs a missed one; every way a lesson can end stops the recording first; the app counts participants itself and leaves the recorder out. Playback is private, through short-lived authorised links, and stricter than access to the lesson itself. Built and tested on a release branch in October; not deployed yet.'
 decisions:
   - decision: Classroom chat is stored only in Redis and deleted when the lesson ends.
     why: Keeping lesson chatter would create retention, moderation and export obligations for content nobody needs. Attendance and the audit trail stay in PostgreSQL.
@@ -113,10 +117,10 @@ decisions:
 now:
   - 'In production on Railway: academy site, API, accounts app, auth service, PostgreSQL and Redis.'
   - Live classrooms, course intakes and applications, the technician directory, the blog and consent-aware tracking are deployed.
-  - Development continues on the branch that production deploys from.
+  - Production was last deployed on 21 September 2026. The October work sits on release branches that do not deploy, waiting for a staging environment.
 next:
-  - Stripe billing, entitlements, an AI assessment engine and an AI coach. These are built on a parked branch and are not deployed.
-  - Lesson recording through LiveKit egress, which is documented but not implemented.
+  - Lesson recording through LiveKit Egress, with private storage and short-lived playback links. Built and tested on a release branch, together with a combined course-management page for admins; it still has to run against real Egress on staging before release.
+  - Stripe billing through a small hand-written client, entitlements, an AI assessment engine and an AI coach. Built on a branch with an open pull request; not deployed.
   - Separate development and staging environments.
   - Automated contract tests between the API and its OpenAPI specification.
 learned:

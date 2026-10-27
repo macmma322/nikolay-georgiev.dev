@@ -33,9 +33,7 @@ const kind =
       : 'built';
 const stack = d.stack.map((id) => techName(getTech(id), locale)).join(' · ');
 // Tiny dashed drawings for the systems that do not exist yet.
-const glyph = ({ ledgerforge: 'ledger', 'voxel-world': 'chunks' } as const)[
-  entry.id as 'ledgerforge' | 'voxel-world'
-];
+const glyph = ({ ledgerforge: 'ledger' } as const)[entry.id as 'ledgerforge'];
 const showSummary = detailed || kind === 'built';
 
 // The case study this entry genuinely belongs to (/lab only).
@@ -71,19 +69,6 @@ if (d.related && detailed && !project) {
       </text>
       <path class="g-line" d="M2 17H94M48 17V54" />
       <path class="g-entry" d="M9 31H39M57 31H87" />
-    </svg>
-  )}
-  {glyph === 'chunks' && (
-    <svg class="drawing" viewBox="0 0 96 56" width="96" height="56" aria-hidden="true">
-      {/* A 3x3 chunk grid with one block standing on it */}
-      <path
-        class="g-line"
-        d="M48 10L88 30L48 50L8 30Z M61.3 16.7L21.3 36.7M74.7 23.3L34.7 43.3M34.7 16.7L74.7 36.7M21.3 23.3L61.3 43.3"
-      />
-      <path
-        class="g-entry g-block"
-        d="M48 13.3L61.3 20L48 26.7L34.7 20Z M34.7 20V30L48 36.7L61.3 30V20 M48 26.7V36.7"
-      />
     </svg>
   )}
 
@@ -404,10 +389,6 @@ if (d.related && detailed && !project) {
 
   .g-line {
     opacity: 0.7;
-  }
-
-  .g-block {
-    fill: var(--ink-0);
   }
 
   /* ---------- Ledger columns from 800px ---------- */

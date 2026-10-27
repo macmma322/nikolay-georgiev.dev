@@ -6,6 +6,9 @@ import TechIcon from '@/components/ui/TechIcon.astro';
 import LayerGlyph from '@/components/ui/LayerGlyph.astro';
 import ArchitectureDiagram from '@/components/diagrams/ArchitectureDiagram.astro';
 import ProjectArt from '@/components/work/ProjectArt.astro';
+import CreditList from '@/components/work/CreditList.astro';
+import { creditsFor } from '@/data/open-source';
+import { openSource } from '@/i18n/ui/opensource';
 import { diagrams } from '@/data/diagrams';
 import { useI18n } from '@/i18n';
 import { common } from '@/i18n/ui/common';
@@ -29,6 +32,8 @@ const index = at + 1;
 const p = entry.data;
 const { Content } = await renderProject(entry);
 const num = String(index).padStart(2, '0');
+const credits = creditsFor(entry.id);
+const o = t(openSource).credits;
 
 // Reading order: the diagram and the hard problems come before the inventory.
 // The contents lists and the section headings share these names.
@@ -396,6 +401,16 @@ const media = p.media.map((m, i) => {
               </li>
             ))}
           </ul>
+          {credits && (
+            <div class="credits-block reveal">
+              <h3 class="label credits-title">{o.builtWith}</h3>
+              <CreditList items={credits.items} />
+              <a class="credits-all" href={href('/open-source#credits')}>
+                {o.all}
+                <span aria-hidden="true">→</span>
+              </a>
+            </div>
+          )}
         </section>
       </div>
     </div>
@@ -1347,6 +1362,27 @@ const media = p.media.map((m, i) => {
   }
 
   /* ---------- Stack ---------- */
+  .credits-block {
+    margin-top: var(--space-xl);
+  }
+
+  .credits-title {
+    margin-bottom: var(--space-s);
+  }
+
+  .credits-all {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-height: 44px;
+    margin-top: var(--space-2xs);
+    color: var(--fg-2);
+  }
+
+  .credits-all:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
   .stack-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));

@@ -31,6 +31,40 @@ export const fit = (label: string, room: number): number | undefined =>
   label.length * CH - room > 0.5 ? room : undefined;
 
 export const plates = {
+  caelora: {
+    fig: { en: 'One world, two layers', bg: 'Един свят, два слоя' },
+    strip: {
+      en: 'Unity 6 · own voxel pipeline · prototype v0.1.0',
+      bg: 'Unity 6 · собствен воксел конвейер · прототип v0.1.0',
+    },
+    parts: {
+      sections: {
+        en: 'Sections meshed off the main thread',
+        bg: 'Секции, изграждани извън основната нишка',
+      },
+      tree: { en: 'One skeleton per living tree', bg: 'Един скелет за всяко живо дърво' },
+      authority: {
+        en: 'Deterministic, engine-free rules',
+        bg: 'Детерминистични правила без енджин',
+      },
+      present: {
+        en: 'Presentation reads, never writes',
+        bg: 'Визуализацията само чете',
+      },
+      save: { en: 'One checksummed commit', bg: 'Един проверен запис' },
+      server: { en: 'Headless server, planned', bg: 'Сървър без графика, планиран' },
+    },
+    art: {
+      authority: { en: 'AUTHORITY', bg: 'ПРАВИЛА' },
+      present: { en: 'PRESENTATION', bg: 'ВИЗУАЛИЗАЦИЯ' },
+      commit: { en: 'COMMIT', bg: 'ЗАПИС' },
+      server: { en: 'SERVER · PLANNED', bg: 'СЪРВЪР · ПЛАН' },
+      skeleton: { en: 'ONE SKELETON', bg: 'ЕДИН СКЕЛЕТ' },
+      sections: { en: 'SECTIONS', bg: 'СЕКЦИИ' },
+      commands: { en: 'COMMANDS', bg: 'КОМАНДИ' },
+    },
+  },
+
   jarvis: {
     fig: { en: 'Routing and authority', bg: 'Маршрутизиране и правомощия' },
     strip: {

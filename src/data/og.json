@@ -1,22 +1,24 @@
 {
   "en": {
     "home": "/og/home-en.7b8e0f49df.png",
-    "work": "/og/work-en.937f13d0b4.png",
+    "work": "/og/work-en.ae7b4b4c19.png",
+    "caelora": "/og/caelora-en.c9b9685048.png",
     "jarvis": "/og/jarvis-en.6872fb36ce.png",
     "kobait": "/og/kobait-en.63c7be771e.png",
     "malrynth": "/og/malrynth-en.70ed653957.png",
     "stemini": "/og/stemini-en.d3f8b2e028.png",
     "uss-x-academy": "/og/uss-x-academy-en.7365a1bbd7.png",
-    "zone-32-19": "/og/zone-32-19-en.1f8b2833d2.png"
+    "zone-32-19": "/og/zone-32-19-en.4e63f5218f.png"
   },
   "bg": {
     "home": "/og/home-bg.0c947ce9a2.png",
-    "work": "/og/work-bg.8c70af93d1.png",
+    "work": "/og/work-bg.daec052165.png",
+    "caelora": "/og/caelora-bg.34f006c89d.png",
     "jarvis": "/og/jarvis-bg.88c5546b05.png",
     "kobait": "/og/kobait-bg.219f44938f.png",
     "malrynth": "/og/malrynth-bg.3ee5cb299e.png",
     "stemini": "/og/stemini-bg.fff1d9cd8a.png",
     "uss-x-academy": "/og/uss-x-academy-bg.54e8f2bd21.png",
-    "zone-32-19": "/og/zone-32-19-bg.7361b50964.png"
+    "zone-32-19": "/og/zone-32-19-bg.784fd44802.png"
   }
 }

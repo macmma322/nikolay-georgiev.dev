@@ -1,0 +1,178 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import CopyButton from '@/components/ui/CopyButton.astro';
+import { Content } from '../../blueprint/CLAUDE.md';
+import raw from '../../blueprint/CLAUDE.md?raw';
+import { BLUEPRINT_REPO } from '@/data/open-source';
+import { useI18n } from '@/i18n';
+import { openSource } from '@/i18n/ui/opensource';
+
+const { t, href } = useI18n(Astro);
+const u = t(openSource);
+---
+
+<BaseLayout>
+  <div class="container reader">
+    <nav class="top" aria-label={u.reader.eyebrow}>
+      <a class="back label" href={href('/open-source')}>
+        <span aria-hidden="true">←</span>
+        {u.reader.back}
+      </a>
+    </nav>
+    {u.reader.englishOnly && (
+      <p class="note" data-vt-lang="lede">
+        {u.reader.englishOnly}
+      </p>
+    )}
+    <div class="actions">
+      <Button href="/open-source/CLAUDE.md" icon="down" download="CLAUDE.md">
+        {u.blueprint.download}
+      </Button>
+      <CopyButton value={raw} label={u.blueprint.copyLabel} />
+      <Button href={BLUEPRINT_REPO} variant="ghost" icon="external" external>
+        {u.blueprint.source}
+      </Button>
+    </div>
+
+    {/* The document is English in both locales; its own H1 is the page's H1. */}
+    <article class="doc" lang="en">
+      <Content />
+    </article>
+  </div>
+</BaseLayout>
+
+<style>
+  .reader {
+    padding-top: var(--space-xl);
+    max-width: 52rem;
+  }
+
+  .back {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-height: 44px;
+    text-decoration: none;
+  }
+
+  .back:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .note {
+    margin-top: var(--space-s);
+    color: var(--fg-3);
+    max-width: 60ch;
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding-block: var(--space-m) var(--space-l);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  /* ---------- The Markdown, set as a readable technical document ---------- */
+  .doc {
+    padding-top: var(--space-l);
+    color: var(--fg-2);
+    line-height: 1.65;
+  }
+
+  .doc :global(h1) {
+    font-size: var(--step-4);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: var(--track-display);
+    line-height: 0.98;
+    color: var(--fg);
+  }
+
+  .doc :global(h2) {
+    margin-top: var(--space-xl);
+    padding-top: var(--space-2xs);
+    border-top: 1px solid var(--line-soft);
+    font-size: var(--step-2);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    color: var(--fg);
+  }
+
+  .doc :global(h3) {
+    margin-top: var(--space-m);
+    font-size: var(--step-1);
+    color: var(--fg);
+  }
+
+  .doc :global(:is(p, ul, ol, table, blockquote)) {
+    margin-top: var(--space-s);
+  }
+
+  .doc :global(:is(ul, ol)) {
+    padding-left: 1.3rem;
+  }
+
+  .doc :global(ul) {
+    list-style: square;
+  }
+
+  .doc :global(li + li) {
+    margin-top: 0.3rem;
+  }
+
+  .doc :global(li::marker) {
+    color: var(--fg-3);
+  }
+
+  .doc :global(strong) {
+    color: var(--fg);
+    font-weight: var(--w-bold);
+  }
+
+  .doc :global(code) {
+    font-family: var(--ff-mono);
+    font-size: 0.86em;
+    padding: 0.05em 0.3em;
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-xs);
+    background: var(--ink-1);
+    overflow-wrap: anywhere;
+  }
+
+  .doc :global(blockquote) {
+    padding-left: var(--space-s);
+    border-left: 2px solid var(--line-strong);
+    color: var(--fg-2);
+  }
+
+  .doc :global(hr) {
+    display: none;
+  }
+
+  .doc :global(table) {
+    border-collapse: collapse;
+    font-size: var(--text-caption);
+  }
+
+  .doc :global(:is(th, td)) {
+    padding: 0.5rem 0.8rem;
+    border-bottom: 1px solid var(--line-soft);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .doc :global(th) {
+    font-family: var(--ff-mono);
+    font-weight: 450;
+    text-transform: uppercase;
+    letter-spacing: var(--track-label);
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  .doc :global(em) {
+    color: var(--fg-3);
+  }
+</style>

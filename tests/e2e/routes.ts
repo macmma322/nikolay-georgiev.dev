@@ -1,7 +1,8 @@
 export const projects = [
-  'zone-32-19',
-  'jarvis',
+  'caelora',
   'uss-x-academy',
+  'jarvis',
+  'zone-32-19',
   'kobait',
   'malrynth',
   'stemini',
@@ -19,6 +20,8 @@ export const pages = [
   '/lab',
   '/about',
   '/contact',
+  '/open-source',
+  '/open-source/blueprint',
   ...projects.map((p) => `/work/${p}`),
 ];
 

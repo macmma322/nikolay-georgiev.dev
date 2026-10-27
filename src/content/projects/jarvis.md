@@ -42,19 +42,16 @@ spec:
   - { label: Shape, value: '16 packages, 4 apps: CLI, MCP server, host, desktop' }
   - { label: Desktop, value: 'Tauri v2 shell in Rust, React 19 and React Three Fiber UI' }
   - { label: Local model, value: 'Qwen3-8B (Q4_K_M) on a supervised llama.cpp server' }
-  - {
-      label: Frontier,
-      value: 'Claude Code CLI by default, Codex and Gemini when named; zero tools',
-    }
+  - { label: Frontier, value: 'Claude Code CLI by default, Gemini when named; zero tools' }
   - { label: Authority, value: '100 compiled operations, executable ceiling at tier 2' }
   - { label: Memory, value: 'Markdown vault (authoritative), SQLite cache with 12 migrations' }
   - { label: Voice, value: 'faster-whisper, Piper, openWakeWord; English and Bulgarian' }
-  - { label: Tests, value: '164 test files, CI on Ubuntu and Windows' }
+  - { label: Tests, value: '242 test files, about 4,900 test cases (integration branch)' }
 highlights:
   - Models may choose what information helps. They never choose what the computer executes.
   - Answers that claim an action the runtime never took are refused before they are shown or spoken.
   - The window and the host talk over a parent-child pipe, so no local port is ever opened.
-  - No transcripts anywhere. Tests assert that the columns do not exist.
+  - No transcript is ever stored. Tests assert that the columns do not exist.
 built:
   - title: Authority and safety
     points:
@@ -94,6 +91,10 @@ hard:
     figure: { value: '2 → 0', label: 'provider round trips for questions about its own state' }
     problem: Physical testing showed that spoken requests were slow because every request made two provider round trips, even questions the system could answer from its own state.
     solution: I moved lane selection in front of the models. Questions about the assistant's own state are answered from compiled evidence with zero provider calls, and only open-ended requests reach a model.
+  - title: Cancelling the work, not just the screen
+    problem: Physical testing showed that cancelling a turn cleared the window while its provider call ran on for about 26 seconds, and the next request then started a second call.
+    solution: The stop signal now reaches every provider path, a cancelled call is reported as cancelled rather than as a failure, and an integration test pins it.
+    figure: { value: '26 s', label: 'a cancelled call kept running before the fix' }
   - title: A task queue that never fabricates completion
     problem: A restart may lose running work, but it must never report work as finished, restore permissions it should not, or loop on a crashing task.
     solution: Interruption is inferred from durable rows, recovered tasks are re-queued without their permissions, and attempts are counted when execution starts. A single-writer lock uses process identity and start time to decide liveness.
@@ -119,13 +120,15 @@ now:
   - Runs on my own machines as a CLI, an MCP server and a native desktop app, with Linux builds and a scripted Windows build on the integration branch.
   - Local Qwen3-8B routing is active for selected low-risk routes; frontier CLIs handle the rest as tool-less advisers.
   - Push-to-talk voice, speech-to-text, bilingual text-to-speech and the opt-in wake-word sensor are implemented.
-  - 164 test files on the main branch and CI on Ubuntu and Windows.
+  - 'October’s work is on the integration branch, not yet on main: a redesigned desktop window (a dot sphere with conversation, missions, capabilities and presence views, and approvals beside it), answers to “can you…?” from the compiled registries, and cancellation that stops the provider call. Real-hardware acceptance of the new window is still open.'
+  - 242 test files and about 4,900 test cases on the integration branch.
 next:
   - Writing approved memory proposals into the vault. The apply step is designed but not built.
   - Proactive nudges beyond shadow mode.
-  - Windows Hello and TOTP approval backends, and anything above tier 2.
-  - A multi-device fabric over TLS, prototyped on unmerged branches.
-  - Wiring the temporal knowledge graph, already built and tested as a library, to a surface.
+  - Windows Hello approval (in progress) and TOTP, and anything above tier 2.
+  - A multi-device fabric over TLS, merged into the integration branch and switched off by default.
+  - Filling the temporal knowledge graph, which now has a read-only operation but no data yet.
+  - A mobile companion, which exists only as a design document.
 learned:
   - Safety properties hold up when they are compiled constants and tests that assert what must not exist, not instructions in a prompt.
   - Physical testing finds what unit tests miss. Latency, audio devices and a window that shows "online" over stale data all surfaced on real hardware.

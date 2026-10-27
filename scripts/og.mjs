@@ -39,6 +39,7 @@ const CYRILLIC = 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116';
 
 // The project accents (tokens.css).
 const ACCENT = {
+  caelora: '#a9d173',
   zone: '#b289e6',
   jarvis: '#8be2eb',
   ussx: '#80bdfb',

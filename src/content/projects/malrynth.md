@@ -1,6 +1,6 @@
 ---
 name: Malrynth
-order: 5
+order: 6
 tier: A
 accent: malrynth
 kicker: Operating system written from scratch in Rust

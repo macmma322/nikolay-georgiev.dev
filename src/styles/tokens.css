@@ -30,6 +30,7 @@
   --signal-soft: oklch(0.68 0.19 30 / 0.14);
 
   /* Project accents (identity per case study, never mixed on one element) */
+  --acc-caelora: oklch(0.81 0.13 128);
   --acc-zone: oklch(0.7 0.15 305);
   --acc-jarvis: oklch(0.86 0.085 205);
   --acc-ussx: oklch(0.78 0.11 250);

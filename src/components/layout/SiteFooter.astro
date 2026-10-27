@@ -5,6 +5,7 @@ import Mark from '@/components/ui/Mark.astro';
 import { useI18n } from '@/i18n';
 import { common } from '@/i18n/ui/common';
 import { contact } from '@/i18n/ui/contact';
+import { openSource } from '@/i18n/ui/opensource';
 
 const { l, t, href, path } = useI18n(Astro);
 const s = t(common);
@@ -30,6 +31,9 @@ const year = new Date().getFullYear();
       <span class="visually-hidden">{s.homeSuffix}</span>
     </a>
     <p>{l(contact.baseline)}</p>
+    <a class="footer-link" href={href('/open-source')}>
+      {l(openSource.title)}
+    </a>
     <p>
       © {year} {site.name}
     </p>
@@ -81,6 +85,17 @@ const year = new Date().getFullYear();
   }
 
   .signature:is(:hover, :focus-visible) .label {
+    color: var(--fg);
+  }
+
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--fg-2);
+  }
+
+  .footer-link:is(:hover, :focus-visible) {
     color: var(--fg);
   }
 

@@ -34,14 +34,18 @@
         "bg": "При всяко изпълнение записва по един JSON ред за одит на всяка услуга, включително блокираните и пропуснатите решения."
       },
       {
-        "en": "Applying a change needs an explicit mode, dry-run off and, for production, an approval file. 61 tests cover policy, config, locks and scaling.",
-        "bg": "Прилагането на промяна изисква изричен режим, изключен dry-run, а за продукция – и файл с одобрение. 61 теста покриват политиките, конфигурацията, заключванията и мащабирането."
+        "en": "Applying a change needs an explicit mode, dry-run off and, for production, an approval file. It fails closed when it cannot confirm which environment it is running in.",
+        "bg": "Прилагането на промяна изисква изричен режим, изключен dry-run, а за продукция – и файл с одобрение. Спира, ако не може да потвърди в коя среда работи."
+      },
+      {
+        "en": "Running in observe-only mode on the development environment: it records what it would do and has applied nothing.",
+        "bg": "Работи само в режим на наблюдение в средата за разработка: записва какво би направил и досега не е приложил нищо."
       }
     ],
     "stack": ["typescript", "nodejs", "railway"],
     "evidence": {
-      "en": "Zone-32-19 monorepo, Zone-32-19-Environment-Controller (v0.3.0)",
-      "bg": "Монорепо Zone-32-19, Zone-32-19-Environment-Controller (v0.3.0)"
+      "en": "Zone-32-19-Environment-Controller, v0.4 (private repository)",
+      "bg": "Zone-32-19-Environment-Controller, v0.4 (частно хранилище)"
     },
     "related": {
       "project": "zone-32-19",
@@ -179,39 +183,6 @@
         "en": "Already has a double-entry ledger",
         "bg": "Вече има счетоводен регистър с двойно записване"
       }
-    }
-  },
-  {
-    "id": "voxel-world",
-    "name": {
-      "en": "Untitled voxel world",
-      "bg": "Безименен вокселен свят"
-    },
-    "order": 5,
-    "group": "next",
-    "status": "concept",
-    "kicker": {
-      "en": "Block-based fantasy sandbox",
-      "bg": "Фентъзи пясъчник от блокове"
-    },
-    "summary": {
-      "en": "A 3D open world built from blocks: survival and building in a medieval-fantasy setting with cities, creatures and dragons, designed from the start to be extended by mods.",
-      "bg": "Отворен 3D свят от блокове: оцеляване и строене в средновековна фентъзи обстановка с градове, същества и дракони, проектиран от самото начало да се разширява с модове."
-    },
-    "points": [
-      {
-        "en": "Engineering topics to solve: chunked world streaming, procedural terrain, persistence, an entity-component system, networking and a plugin API.",
-        "bg": "Инженерни задачи за решаване: поточно зареждане на света на части (chunks), процедурен терен, запазване на състоянието, entity-component система, мрежова игра и API за плъгини."
-      },
-      {
-        "en": "Inspired by the block-building sandbox genre, aiming for a more polished and extensible world.",
-        "bg": "Вдъхновен от жанра на пясъчниците с блокове, но с цел по-изпипан и по-лесно разширяем свят."
-      }
-    ],
-    "stack": [],
-    "evidence": {
-      "en": "Concept. No code yet.",
-      "bg": "Концепция. Още няма код."
     }
   },
   {

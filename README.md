@@ -1,8 +1,9 @@
 # nikolay-georgiev.dev
 
 Portfolio of Nikolay Georgiev, software engineer in Varna, Bulgaria. A static
-Astro + TypeScript site: six case studies, a lab of tooling and planned
-systems, an about page and a generated one-page CV.
+Astro + TypeScript site: seven case studies, a lab of tooling and planned
+systems, an open-source page (the MIT-licensed CLAUDE.md blueprint and
+upstream credits), an about page and a generated one-page CV.
 
 Every claim on the site comes from the project repositories, and each project
 states its real status. [PRODUCT.md](PRODUCT.md) covers the content rules and
@@ -41,6 +42,7 @@ Node 22.12 or newer. Run `npm run build` before `npm run test:e2e`.
 src/
   content/projects/*.md   case studies (front matter is the structured data)
   content/lab.json        lab entries: tooling, planned systems, paused ideas
+  data/open-source.ts     public repositories and upstream credits (/open-source)
   content.config.ts       schemas for both collections, including statuses
   data/                   site identity, experience, layers, tech registry
   data/diagrams/*.ts      architecture diagrams as typed nodes and edges
@@ -77,6 +79,19 @@ tests/e2e/                Playwright suites (pages, navigation, axe)
    page body are blocked by the CSP in production, so write rules statically.
 7. Run `npm run og` if the name, kicker, status or plate changed (a new slug
    gets its cards automatically), then `npm run test:e2e`.
+
+## Open source page and blueprint
+
+`blueprint/CLAUDE.md` is the single source of the public developer blueprint
+(MIT, `blueprint/LICENSE`). `/open-source/blueprint` renders it,
+`/open-source/CLAUDE.md` and `/open-source/LICENSE.txt` serve it byte for
+byte, and the copy button carries the same text. The public copy lives in
+`macmma322/engineering-blueprint`; keep the two in step. `npm run build`
+scans the served Markdown for leaks like every other text file.
+
+Credits in `src/data/open-source.ts` are curated, not a dependency dump. State
+the license as the upstream project declares it, mark design references as
+`reference`, and describe KObait hardware drivers by kind (PRODUCT.md).
 
 ## Deployment (Railway)
 

@@ -1,0 +1,217 @@
+---
+/**
+ * Caelora plate: one isometric voxel section with a living tree standing on
+ * it, and the layers around the world on the right: the engine-free authority
+ * that owns it, the presentation that only reads it, the commit file that
+ * saves it, and the headless server the seam allows but nobody has built.
+ *
+ * The terrain is a drawing, not a capture: heights are a hand-set hill and
+ * there are no block counts or section sizes. The tree is drawn as what the
+ * code makes it, a skeleton with leaf voxels at its tips (ADR-0040).
+ */
+import PlateFrame from '../PlateFrame.astro';
+import { useI18n } from '@/i18n';
+import { plates } from '@/i18n/ui/plates';
+
+interface Props {
+  compact?: boolean | undefined;
+  legend?: boolean | undefined;
+}
+const { compact = false, legend = false } = Astro.props;
+const { t } = useI18n(Astro);
+const a = t(plates.caelora.art);
+
+// Isometric grid: tile half-width A, half-height B, one level of height LV.
+const O = { x: 196, y: 214 };
+const A = 26;
+const B = 13;
+const LV = 14;
+const heights = [
+  [1, 1, 2, 2, 1],
+  [1, 2, 3, 2, 1],
+  [2, 3, 3, 2, 1],
+  [1, 2, 2, 1, 1],
+  [1, 1, 1, 1, 1],
+];
+const pts = (list: number[][]) => list.map((p) => p.join(',')).join(' ');
+// Back to front, so nearer columns paint over the ones behind them.
+const columns = heights
+  .flatMap((row, i) => row.map((h, j) => ({ i, j, h })))
+  .sort((p, q) => p.i + p.j - (q.i + q.j))
+  .map(({ i, j, h }) => {
+    const x = O.x + (i - j) * A;
+    const y = O.y + (i + j) * B + B - h * LV;
+    const H = h * LV;
+    return {
+      top: pts([
+        [x, y - B],
+        [x + A, y],
+        [x, y + B],
+        [x - A, y],
+      ]),
+      left: pts([
+        [x - A, y],
+        [x, y + B],
+        [x, y + B + H],
+        [x - A, y + H],
+      ]),
+      right: pts([
+        [x, y + B],
+        [x + A, y],
+        [x + A, y + H],
+        [x, y + B + H],
+      ]),
+    };
+  });
+
+// The tree stands on the tallest column (2, 2).
+const root = { x: O.x, y: O.y + 4 * B + B - 3 * LV };
+const nodes = {
+  fork1: { x: root.x, y: root.y - 52 },
+  fork2: { x: root.x, y: root.y - 82 },
+  tipL: { x: root.x - 40, y: root.y - 98 },
+  tipR: { x: root.x + 42, y: root.y - 112 },
+  top: { x: root.x - 6, y: root.y - 138 },
+};
+const skeleton = [
+  `M${root.x} ${root.y}L${nodes.fork1.x} ${nodes.fork1.y}L${nodes.fork2.x} ${nodes.fork2.y}L${nodes.top.x} ${nodes.top.y}`,
+  `M${nodes.fork1.x} ${nodes.fork1.y}L${nodes.tipL.x} ${nodes.tipL.y}`,
+  `M${nodes.fork2.x} ${nodes.fork2.y}L${nodes.tipR.x} ${nodes.tipR.y}`,
+].join('');
+// Leaf voxels: small cubes, top faces only, clustered at the tips.
+const leaf = (x: number, y: number) =>
+  pts([
+    [x, y - 5],
+    [x + 9, y],
+    [x, y + 5],
+    [x - 9, y],
+  ]);
+const leaves = [nodes.tipL, nodes.tipR, nodes.top].flatMap((n) => [
+  leaf(n.x, n.y - 6),
+  leaf(n.x - 10, n.y + 2),
+  leaf(n.x + 10, n.y + 2),
+  leaf(n.x, n.y + 10),
+]);
+
+// The right-hand column of layers.
+const R = { x: 404, w: 200 };
+const auth = { y: 70, h: 54 };
+const pres = { y: 190, h: 54 };
+const save = { y: 300 };
+const server = { y: 372, h: 44 };
+// A line from one point to another with an open arrowhead at the end.
+const arrow = (x1: number, y1: number, x2: number, y2: number) => {
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const [dx, dy] = [(x2 - x1) / len, (y2 - y1) / len];
+  const [bx, by] = [x2 - dx * 8, y2 - dy * 8];
+  const f = (n: number) => n.toFixed(1);
+  return `M${x1} ${y1}L${x2} ${y2}M${f(bx - dy * 4)} ${f(by + dx * 4)}L${x2} ${y2}L${f(bx + dy * 4)} ${f(by - dx * 4)}`;
+};
+---
+
+<PlateFrame slug="caelora" compact={compact} legend={legend}>
+  <g class="part" data-part="sections">
+    {columns.map((c) => (
+      <g>
+        <polygon points={c.left} class="ink side" />
+        <polygon points={c.right} class="ink side dark" />
+        <polygon points={c.top} class="ink" />
+      </g>
+    ))}
+    <text x="72" y="380" class="t">
+      {a.sections}
+    </text>
+  </g>
+
+  <g class="part" data-part="tree">
+    {leaves.map((p) => (
+      <polygon points={p} class="wire leaf" />
+    ))}
+    <path class="accent skeleton" d={skeleton}></path>
+    {Object.values(nodes).map((n) => (
+      <circle cx={n.x} cy={n.y} r="2.6" class="accent knot" />
+    ))}
+    <circle cx={root.x} cy={root.y} r="2.6" class="accent knot" />
+    <path class="faint" d={`M64 ${nodes.fork1.y}H${root.x - 6}`}></path>
+    <text x="64" y={nodes.fork1.y - 8} class="t">
+      {a.skeleton}
+    </text>
+  </g>
+
+  <g class="part" data-part="authority">
+    <rect x={R.x} y={auth.y} width={R.w} height={auth.h} class="ink" />
+    <text x={R.x + 16} y={auth.y + 33} class="t t-strong">
+      {a.authority}
+    </text>
+    <path class="wire" d={arrow(R.x, auth.y + 40, 292, 222)}></path>
+    <text x="352" y="166" class="t t-minor">
+      {a.commands}
+    </text>
+  </g>
+
+  <g class="part" data-part="present">
+    <rect x={R.x} y={pres.y} width={R.w} height={pres.h} class="ink" />
+    <text x={R.x + 16} y={pres.y + 33} class="t t-strong">
+      {a.present}
+    </text>
+    <path class="wire" d={arrow(334, pres.y + 27, R.x - 2, pres.y + 27)}></path>
+  </g>
+
+  <g class="part" data-part="save">
+    <rect x={R.x + 12} y={save.y - 8} width="44" height="54" class="ink sheet" />
+    <rect x={R.x + 6} y={save.y - 4} width="44" height="54" class="ink sheet" />
+    <rect x={R.x} y={save.y} width="44" height="54" class="ink" />
+    <path
+      class="faint"
+      d={`M${R.x + 8} ${save.y + 16}h28M${R.x + 8} ${save.y + 26}h28M${R.x + 8} ${save.y + 36}h18`}
+    ></path>
+    <text x={R.x + 72} y={save.y + 32} class="t t-strong">
+      {a.commit}
+    </text>
+    <path class="wire" d={arrow(318, save.y + 4, R.x - 4, save.y + 24)}></path>
+  </g>
+
+  <g class="part" data-part="server">
+    <rect x={R.x} y={server.y} width={R.w} height={server.h} class="wire planned box" />
+    <text x={R.x + 16} y={server.y + 27} class="t">
+      {a.server}
+    </text>
+    <path
+      class="wire planned"
+      d={`M${R.x + R.w} ${auth.y + 27}H${R.x + R.w + 18}V${server.y + 22}H${R.x + R.w}`}
+    ></path>
+  </g>
+</PlateFrame>
+
+<style>
+  .side {
+    fill: var(--ink-2);
+  }
+
+  .side.dark {
+    fill: var(--ink-0);
+  }
+
+  .leaf {
+    fill: var(--ink-deep);
+  }
+
+  .skeleton {
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .knot {
+    fill: var(--accent);
+  }
+
+  .sheet {
+    fill: var(--ink-0);
+  }
+
+  .box {
+    fill: transparent;
+  }
+</style>

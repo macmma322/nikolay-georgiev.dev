@@ -12,8 +12,8 @@ export const seo = {
   name: { en: 'Nikolay Georgiev', bg: 'Николай Георгиев' },
   home: {
     description: {
-      en: 'Nikolay Georgiev, software engineer in Varna, Bulgaria: production web platforms, a local-first AI assistant, embedded hardware and an OS in Rust.',
-      bg: 'Николай Георгиев, софтуерен инженер от Варна: уеб платформи в продукция, локален AI асистент, вграден хардуер и операционна система на Rust.',
+      en: 'Nikolay Georgiev, software engineer in Varna, Bulgaria: production web platforms, a voxel sandbox game, a local-first AI assistant, hardware and a Rust OS.',
+      bg: 'Николай Георгиев, софтуерен инженер от Варна: уеб платформи в продукция, воксел игра, локален AI асистент, вграден хардуер и операционна система на Rust.',
     },
   },
   work: {
@@ -22,8 +22,8 @@ export const seo = {
       bg: 'Проекти: от браузъра до хардуера',
     },
     description: {
-      en: 'Case studies, each with its real status: community and education platforms, a local-first AI assistant, a radio-controlled boat, an OS in Rust and AI 3D printing.',
-      bg: 'Проекти, всеки с реалния си статус: платформи за общност и обучение, локален AI асистент, радиоуправляема лодка, операционна система на Rust и 3D печат с AI.',
+      en: 'Case studies with their real status: a voxel sandbox game, education and community platforms, a local-first AI assistant, a radio-controlled boat and a Rust OS.',
+      bg: 'Проекти, всеки с реалния си статус: воксел игра, платформи за обучение и общност, локален AI асистент, радиоуправляема лодка и операционна система на Rust.',
     },
   },
   lab: {
@@ -56,6 +56,26 @@ export const seo = {
       bg: 'Свържете се с Николай Георгиев, софтуерен инженер от Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
     },
   },
+  openSource: {
+    title: {
+      en: 'Open source: CLAUDE.md and credits',
+      bg: 'Отворен код: CLAUDE.md и благодарности',
+    },
+    description: {
+      en: 'A reusable CLAUDE.md engineering blueprint under the MIT License, public repositories by Nikolay Georgiev, and credits for the open source his projects build on.',
+      bg: 'Преизползваем CLAUDE.md под лиценз MIT, публичните хранилища на Николай Георгиев и благодарности към отворения код, върху който стъпват проектите му.',
+    },
+  },
+  blueprint: {
+    title: {
+      en: 'CLAUDE.md blueprint for AI coding agents',
+      bg: 'CLAUDE.md: инженерни правила за AI агенти',
+    },
+    description: {
+      en: 'The full text of Nikolay Georgiev’s portable CLAUDE.md: principles, evidence, workflow, Git, testing and security rules for AI coding agents. MIT License.',
+      bg: 'Пълният текст на преносимия CLAUDE.md на Николай Георгиев: принципи, доказателства, Git, тестване и сигурност за AI агенти. Лиценз MIT.',
+    },
+  },
   notFound: {
     title: { en: 'Page not found', bg: 'Няма такава страница' },
     description: {
@@ -69,6 +89,8 @@ export const seo = {
     lab: { en: 'Lab', bg: 'Лаборатория' },
     about: { en: 'About', bg: 'За мен' },
     contact: { en: 'Contact', bg: 'Контакт' },
+    openSource: { en: 'Open source', bg: 'Отворен код' },
+    blueprint: { en: 'CLAUDE.md blueprint', bg: 'CLAUDE.md' },
   },
   imageAlt: {
     /** The home card, also used by About, Lab, Contact and the 404s. */

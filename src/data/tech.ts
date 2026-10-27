@@ -19,6 +19,7 @@ export type TechCategory =
   | 'ai'
   | 'embedded'
   | 'systems'
+  | 'game'
   | 'infra'
   | 'product'
   | 'next';
@@ -79,6 +80,13 @@ export const CATEGORY_LABEL: Record<TechCategory, { title: L; blurb: L }> = {
     blurb: {
       en: 'Rust, boot, kernels, desktop shells.',
       bg: 'Rust, зареждане, ядра, десктоп среди.',
+    },
+  },
+  game: {
+    title: { en: 'Game development', bg: 'Разработка на игри' },
+    blurb: {
+      en: 'Voxel worlds, deterministic simulation, saves.',
+      bg: 'Воксел светове, детерминистична симулация, записи.',
     },
   },
   infra: {
@@ -578,6 +586,25 @@ export const tech: Tech[] = [
     proof: ['uss-x-academy'],
   },
 
+  // Game development
+  {
+    id: 'unity',
+    name: 'Unity',
+    icon: 'unity',
+    category: 'game',
+    level: 'working',
+    proof: ['caelora'],
+  },
+  { id: 'csharp', name: 'C#', mono: 'C#', category: 'game', level: 'working', proof: ['caelora'] },
+  {
+    id: 'dotnet',
+    name: '.NET',
+    icon: 'dotnet',
+    category: 'game',
+    level: 'working',
+    proof: ['caelora'],
+  },
+
   // Next
   { id: 'java', name: 'Java', icon: 'openjdk', category: 'next', level: 'planned', proof: [] },
   {
@@ -593,8 +620,8 @@ export const tech: Tech[] = [
     name: 'Angular',
     icon: 'angular',
     category: 'next',
-    level: 'planned',
-    proof: [],
+    level: 'learning',
+    proof: ['caelora'],
   },
 ];
 

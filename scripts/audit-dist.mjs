@@ -48,7 +48,17 @@ const relOf = (file) => relative(dist, file).replaceAll('\\', '/');
 const fail = (file, msg) => failures.push(`${relOf(file)}: ${msg}`);
 const warn = (file, msg) => warnings.push(`${relOf(file)}: ${msg}`);
 
-const TEXT = new Set(['.html', '.xml', '.txt', '.js', '.css', '.json', '.webmanifest', '.svg']);
+const TEXT = new Set([
+  '.html',
+  '.xml',
+  '.txt',
+  '.js',
+  '.css',
+  '.json',
+  '.webmanifest',
+  '.svg',
+  '.md',
+]);
 const ALLOWED_EMAILS = new Set(['nikolay.georgiev00@outlook.com']);
 
 const LEAKS = [

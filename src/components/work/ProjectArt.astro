@@ -6,6 +6,7 @@
  * drawn inside PlateFrame, which owns the frame, the labels and the
  * text-lights-drawing interaction.
  */
+import Caelora from './art/Caelora.astro';
 import Jarvis from './art/Jarvis.astro';
 import Zone from './art/Zone.astro';
 import Ussx from './art/Ussx.astro';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 const plates = {
+  caelora: Caelora,
   jarvis: Jarvis,
   'zone-32-19': Zone,
   'uss-x-academy': Ussx,

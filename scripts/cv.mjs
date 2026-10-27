@@ -71,13 +71,13 @@ const cv = {
   projects: [
     {
       title: 'Zone 32-19',
-      kind: 'full-stack community and commerce platform · deployed, pre-launch',
+      kind: 'full-stack community and commerce platform · pre-launch',
       when: 'Feb 2025 – Present',
       points: [
-        'Frontend: Next.js App Router with TypeScript and Tailwind; a same-origin BFF proxy for cookie auth; social feed, groups, realtime chat and a 54-page internal employee portal.',
-        'Backend and realtime: Node.js/Express modular monolith (39 domain modules) over a two-schema PostgreSQL design with raw SQL and 122 versioned migrations; Socket.IO with a Redis adapter for horizontal scaling; presence, notifications and WebRTC voice and video calls.',
+        'Frontend: Next.js App Router with TypeScript and Tailwind; a same-origin BFF proxy for cookie auth; social feed, groups, realtime chat and a 55-page internal employee portal.',
+        'Backend and realtime: Node.js/Express modular monolith (39 domain modules) over a two-schema PostgreSQL design with raw SQL and 123 versioned migrations; Socket.IO with a Redis adapter for horizontal scaling; presence, notifications and WebRTC voice and video calls.',
         'Commerce and security: Stripe payments and subscriptions with signature-verified, deduplicated webhooks and a double-entry finance ledger; JWT in HttpOnly cookies, TOTP 2FA, Google OAuth, Redis rate limiting and audit logging.',
-        'Deployed on Railway; a Caddy + Coraza WAF gateway is built for the edge. zone-32-19.com',
+        'Runs on Railway in a development environment; a Caddy + Coraza WAF gateway is built and validated there, not yet in the live path.',
       ],
     },
     {
@@ -101,6 +101,10 @@ const cv = {
     },
   ],
   also: [
+    [
+      'Caelora',
+      'voxel sandbox game on Unity 6 and C#: deterministic engine-free rules, background meshing, crash-safe saves',
+    ],
     [
       'J.A.R.V.I.S.',
       'local-first AI assistant with compiled authority tiers (TypeScript, Rust/Tauri, Python)',

@@ -1,0 +1,396 @@
+---
+import BaseLayout from '@/layouts/BaseLayout.astro';
+import Button from '@/components/ui/Button.astro';
+import CopyButton from '@/components/ui/CopyButton.astro';
+import SectionHeader from '@/components/ui/SectionHeader.astro';
+import CreditList from '@/components/work/CreditList.astro';
+import blueprint from '../../blueprint/CLAUDE.md?raw';
+import { site } from '@/data/site';
+import { BLUEPRINT_REPO, credits, repos } from '@/data/open-source';
+import { useI18n } from '@/i18n';
+import { openSource } from '@/i18n/ui/opensource';
+import { getProjects } from '@/lib/projects';
+
+const { locale, t, href } = useI18n(Astro);
+const u = t(openSource);
+const b = u.blueprint;
+
+// Top-level "## N. Title" headings of the blueprint, listed as its contents.
+const sections = [...blueprint.matchAll(/^## \d+\. (.+)$/gm)].map((m) => m[1]);
+
+const repoGroups = (['original', 'fork', 'contribution'] as const).map((kind) => ({
+  kind,
+  label: u.repos.groups[kind],
+  items: repos.filter((repo) => repo.kind === kind),
+}));
+
+// Case-study credits in the site's own project order, this site last.
+const order = (await getProjects(locale)).map((p) => p.id);
+const rank = (slug: string) => (order.includes(slug) ? order.indexOf(slug) : order.length);
+const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
+---
+
+<BaseLayout>
+  <section class="container intro" aria-labelledby="os-h1">
+    <p class="label">{u.eyebrow}</p>
+    <h1 id="os-h1" class="title" data-vt-lang="title">
+      {u.title}
+    </h1>
+    <p class="lede" data-vt-lang="lede">
+      {u.lede}
+    </p>
+  </section>
+
+  <section id="blueprint" class="container group" aria-labelledby="g-blueprint">
+    <SectionHeader label={b.label} id="g-blueprint" title={b.title} lede={b.lede} />
+
+    <div class="blueprint reveal">
+      <div class="doc" aria-hidden="true">
+        <p class="doc-name">CLAUDE.md</p>
+        <ol role="list" class="doc-toc">
+          {sections.map((name, i) => (
+            <li>
+              <span class="doc-n">{String(i).padStart(2, '0')}</span>
+              {name}
+            </li>
+          ))}
+        </ol>
+      </div>
+
+      <div class="doc-side">
+        <dl class="facts">
+          <div>
+            <dt class="label">{b.facts.format}</dt>
+            <dd>Markdown</dd>
+          </div>
+          <div>
+            <dt class="label">{b.facts.license}</dt>
+            <dd>MIT</dd>
+          </div>
+          <div>
+            <dt class="label">{b.facts.language}</dt>
+            <dd>{b.facts.english}</dd>
+          </div>
+          <div>
+            <dt class="label">{b.facts.sections}</dt>
+            <dd>{sections.length}</dd>
+          </div>
+        </dl>
+
+        <div class="actions">
+          <Button href={href('/open-source/blueprint')}>{b.read}</Button>
+          <Button
+            href="/open-source/CLAUDE.md"
+            variant="secondary"
+            icon="down"
+            download="CLAUDE.md"
+          >
+            {b.download}
+          </Button>
+          <CopyButton value={blueprint} label={b.copyLabel} />
+          <Button href={BLUEPRINT_REPO} variant="ghost" icon="external" external>
+            {b.source}
+          </Button>
+        </div>
+
+        <h3 class="sub">{b.setupTitle}</h3>
+        <ol class="setup">
+          {b.setup.map((step) => (
+            <li>{step}</li>
+          ))}
+        </ol>
+        <p class="license-note">
+          {b.licenseNote} <a href="/open-source/LICENSE.txt">{b.fullLicense}</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section id="repositories" class="container group" aria-labelledby="g-repos">
+    <SectionHeader label={u.repos.label} id="g-repos" title={u.repos.title} lede={u.repos.lede} />
+    <div class="repo-groups reveal">
+      {repoGroups.map((g) => (
+        <div class="repo-group">
+          <h3 class="label">{g.label}</h3>
+          {g.items.length === 0 ? (
+            <p class="none">{u.repos.none}</p>
+          ) : (
+            <ul role="list" class="repos">
+              {g.items.map((repo) => (
+                <li class="repo">
+                  <a class="repo-name" href={repo.url} rel="noopener">
+                    {repo.name}
+                  </a>
+                  <p class="repo-summary">{t(repo.summary)}</p>
+                  <p class="repo-meta label">
+                    <span>{repo.stack}</span>
+                    <span>{repo.license ?? u.repos.noLicense}</span>
+                    <span>{t(repo.status)}</span>
+                    {repo.buildDocs && <span>{u.repos.build}</span>}
+                  </p>
+                  {repo.upstream && (
+                    <p class="repo-meta label">
+                      {u.repos.forkOf} <a href={repo.upstream.url}>{repo.upstream.name}</a>
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section id="credits" class="container group" aria-labelledby="g-credits">
+    <SectionHeader
+      label={u.credits.label}
+      id="g-credits"
+      title={u.credits.title}
+      lede={u.credits.lede}
+    />
+    <div class="credit-groups reveal">
+      {groups.map((group) => (
+        <div class="credit-group">
+          <h3 class="credit-project">
+            {group.project === 'site' ? (
+              group.name
+            ) : (
+              <a href={href(`/work/${group.project}`)}>{group.name}</a>
+            )}
+          </h3>
+          <CreditList items={group.items} />
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section id="contributing" class="container group" aria-labelledby="g-contrib">
+    <SectionHeader label={u.contributing.label} id="g-contrib" title={u.contributing.title} />
+    <ul role="list" class="contrib reveal">
+      {u.contributing.points.map((point) => (
+        <li>{point}</li>
+      ))}
+      <li>
+        <a href={`mailto:${site.email}`}>{site.email}</a>
+      </li>
+    </ul>
+  </section>
+</BaseLayout>
+
+<style>
+  .intro {
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-l);
+    container-type: inline-size;
+  }
+
+  .title {
+    margin-top: var(--space-s);
+    font-size: var(--step-hero);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-heavy);
+    letter-spacing: -0.05em;
+    line-height: 0.88;
+  }
+
+  /* "Отворен код" must never break mid-word on a phone. */
+  .title:lang(bg) {
+    font-size: min(var(--step-hero), 13cqi);
+  }
+
+  .intro .lede {
+    margin-top: var(--space-m);
+  }
+
+  .group {
+    padding-top: var(--space-2xl);
+  }
+
+  /* ---------- Blueprint: the document drawn as a sheet, facts beside it ---------- */
+  .blueprint {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  @media (min-width: 60rem) {
+    .blueprint {
+      grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+      align-items: start;
+    }
+  }
+
+  .doc {
+    position: relative;
+    padding: var(--space-m) var(--space-m) var(--space-l);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0 calc(1.9rem - 1px),
+        var(--line-soft) calc(1.9rem - 1px) 1.9rem
+      ),
+      var(--ink-1);
+  }
+
+  /* The folded corner of a sheet. */
+  .doc::after {
+    content: '';
+    position: absolute;
+    top: -1px;
+    right: -1px;
+    width: 1.4rem;
+    height: 1.4rem;
+    background: linear-gradient(
+      225deg,
+      var(--ink-0) 50%,
+      var(--line) 50% calc(50% + 1px),
+      var(--ink-3) 0
+    );
+  }
+
+  .doc-name {
+    font-family: var(--ff-mono);
+    font-size: var(--step-1);
+    color: var(--fg);
+    line-height: 1.9rem;
+  }
+
+  .doc-toc li {
+    display: flex;
+    gap: 0.9rem;
+    font-size: var(--text-caption);
+    line-height: 1.9rem;
+    color: var(--fg-2);
+  }
+
+  .doc-n {
+    font-family: var(--ff-mono);
+    color: var(--fg-3);
+  }
+
+  .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    gap: var(--space-s);
+    padding-bottom: var(--space-m);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .facts dd {
+    margin-top: var(--space-3xs);
+    color: var(--fg);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    padding-block: var(--space-m);
+  }
+
+  .sub {
+    margin-top: var(--space-s);
+    font-size: var(--step-1);
+    font-stretch: var(--wide-2);
+  }
+
+  .setup {
+    margin-top: var(--space-s);
+    padding-left: 1.4rem;
+    max-width: 62ch;
+    color: var(--fg-2);
+  }
+
+  .setup li + li {
+    margin-top: var(--space-2xs);
+  }
+
+  .setup li::marker {
+    font-family: var(--ff-mono);
+    color: var(--fg-3);
+  }
+
+  .license-note {
+    margin-top: var(--space-m);
+    max-width: 62ch;
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  /* ---------- Repositories ---------- */
+  .repo-groups {
+    display: grid;
+    gap: var(--space-l);
+  }
+
+  @media (min-width: 60rem) {
+    .repo-groups {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .repo-group > .label {
+    padding-bottom: var(--space-2xs);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .none {
+    margin-top: var(--space-s);
+    color: var(--fg-3);
+  }
+
+  .repo {
+    padding-block: var(--space-s);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  .repo-name {
+    font-family: var(--ff-mono);
+    font-size: var(--step-0);
+    color: var(--fg);
+  }
+
+  .repo-summary {
+    margin-top: var(--space-2xs);
+    color: var(--fg-2);
+  }
+
+  .repo-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+    margin-top: var(--space-2xs);
+  }
+
+  /* ---------- Credits ---------- */
+  .credit-groups {
+    display: grid;
+    gap: var(--space-xl);
+  }
+
+  .credit-project {
+    font-size: var(--step-2);
+    font-stretch: var(--wide-3);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-heading);
+  }
+
+  .credit-project a {
+    text-decoration-color: var(--line-strong);
+  }
+
+  /* ---------- Contributing ---------- */
+  .contrib {
+    display: grid;
+    gap: var(--space-s);
+    max-width: 62ch;
+    color: var(--fg-2);
+  }
+
+  .contrib li {
+    padding-left: 1.2rem;
+    border-left: 1px solid var(--line);
+  }
+</style>

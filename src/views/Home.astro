@@ -125,6 +125,14 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
         <LabCard entry={entry} />
       ))}
     </div>
+    <p class="os-line reveal">
+      <span class="label">{s.openSource.label}</span>
+      <span class="os-text">{s.openSource.text}</span>
+      <a class="os-link" href={href('/open-source')}>
+        {s.openSource.link}
+        <span aria-hidden="true">→</span>
+      </a>
+    </p>
   </section>
 </BaseLayout>
 
@@ -273,5 +281,35 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   /* ---------- Lab: plain ruled rows, styled by LabCard ---------- */
   .lab-list {
     display: grid;
+  }
+
+  /* The open-source page as one ruled line under the lab rows. */
+  .os-line {
+    display: grid;
+    gap: var(--space-2xs) var(--space-m);
+    margin-top: var(--space-l);
+    padding-block: var(--space-s);
+    border-block: 1px solid var(--line-soft);
+    color: var(--fg-2);
+  }
+
+  @media (min-width: 52rem) {
+    .os-line {
+      grid-template-columns: 10rem minmax(0, 1fr) auto;
+      align-items: baseline;
+    }
+  }
+
+  .os-text {
+    max-width: 62ch;
+  }
+
+  .os-link {
+    display: inline-flex;
+    gap: 0.5rem;
+    align-items: center;
+    min-height: 44px;
+    color: var(--fg);
+    font-weight: var(--w-medium);
   }
 </style>

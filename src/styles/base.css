@@ -203,6 +203,9 @@ a {
 [data-vt-title='stemini'] {
   view-transition-name: title-stemini;
 }
+[data-vt-title='caelora'] {
+  view-transition-name: title-caelora;
+}
 [data-vt-art='zone-32-19'] .plate-canvas {
   view-transition-name: art-zone;
 }
@@ -220,6 +223,9 @@ a {
 }
 [data-vt-art='stemini'] .plate-canvas {
   view-transition-name: art-stemini;
+}
+[data-vt-art='caelora'] .plate-canvas {
+  view-transition-name: art-caelora;
 }
 
 /*
@@ -483,6 +489,9 @@ html:active-view-transition-type(lang)::view-transition-new(*.art) {
 }
 [data-accent='stemini'] {
   --accent: var(--acc-stemini);
+}
+[data-accent='caelora'] {
+  --accent: var(--acc-caelora);
 }
 [data-accent='signal'] {
   --accent: var(--signal);

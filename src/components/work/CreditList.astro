@@ -1,0 +1,93 @@
+---
+/**
+ * Upstream credits as a ruled list: name and author, license, how it is used,
+ * and whether the code is used or was only a reference. Shared by the Open
+ * source page and the "Built with" block of each case study.
+ */
+import type { Credit } from '@/data/open-source';
+import { useI18n } from '@/i18n';
+import { openSource } from '@/i18n/ui/opensource';
+
+interface Props {
+  items: readonly Credit[];
+}
+
+const { items } = Astro.props;
+const { t } = useI18n(Astro);
+const s = t(openSource).credits;
+---
+
+<ul role="list" class="credits">
+  {items.map((c) => (
+    <li class="credit">
+      <p class="who">
+        <a href={c.url} rel="noopener">
+          {c.name}
+        </a>
+        <span class="by">
+          {s.by} {c.by}
+        </span>
+      </p>
+      <p class="use">{t(c.use)}</p>
+      <p class="meta label">
+        <span class:list={['kind', `kind-${c.kind}`]}>
+          {c.kind === 'used' ? s.used : s.reference}
+        </span>
+        <span>{c.license}</span>
+      </p>
+    </li>
+  ))}
+</ul>
+
+<style>
+  .credits {
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .credit {
+    display: grid;
+    gap: var(--space-3xs) var(--space-m);
+    padding-block: var(--space-s);
+    border-bottom: 1px solid var(--line-soft);
+  }
+
+  @media (min-width: 52rem) {
+    .credit {
+      grid-template-columns: minmax(0, 4fr) minmax(0, 6fr) minmax(0, 3fr);
+      align-items: baseline;
+    }
+  }
+
+  .who a {
+    color: var(--fg);
+    font-weight: var(--w-medium);
+  }
+
+  .by {
+    display: block;
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .use {
+    color: var(--fg-2);
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.9rem;
+  }
+
+  /* Used code is outlined; a reference only is dashed: shape, not colour. */
+  .kind {
+    padding: 0 0.45rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-xs);
+    color: var(--fg-2);
+  }
+
+  .kind-reference {
+    border-style: dashed;
+  }
+</style>

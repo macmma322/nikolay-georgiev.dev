@@ -280,6 +280,21 @@ const groups = (Object.keys(CATEGORY_LABEL) as TechCategory[]).map((category) =>
     opacity: 1;
   }
 
+  .caps:has(.proof a[data-slug='caelora']:is(:hover, :focus-visible)) .item[data-proof~='caelora'] {
+    opacity: 1;
+    --lit: 1;
+  }
+
+  :is(
+      .caps:has(.proof a[data-slug='caelora']:is(:hover, :focus-visible)),
+      .caps .group:has(.item[data-proof~='caelora']:hover)
+    )
+    .proof
+    a[data-slug='caelora'] {
+    --lit: 1;
+    opacity: 1;
+  }
+
   .caps:has(.proof a[data-slug='stemini']:is(:hover, :focus-visible)) .item[data-proof~='stemini'] {
     opacity: 1;
     --lit: 1;

@@ -1,6 +1,6 @@
 ---
 name: Stemini
-order: 6
+order: 7
 tier: B
 accent: stemini
 kicker: AI-assisted 3D model generation and printing

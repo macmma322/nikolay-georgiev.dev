@@ -110,6 +110,19 @@ if (noindex) {
       }),
     ],
   };
+} else if (section === 'open-source') {
+  const index = { name: s.breadcrumb.openSource, path: href('/open-source') };
+  const doc = slug === 'blueprint';
+  page = {
+    ...page,
+    title: doc ? s.blueprint.title : s.openSource.title,
+    description: doc ? s.blueprint.description : s.openSource.description,
+    page: doc ? 'WebPage' : 'CollectionPage',
+    crumbs: doc
+      ? [home, index, { name: s.breadcrumb.blueprint, path: href('/open-source/blueprint') }]
+      : [home, index],
+    about: ids.person,
+  };
 } else if (section && section in sections && !slug) {
   const key = section as keyof typeof sections;
   page = {

@@ -15,6 +15,7 @@ export const STATUSES = [
 ] as const;
 
 export const ACCENTS = [
+  'caelora',
   'zone',
   'jarvis',
   'ussx',

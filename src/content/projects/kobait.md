@@ -1,6 +1,6 @@
 ---
 name: KObait
-order: 4
+order: 5
 tier: A
 accent: kobait
 kicker: Embedded remote-control boat
@@ -21,8 +21,11 @@ spec:
   - { label: Boards, value: 'Two: a boat controller and a handheld remote' }
   - { label: Radio, value: 'Long-range link with a protocol of my own' }
   - { label: Safety, value: 'A lost link stops the boat; gates in front of the motors' }
-  - { label: Firmware, value: 'C++; about 4,300 lines on the boat, 8,600 on the remote' }
-  - { label: Tests, value: '196 host-side checks, 22 bench diagnostic sketches' }
+  - {
+      label: Firmware,
+      value: 'C++; about 4,500 lines on the boat, 14,000 on the remote, partly generated',
+    }
+  - { label: Tests, value: 'Host-side check scripts and 24 bench diagnostic sketches' }
 highlights:
   - Only one part of the code may drive the motors, and tests enforce it.
   - A lost radio link stops the boat. Autonomous return is deliberately not built until it is an explicit decision.
@@ -73,6 +76,7 @@ now:
   - Both boards run their firmware on the bench, and the radio link has been verified in both directions on a desk.
   - Positioning, displays, the remote UI, joystick calibration and sensor baselines are verified on the bench.
   - AUTO is gated off in firmware because one sensor does not respond on the current bench wiring.
+  - A second version of the remote interface is written, with a dashboard, a side menu with saved settings and text in five languages, but it has not been flashed to the bench hardware yet. An offline map is a separate prototype.
 next:
   - Motor controller characterisation with measured endpoints, then staged tests with motors, props and restraint, and a tethered water test.
   - Outdoor range testing.

@@ -154,8 +154,11 @@ for (const { path } of allRoutes.filter((r) => r.locale === 'bg')) {
     // The h1 may be a Latin name (the brand, a project); then the lede carries the language.
     const lead = await page.locator('h1, [data-vt-lang]').allTextContents();
     expect(lead.join(' ')).toMatch(CYRILLIC);
-    // Project names stay Latin and carry data-vt-title; every other heading is Bulgarian.
-    const headings = await page.locator('h2:not([data-vt-title])').allTextContents();
+    // Project names stay Latin and carry data-vt-title; every other heading is
+    // Bulgarian, except inside a document marked as English (the CLAUDE.md reader).
+    const headings = await page
+      .locator('h2:not([data-vt-title]):not([lang="en"] h2)')
+      .allTextContents();
     expect(headings.filter((h) => !CYRILLIC.test(h))).toEqual([]);
   });
 }
