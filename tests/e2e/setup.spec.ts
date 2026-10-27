@@ -72,6 +72,13 @@ test('the chosen part survives a language switch', async ({ page, isMobile }) =>
 });
 
 test.describe('3D views', () => {
+  // Visitors get the 3D view only on hardware WebGL. CI renders in software
+  // (SwiftShader), so these tests opt in to it, and allow for its pace.
+  test.beforeEach(async ({ page }) => {
+    test.slow();
+    await page.addInitScript(() => localStorage.setItem('ng-setup:3d', 'software'));
+  });
+
   test('the model replaces the drawing and answers to the list', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));

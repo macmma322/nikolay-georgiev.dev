@@ -14,6 +14,14 @@ type StageModule = typeof import('./setup3d/stage');
 let stageModule: Promise<StageModule> | null = null;
 const loadStageModule = () => (stageModule ??= import('./setup3d/stage'));
 
+const allowSoftware = () => {
+  try {
+    return localStorage.getItem('ng-setup:3d') === 'software';
+  } catch {
+    return false;
+  }
+};
+
 const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection
   ?.saveData;
 
@@ -101,15 +109,17 @@ for (const explorer of document.querySelectorAll<HTMLElement>('[data-explorer]')
     if (!holder || !canvasHost || stages.has(view) || loading.has(pane)) return;
     loading.add(pane);
     try {
-      const { mountStage, webglAvailable } = await loadStageModule();
-      if (!webglAvailable()) return;
+      const { mountStage, webglSupport } = await loadStageModule();
+      const support = webglSupport();
+      // Software WebGL only on request (the 3D tests set it; see setup.spec.ts).
+      if (!support || (support === 'software' && !allowSoftware())) return;
       const numbers = new Map(
         buttons
           .filter((b) => b.dataset.view === view)
           .map((b) => [b.dataset.pick!, b.querySelector('.pick-n')?.textContent?.trim() ?? '']),
       );
       holder.hidden = false;
-      const stage = await mountStage(canvasHost, view, numbers, {
+      const stage = await mountStage(support === 'software', canvasHost, view, numbers, {
         pick: (id) => select(id),
         hover: (id) => {
           for (const b of buttons) b.classList.toggle('is-lit', b.dataset.pick === id);

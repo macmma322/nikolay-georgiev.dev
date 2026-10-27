@@ -119,8 +119,9 @@ moves things between two resting states (view transitions, line draws), and
 The equipment explorers load an isolated Three.js module
 (`src/scripts/setup3d`) when a view nears the screen, and release its GPU
 resources when it leaves. It is an enhancement: the SVG drawing and the parts
-list stay the accessible version and the fallback (no WebGL, Save-Data, a
-failed load, no JavaScript). Rules:
+list stay the accessible version and the fallback (no WebGL, WebGL rendered
+in software, Save-Data, a failed load, no JavaScript). The tests opt in to
+software rendering with `localStorage['ng-setup:3d'] = 'software'`. Rules:
 
 - Models are built in code (bevelled boxes, extrusions, canvas textures); no
   model or texture files are downloaded.

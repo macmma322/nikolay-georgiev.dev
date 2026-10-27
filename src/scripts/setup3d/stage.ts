@@ -42,16 +42,30 @@ const builders: Record<string, () => Promise<(m: Materials) => SceneDef>> = {
 /** The site's signal red (tokens.css --signal), for the selected part. */
 const ACCENT = new THREE.Color(0xee5f4b);
 
-export function webglAvailable() {
+/**
+ * 'gpu' when WebGL 2 is hardware accelerated, 'software' when the browser
+ * would render it on the CPU (SwiftShader, llvmpipe), null without it. The
+ * explorers only use 'gpu': a CPU-rendered model would make the page janky,
+ * and the drawing serves those visitors better.
+ */
+export function webglSupport(): 'gpu' | 'software' | null {
   try {
-    const canvas = document.createElement('canvas');
-    return !!canvas.getContext('webgl2');
+    const probe = (failIfMajorPerformanceCaveat: boolean) => {
+      const gl = document
+        .createElement('canvas')
+        .getContext('webgl2', { failIfMajorPerformanceCaveat });
+      gl?.getExtension('WEBGL_lose_context')?.loseContext();
+      return !!gl;
+    };
+    if (probe(true)) return 'gpu';
+    return probe(false) ? 'software' : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
 export async function mountStage(
+  software: boolean,
   host: HTMLElement,
   view: string,
   numbers: Map<string, string>,
@@ -60,14 +74,15 @@ export async function mountStage(
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
   const nav = navigator as Navigator & { deviceMemory?: number };
-  const low = coarse || (nav.deviceMemory ?? 8) < 4 || (navigator.hardwareConcurrency ?? 8) <= 4;
+  const low =
+    software || coarse || (nav.deviceMemory ?? 8) < 4 || (navigator.hardwareConcurrency ?? 8) <= 4;
   quality.segments = low ? 20 : 32;
 
   const loader = builders[view];
   if (!loader) throw new Error(`No 3D scene for ${view}`);
   const build = await loader();
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, low ? 1.5 : 2));
+  renderer.setPixelRatio(software ? 1 : Math.min(devicePixelRatio, low ? 1.5 : 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.3;
