@@ -125,7 +125,7 @@ const text = (value: string | L) => (typeof value === 'string' ? value : l(value
               </button>
             )}
             {p.link && (
-              <a class="maker-link" href={p.link} target="_blank" rel="noopener noreferrer">
+              <a class="maker-link" href={text(p.link)} target="_blank" rel="noopener noreferrer">
                 {u.manufacturer}
                 <span aria-hidden="true">↗</span>
                 <span class="visually-hidden">

@@ -37,7 +37,8 @@ export interface Part {
   workflow?: L;
   status: Status;
   source: Source;
-  link?: string;
+  /** Per locale when the maker has a page in each language. */
+  link?: string | L;
   /** Case-study slugs this part is used for. */
   for?: readonly string[];
 }
@@ -86,14 +87,21 @@ export const parts: readonly Part[] = [
     n: 3,
     kind: t('Monitors', 'Монитори'),
     maker: 'AOC',
-    model: '2 × 27G4',
+    model: '2 × 27G42E',
     purpose: t(
       'Code and documentation on one screen, the running app, game or browser test on the other.',
       'Код и документация на единия екран, работещото приложение, игра или браузърен тест на другия.',
     ),
-    specs: [t('Two 27-inch displays', 'Два 27-инчови екрана')],
+    specs: [
+      t('27-inch Full HD Fast IPS, 180 Hz', '27 инча, Full HD, Fast IPS, 180 Hz'),
+      t('Windows reports each one as “27G4”', 'Windows отчита всеки от тях като „27G4“'),
+    ],
     status: 'current',
     source: 'machine',
+    link: t(
+      'https://www.aoc.com/uk/gaming/monitors/27g42e',
+      'https://www.aoc.com/bg/gaming/monitors/27g42e',
+    ),
     for: ['caelora', 'uss-x-academy', 'zone-32-19'],
   },
   {
@@ -228,14 +236,20 @@ export const parts: readonly Part[] = [
     n: 10,
     kind: t('Keyboard', 'Клавиатура'),
     maker: 'Cougar',
-    model: 'Attack X3',
+    model: 'Attack X3 RGB',
     purpose: t(
       'Mechanical keyboard for long writing and coding sessions.',
       'Механична клавиатура за дълги сесии с текст и код.',
     ),
-    specs: [t('Mechanical switches', 'Механични бутони')],
+    specs: [
+      t(
+        'Cherry MX mechanical switches, RGB backlight',
+        'Механични бутони Cherry MX, RGB подсветка',
+      ),
+    ],
     status: 'current',
-    source: 'owner',
+    source: 'machine',
+    link: 'https://cougargaming.com/products/keyboards/attackx3_rgb/',
   },
   {
     id: 'mouse',

@@ -79,6 +79,14 @@ for (const locale of locales) {
       expect(text).not.toMatch(/withheld part names/i);
     });
 
+    test('a maker page in both languages links the reader’s one', async ({ page }) => {
+      await page.goto(localize('/setup', locale));
+      await expect(page.locator('#detail-monitors .maker-link')).toHaveAttribute(
+        'href',
+        `https://www.aoc.com/${locale === 'en' ? 'uk' : 'bg'}/gaming/monitors/27g42e`,
+      );
+    });
+
     test('planned kit is marked as not bought', async ({ page }) => {
       await page.goto(localize('/setup', locale));
       await page.locator('button[data-pick="camera"]').click();
