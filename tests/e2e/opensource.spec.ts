@@ -20,6 +20,14 @@ test('the license is the MIT License', async ({ request }) => {
 
 for (const locale of locales) {
   test.describe(`open source (${locale})`, () => {
+    test('KObait credits keep their attribution but name no modules', async ({ page }) => {
+      await page.goto(localize('/open-source', locale));
+      const text = await page.locator('main').innerText();
+      expect(text).not.toMatch(/GPS|TinyGPS|gyro|гироскоп|жироскоп/i);
+      expect(text).toContain('Mikal Hart');
+      await expect(page.locator('main a[href*="TinyGPSPlus"]')).toHaveCount(0);
+    });
+
     test('offers read, download, copy and source', async ({ page }) => {
       await page.goto(localize('/open-source', locale));
       const blueprint = page.locator('#blueprint');

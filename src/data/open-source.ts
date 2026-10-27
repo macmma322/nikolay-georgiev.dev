@@ -6,7 +6,9 @@ import type { L } from '@/i18n';
  * project's own manifests and lockfiles, and the installed package metadata,
  * for credits. A license is written exactly as the upstream project declares
  * it. Hardware drivers named after a chip are described by kind (KObait rule,
- * PRODUCT.md), so the credits cannot be read as a parts list.
+ * PRODUCT.md), so the credits cannot be read as a parts list. A KObait
+ * library whose name or repository reveals a module (GPS, gyro) is credited
+ * by author, license and a generic use, linking to the author, not the repo.
  */
 
 /** The public repository of the CLAUDE.md blueprint (MIT). */
@@ -450,19 +452,19 @@ export const credits: readonly CreditGroup[] = [
         license: 'MIT, BSD, Apache-2.0',
         kind: 'used',
         use: {
-          en: 'The gyro module and small status display on the boat, through Adafruit’s driver, unified-sensor and bus libraries.',
-          bg: 'Жироскопичният модул и малкият дисплей за състоянието на лодката, през драйверите и библиотеките на Adafruit.',
+          en: 'Sensor and status-display drivers on the boat, through Adafruit’s driver, unified-sensor and bus libraries.',
+          bg: 'Драйвери за сензорите и дисплея за състоянието на лодката, през драйверите и библиотеките на Adafruit.',
         },
       },
       {
-        name: 'TinyGPSPlus',
+        name: { en: 'A sensor-data parser', bg: 'Библиотека за разчитане на данни от сензори' },
         by: 'Mikal Hart',
-        url: 'https://github.com/mikalhart/TinyGPSPlus',
+        url: 'https://github.com/mikalhart',
         license: 'LGPL-2.1-or-later',
         kind: 'used',
         use: {
-          en: 'Parses the GPS module’s sentences on the boat.',
-          bg: 'Разчита съобщенията на GPS модула на лодката.',
+          en: 'Reads sensor data on the boat.',
+          bg: 'Разчита данните от сензорите на лодката.',
         },
       },
       {
