@@ -28,7 +28,7 @@ import {
   type Materials,
   type Vec,
 } from './kit';
-import type { SceneDef } from './scene';
+import { CASE_ENTRY, type SceneDef } from './scene';
 
 const BOARD_X = -9; // board surface plane
 
@@ -377,6 +377,9 @@ export function buildInside(m: Materials): SceneDef {
     root,
     parts,
     camera: { position: [76, 34, 50], target: [0, 23, -1], fov: 30 },
+    // Open, the view swings toward the glass side to show the board face-on.
+    inspect: { position: [84, 31, 34], target: [0, 24, -1] },
+    entry: CASE_ENTRY,
     modes: ['assembled', 'cutaway', 'exploded'],
     shell: [glass, top, frontPanel, shroud, shroudFace],
     explode: {
@@ -557,6 +560,7 @@ export function buildSecondary(m: Materials): SceneDef {
     root,
     parts,
     camera: { position: [72, 17, 46], target: [0, 19, -1], fov: 30 },
+    inspect: { position: [80, 29, 26], target: [0, 19, -2] },
     modes: ['assembled', 'cutaway', 'exploded'],
     shell: [side, topPanel, frontBezel],
     explode: {

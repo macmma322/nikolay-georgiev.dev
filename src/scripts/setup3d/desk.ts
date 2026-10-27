@@ -21,7 +21,7 @@ import {
   type Materials,
   type Vec,
 } from './kit';
-import type { SceneDef } from './scene';
+import { CASE_ENTRY, type SceneDef } from './scene';
 
 const TOP = 75.5; // desk surface height
 
@@ -48,6 +48,8 @@ export function buildDesk(m: Materials): SceneDef {
     root,
     parts,
     camera: { position: [110, 150, 250], target: [-4, 62, 6], fov: 32 },
+    // The inside view's case is this tower: same size, glass on the same side.
+    doors: { inside: { at: [104, 0, -6], part: 'tower', pose: CASE_ENTRY } },
     anchors: {
       desk: [74, TOP, 36],
       monitors: [58, TOP + 49, -16],

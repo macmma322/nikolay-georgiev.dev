@@ -5,10 +5,13 @@ for (const locale of locales) {
   test.describe(`navigation (${locale})`, () => {
     const at = (path: string) => localize(path, locale);
 
-    test('the skip link moves focus to the main content', async ({ page }) => {
+    test('the skip link moves focus to the main content', async ({ page, browserName }) => {
       await page.goto(at('/work'));
-      await page.keyboard.press('Tab');
       const skip = page.locator('.skip-link');
+      // Safari's Tab skips links unless the visitor turns that on (Option+Tab
+      // reaches them on a Mac), so WebKit starts with the link focused.
+      if (browserName === 'webkit') await skip.focus();
+      else await page.keyboard.press('Tab');
       await expect(skip).toBeFocused();
       await expect(skip).toBeVisible();
       await page.keyboard.press('Enter');

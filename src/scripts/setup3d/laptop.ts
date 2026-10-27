@@ -197,6 +197,8 @@ export function buildLaptop(m: Materials): SceneDef {
     root,
     parts,
     camera: { position: [42, 44, 58], target: [0, 7, -1], fov: 30 },
+    // Opened, the view looks down into the chassis.
+    inspect: { position: [28, 60, 40], target: [0, 4, -1] },
     modes: ['assembled', 'cutaway'],
     shell: [deck, keys, pad],
     hidden: ['l-cpu', 'l-gpu', 'l-ram', 'l-ssd', 'l-hdd'],

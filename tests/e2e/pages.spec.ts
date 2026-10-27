@@ -104,6 +104,7 @@ for (const locale of locales) {
 test('every case study has a status, an architecture diagram and its text alternative', async ({
   page,
 }) => {
+  test.slow(); // fourteen pages in one test
   for (const locale of locales) {
     for (const slug of projects) {
       await page.goto(localize(`/work/${slug}`, locale));

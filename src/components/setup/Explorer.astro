@@ -261,19 +261,43 @@ const icons = [
     accent-color: var(--fg);
   }
 
-  /* With the switch, only the checked view shows; without :has both stack. */
+  /*
+   * With the switch, one view shows: the checked one before the script runs
+   * (and without it), then the one the script reports in data-shown, which
+   * trails the radios while the camera moves between views. Without :has
+   * both stack.
+   */
   .explorer:has(.switch) .view {
     display: none;
   }
 
-  .explorer:has(input[value='desk']:checked) [data-view-pane='desk'],
-  .explorer:has(input[value='inside']:checked) [data-view-pane='inside'] {
+  .explorer:not([data-shown]):has(input[value='desk']:checked) [data-view-pane='desk'],
+  .explorer:not([data-shown]):has(input[value='inside']:checked) [data-view-pane='inside'],
+  .explorer[data-shown='desk'] [data-view-pane='desk'],
+  .explorer[data-shown='inside'] [data-view-pane='inside'] {
     display: block;
   }
 
-  /* ---------- 3D stage: replaces the drawing once it has rendered ---------- */
-  .view[data-live] .art {
+  /* ---------- 3D stage: replaces the drawing from the moment it loads ---------- */
+  .views {
+    position: relative;
+  }
+
+  .view:is([data-live], [data-loading]) .art {
     display: none;
+  }
+
+  /* The leaving view's last frame, held while the next one loads, then dissolved. */
+  .views :global(.stage-handoff) {
+    position: absolute;
+    z-index: 2;
+    border-radius: var(--radius-s);
+    pointer-events: none;
+    transition: opacity 280ms var(--ease-out);
+  }
+
+  .views :global(.stage-handoff.is-leaving) {
+    opacity: 0;
   }
 
   .stage-canvas {
@@ -291,7 +315,7 @@ const icons = [
       var(--ink-deep);
   }
 
-  [data-stage='inside'] .stage-canvas,
+  /* The desk and the inside of the PC share a frame, so the move between them lines up. */
   [data-stage='secondary'] .stage-canvas {
     aspect-ratio: 4 / 3;
   }
@@ -318,6 +342,13 @@ const icons = [
     position: absolute;
     inset: 0;
     pointer-events: none;
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  /* The pins step aside while the camera travels between views. */
+  .explorer[data-transition] .stage-canvas :global(.stage-tags),
+  .stage-canvas[data-travel] :global(.stage-tags) {
+    opacity: 0;
   }
 
   /* A numbered pin above each part: the same number as the list. */
@@ -343,6 +374,17 @@ const icons = [
       background-color var(--dur-fast) var(--ease-out),
       color var(--dur-fast) var(--ease-out),
       border-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* A phone-sized stage has room for smaller pins only; the list below stays the full-size control. */
+  @media (max-width: 40rem) {
+    .stage-canvas :global(.stage-tag) {
+      min-width: 1.25rem;
+      height: 1.25rem;
+      margin: -1.6rem 0 0 -0.625rem;
+      padding: 0 0.2rem;
+      font-size: 0.625rem;
+    }
   }
 
   .stage-canvas :global(.stage-tag[hidden]) {

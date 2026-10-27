@@ -192,12 +192,13 @@ const headingId = `fig-${d.id}`;
           .filter((e) => e.flow)
           .map((e, i) => {
             const dur = e.length / PACKET_SPEED;
-            // A negative begin starts every packet mid-flight, and the
-            // hidden-until-set visibility keeps it off the SVG origin
-            // before the animation timeline starts.
+            // A negative begin starts every packet mid-flight. The packets
+            // stay hidden until the script starts the clock (see .packets),
+            // which keeps them off the SVG origin before the timeline runs.
+            // Not a SMIL <set> on visibility: Firefox counts that as an
+            // inline style, and the CSP blocks it.
             return (
-              <circle r="3" class="packet" data-e={e.key} visibility="hidden">
-                <set attributeName="visibility" to="visible" begin="0s" fill="freeze" />
+              <circle r="3" class="packet" data-e={e.key}>
                 <animateMotion
                   dur={`${dur.toFixed(2)}s`}
                   begin={`-${(((i * 0.37) % 1) * dur).toFixed(2)}s`}
@@ -329,24 +330,28 @@ const headingId = `fig-${d.id}`;
   // Deep links, back/forward and reloads restore a scroll position: start final.
   const restoring = location.hash !== '' || nav?.type === 'back_forward' || nav?.type === 'reload';
 
-  const build = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        const fig = entry.target as HTMLElement;
-        build.unobserve(fig);
-        fig.dataset.build = 'play';
-        window.setTimeout(() => (fig.dataset.build = 'done'), BUILD_MS);
-      }
-    },
-    { rootMargin: '0px 0px -30% 0px' },
-  );
+  const play: IntersectionObserverCallback = (entries) => {
+    for (const entry of entries) {
+      const fig = entry.target as HTMLElement;
+      if (!entry.isIntersecting || fig.dataset.build !== 'armed') continue;
+      build.unobserve(fig);
+      whole.unobserve(fig);
+      fig.dataset.build = 'play';
+      window.setTimeout(() => (fig.dataset.build = 'done'), BUILD_MS);
+    }
+  };
+  // Plays once the figure is in the upper 70% of the screen, or wholly on
+  // screen: a short diagram at the end of a page may never rise that high.
+  const build = new IntersectionObserver(play, { rootMargin: '0px 0px -30% 0px' });
+  const whole = new IntersectionObserver(play, { threshold: 1 });
 
   const clock = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       const svg = entry.target as SVGSVGElement;
-      if (entry.isIntersecting && !reduce.matches) svg.unpauseAnimations();
-      else svg.pauseAnimations();
+      if (entry.isIntersecting && !reduce.matches) {
+        svg.unpauseAnimations();
+        svg.dataset.clock = '';
+      } else svg.pauseAnimations();
     }
   });
 
@@ -388,8 +393,10 @@ const headingId = `fig-${d.id}`;
     }
     fig.dataset.build = 'armed';
     build.observe(fig);
+    whole.observe(fig);
     const skip = () => {
       build.unobserve(fig);
+      whole.unobserve(fig);
       fig.dataset.build = 'done';
     };
     // Real pointer movement or a press, not pointerenter: wheel scrolling
@@ -653,6 +660,10 @@ const headingId = `fig-${d.id}`;
 
   .packet {
     fill: var(--accent);
+  }
+
+  .svg:not([data-clock]) .packets {
+    visibility: hidden;
   }
 
   @media (prefers-reduced-motion: reduce) {

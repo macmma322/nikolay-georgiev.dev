@@ -55,8 +55,8 @@ export const setup = {
       bg: 'Влачете, за да завъртите модела. Изберете част в рисунката или в списъка отдолу.',
     },
     hintTouch: {
-      en: 'Tap a part or a number. Use the buttons to turn and zoom.',
-      bg: 'Докоснете част или номер. Завъртането и мащабът са с бутоните.',
+      en: 'Tap a part or a number. Turn and zoom with two fingers or the buttons.',
+      bg: 'Докоснете част или номер. Завъртате и мащабирате с два пръста или с бутоните.',
     },
   },
   workstation: {

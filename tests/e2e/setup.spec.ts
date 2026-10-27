@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { localize, locales } from './routes';
 
 // The /setup explorers (src/components/setup/Explorer.astro) and the page's
@@ -118,6 +118,105 @@ test.describe('3D views', () => {
     await expect(explorer.locator('input[data-stage-mode][value="cutaway"]')).toBeChecked();
     await explorer.locator('input[data-stage-mode][value="exploded"]').check();
     await expect(explorer.locator('.stage-tag[data-tag="old-gpu"]')).toHaveClass(/is-on/);
+  });
+
+  /** The workstation explorer, with its desk model on screen. */
+  const liveDesk = async (page: Page) => {
+    await page.goto('/setup');
+    const explorer = page.locator('[data-explorer="workstation"]');
+    await expect(explorer.locator('[data-view-pane="desk"]')).toHaveAttribute('data-live', '', {
+      timeout: 30_000,
+    });
+    return explorer;
+  };
+  const settled = (explorer: Locator) =>
+    expect(explorer).not.toHaveAttribute('data-transition', /./, { timeout: 30_000 });
+
+  test('the camera travels into the PC and back out', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const explorer = await liveDesk(page);
+    await explorer.locator('label:has(input[data-view][value="inside"])').click();
+    // The desk stays on screen while the camera flies to the tower.
+    await expect(explorer).toHaveAttribute('data-transition', 'desk-inside');
+    await settled(explorer);
+    const inside = explorer.locator('[data-view-pane="inside"]');
+    await expect(inside).toHaveAttribute('data-live', '');
+    // Looking inside opens the case, and the stage comes to rest.
+    await expect(explorer.locator('input[data-stage-mode][value="cutaway"]')).toBeChecked();
+    await expect(inside.locator('.stage-canvas')).toHaveAttribute('data-mode', 'cutaway');
+    await expect(inside.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle');
+    await expect(explorer.locator('.stage-handoff')).toHaveCount(0);
+    await expect(explorer.locator('canvas.stage-gl')).toHaveCount(1);
+    await expect(inside.locator('.stage-tag[data-tag="cpu"]')).toHaveClass(/is-on/);
+
+    await explorer.locator('label:has(input[data-view][value="desk"])').click();
+    await settled(explorer);
+    await expect(explorer.locator('[data-view-pane="desk"]')).toHaveAttribute('data-live', '');
+    await expect(inside).toBeHidden();
+    await expect(explorer.locator('.stage-handoff')).toHaveCount(0);
+    await expect(explorer.locator('canvas.stage-gl')).toHaveCount(1);
+    expect(errors).toEqual([]);
+  });
+
+  test('rapid view changes settle on the last one', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    const explorer = await liveDesk(page);
+    for (const view of ['inside', 'desk', 'inside', 'desk', 'inside']) {
+      await explorer.locator(`label:has(input[data-view][value="${view}"])`).click();
+    }
+    await settled(explorer);
+    await expect(explorer).toHaveAttribute('data-shown', 'inside');
+    await expect(explorer.locator('[data-view-pane="inside"]')).toHaveAttribute('data-live', '');
+    await expect(explorer.locator('[data-view-pane="desk"]')).toBeHidden();
+    await expect(explorer.locator('.stage-handoff')).toHaveCount(0);
+    await expect(explorer.locator('canvas.stage-gl')).toHaveCount(1);
+    await expect(explorer.locator('[inert]')).toHaveCount(0);
+    expect(errors).toEqual([]);
+  });
+
+  test('reduced motion changes the view without travel', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const explorer = await liveDesk(page);
+    await explorer.locator('label:has(input[data-view][value="inside"])').click();
+    expect(await explorer.evaluate((e) => 'transition' in e.dataset)).toBe(false);
+    const stage = explorer.locator('[data-view-pane="inside"] .stage-canvas');
+    await expect(stage).toHaveAttribute('data-mode', 'cutaway', { timeout: 30_000 });
+    await expect(explorer.locator('.stage-handoff')).toHaveCount(0);
+  });
+
+  test('the exploded view comes to rest with every part movable back', async ({ page }) => {
+    const explorer = await liveDesk(page);
+    await explorer.locator('label:has(input[data-view][value="inside"])').click();
+    await settled(explorer);
+    const stage = explorer.locator('[data-view-pane="inside"] .stage-canvas');
+    await explorer.locator('input[data-stage-mode][value="exploded"]').check({ force: true });
+    await expect(stage).toHaveAttribute('data-mode', 'exploded');
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 15_000 });
+    await explorer.locator('input[data-stage-mode][value="assembled"]').check({ force: true });
+    await expect(stage).toHaveAttribute('data-mode', 'assembled');
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 15_000 });
+  });
+
+  test('a lost WebGL context is rebuilt, never left blank', async ({ page }) => {
+    const explorer = await liveDesk(page);
+    const pane = explorer.locator('[data-view-pane="desk"]');
+    await pane.locator('canvas.stage-gl').evaluate((canvas: HTMLCanvasElement) => {
+      canvas.getContext('webgl2')?.getExtension('WEBGL_lose_context')?.loseContext();
+    });
+    // The drawing covers the gap, then a fresh stage takes over.
+    await expect(pane).toHaveAttribute('data-live', '', { timeout: 30_000 });
+    await expect(pane.locator('canvas.stage-gl')).toHaveCount(1);
+    await expect(pane.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle');
+  });
+
+  test('one finger scrolls the page over the model', async ({ page }) => {
+    const explorer = await liveDesk(page);
+    const touch = await explorer
+      .locator('canvas.stage-gl')
+      .evaluate((canvas) => getComputedStyle(canvas).touchAction);
+    expect(touch).toBe('pan-y');
   });
 
   test('without WebGL the drawing stays', async ({ page }) => {
