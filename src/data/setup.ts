@@ -204,25 +204,22 @@ export const parts: readonly Part[] = [
     n: 9,
     kind: t('Control deck', 'Контролен панел'),
     maker: 'Elgato',
-    model: t('Stream Deck (15 keys)', 'Stream Deck (15 бутона)'),
+    model: 'Stream Deck MK.2',
     purpose: t(
       'Programmable keys with their own icons: application shortcuts, multi-step actions, profiles and streaming controls through Elgato’s plugins.',
       'Програмируеми бутони със собствени икони: бързи клавиши за приложения, действия в няколко стъпки, профили и контрол на стрийма чрез плъгините на Elgato.',
     ),
     specs: [
-      t('5 × 3 key layout (from its profile)', 'Подредба 5 × 3 бутона (от профила му)'),
-      t(
-        'Model code 20GBA9901; the exact generation is not confirmed, so it is not called MK.2 here',
-        'Модел 20GBA9901; точното поколение не е потвърдено, затова тук не е наречен MK.2',
-      ),
+      t('15 LCD keys in a 5 × 3 layout', '15 LCD бутона в подредба 5 × 3'),
+      t('USB, swappable faceplate', 'USB, сменяем преден панел'),
     ],
     workflow: t(
       'Its one profile drives OBS Studio, Discord, a microphone mute toggle and media playback. It is not connected to my development tools or to J.A.R.V.I.S.',
       'Единственият му профил управлява OBS Studio, Discord, изключване на микрофона и възпроизвеждането на музика. Не е свързан с инструментите ми за разработка, нито с J.A.R.V.I.S.',
     ),
     status: 'current',
-    source: 'machine',
-    link: 'https://www.elgato.com/us/en/explorer/products/stream-deck/which-stream-deck-should-you-get/',
+    source: 'owner',
+    link: 'https://www.elgato.com/ww/en/p/stream-deck',
   },
   {
     id: 'keyboard',

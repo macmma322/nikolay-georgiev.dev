@@ -84,8 +84,8 @@ Planned items (Sony a6400, the secondary PC's SATA SSD) stay visibly planned.
 Manufacturer links only, no shops or affiliate links, and the non-sponsorship
 disclosure stays. KObait appears there only by area (embedded electronics,
 wireless communication, sensors, motor control), with no component list
-(owner decision, 2026-10-27). The Stream Deck's model code 20GBA9901 is not
-confirmed as MK.2, so it is not called that. Never
+(owner decision, 2026-10-27). The Stream Deck is an MK.2 (owner, 2026-10-27; its
+profile shows a 5 × 3 layout). Never
 publish serials, MAC or IP addresses, Bluetooth device names or local paths.
 
 ## Privacy
