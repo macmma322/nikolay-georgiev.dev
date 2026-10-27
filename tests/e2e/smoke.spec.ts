@@ -89,7 +89,9 @@ test.describe('setup explorer', { tag: '@smoke' }, () => {
     await page.goBack();
     await expect(page.locator('[data-explorer="workstation"][data-ready]')).toHaveCount(1);
     await expect(page.locator('#detail-mic')).toBeVisible();
-    await page.goForward();
+    // history.forward() rather than page.goForward(): the latter can report a
+    // restored page as an aborted navigation.
+    await page.evaluate(() => history.forward());
     await expect(page).toHaveURL(/\/open-source$/);
   });
 

@@ -84,8 +84,15 @@ export function webglSupport(): 'gpu' | 'software' | null {
       const gl = document
         .createElement('canvas')
         .getContext('webgl2', { failIfMajorPerformanceCaveat });
-      gl?.getExtension('WEBGL_lose_context')?.loseContext();
-      return !!gl;
+      if (!gl) return false;
+      // Not every browser flags a CPU renderer as a performance caveat
+      // (SwiftShader on Linux passes); its name gives it away where exposed.
+      const info = gl.getExtension('WEBGL_debug_renderer_info');
+      const name = info ? String(gl.getParameter(info.UNMASKED_RENDERER_WEBGL)) : '';
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      return !(
+        failIfMajorPerformanceCaveat && /swiftshader|llvmpipe|softpipe|basic render/i.test(name)
+      );
     };
     support = probe(true) ? 'gpu' : probe(false) ? 'software' : null;
   } catch {
