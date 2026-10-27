@@ -18,7 +18,9 @@ jobs:
     # Pinned: ubuntu-latest became 26.04 on 2026-10-19, where Playwright 1.56
     # cannot install Chromium. Move on together with a Playwright upgrade.
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # The apt mirror behind --with-deps has stalled for ~10 minutes (2026-10-27);
+    # leave room for that plus the suite.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -30,6 +32,10 @@ jobs:
       - run: npm run typecheck
       # Builds and audits dist/ for leaks, SEO and accessibility basics, links.
       - run: npm run build
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
       - if: failure()
