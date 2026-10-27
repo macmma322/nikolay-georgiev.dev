@@ -112,6 +112,10 @@ export const openSource = {
     },
   },
   contributing: {
+    setup: {
+      en: 'The tools and machines these rules are used with',
+      bg: 'Инструментите и машините, с които се използват тези правила',
+    },
     label: { en: '04 · Contributing', bg: '04 · Участие' },
     title: { en: 'How to take part', bg: 'Как да се включите' },
     points: [

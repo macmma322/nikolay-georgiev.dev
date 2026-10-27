@@ -230,6 +230,9 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
       <li>
         <a href={`mailto:${site.email}`}>{site.email}</a>
       </li>
+      <li>
+        <a href={href('/setup#environment')}>{u.contributing.setup}</a>
+      </li>
     </ul>
   </section>
 </BaseLayout>

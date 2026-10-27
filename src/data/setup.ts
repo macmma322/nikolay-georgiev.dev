@@ -1,403 +1,723 @@
 import type { L } from '@/i18n';
 
 /**
- * The /setup page: hardware, environment, decisions and roadmap.
+ * The /setup page: four explorable machines, the decisions their limits
+ * forced, the toolchain and a roadmap.
  *
- * Sources, recorded per item in `source`:
+ * Sources, recorded per part in `source`:
  *   machine  read from Windows on 2026-10-27 (CIM/WMI, PnP device ids,
- *            nvidia-smi, Get-PhysicalDisk); no serials, MACs or addresses
- *            were collected
+ *            nvidia-smi, Get-PhysicalDisk, the Stream Deck app's profile);
+ *            no serials, MAC or IP addresses were collected
  *   docs     measured and written down in a project repository
- *   owner    stated by me; the hardware cannot report it (a PSU, an analogue
- *            microphone, a cooler without a USB link)
+ *   owner    stated by me; the hardware cannot report it
  *
- * Product links go to manufacturer pages, checked on 2026-10-27; there are no
- * shop or affiliate links. Specs are the manufacturer's or measured ones, never
- * a claim of achieved speed. KObait hardware is named by kind (PRODUCT.md).
+ * Links go to manufacturer pages checked on 2026-10-27 (no shops, prices or
+ * affiliate links). A part without a verifiable official page has no link.
+ * Specs are the manufacturer's or measured ones, never an achieved speed.
+ * KObait hardware is described by area only (PRODUCT.md).
  */
 
 export type Source = 'machine' | 'docs' | 'owner';
-/** in-use: owned and in use · planned: not bought · spare: owned, waiting for a role */
-export type Use = 'in-use' | 'planned' | 'spare';
+/** current: owned and in use · spare: owned, no role · past: replaced · planned: not bought */
+export type Status = 'current' | 'spare' | 'past' | 'planned';
+export type View = 'desk' | 'inside' | 'secondary' | 'laptop';
 
 export interface Part {
   id: string;
+  view: View;
+  /** Number drawn next to the part in the schematic; omitted when not drawn. */
+  n?: number;
   kind: L;
-  /** Brand and model; omitted where the model is deliberately not published. */
-  name?: string;
-  spec: L;
-  note?: L;
-  use: Use;
+  /** Brand names stay as they are; a description is written per locale. */
+  maker: string | L;
+  model: string | L;
+  purpose: L;
+  specs: readonly L[];
+  /** How it fits my work, only where the projects or the machine show it. */
+  workflow?: L;
+  status: Status;
   source: Source;
   link?: string;
-  /** Case-study slugs this part is used for (lights on hover). */
+  /** Case-study slugs this part is used for. */
   for?: readonly string[];
 }
 
-export interface Group {
-  id: string;
-  label: L;
-  title: L;
-  lede: L;
-  parts: readonly Part[];
-}
+const t = (en: string, bg: string): L => ({ en, bg });
 
-export const groups: readonly Group[] = [
+export const parts: readonly Part[] = [
+  // ---------- Desk ----------
   {
-    id: 'workstation',
-    label: { en: '01 · Main workstation', bg: '01 · Основен компютър' },
-    title: {
-      en: 'One Windows desktop does most of the work',
-      bg: 'Един настолен компютър с Windows върши основната работа',
-    },
-    lede: {
-      en: 'Everything on this site was built here: the web platforms, the AI assistant, the game and the boat firmware. It is an AM4 build that I keep extending rather than replacing.',
-      bg: 'Всичко на този сайт е създадено тук: уеб платформите, AI асистентът, играта и фърмуерът на лодката. Това е конфигурация на AM4, която продължавам да разширявам, вместо да сменям.',
-    },
-    parts: [
-      {
-        id: 'cpu',
-        kind: { en: 'Processor', bg: 'Процесор' },
-        name: 'AMD Ryzen 9 5900X',
-        spec: { en: '12 cores, 24 threads', bg: '12 ядра, 24 нишки' },
-        note: {
-          en: 'Unity builds, Docker, local PostgreSQL and the speech models all run on the CPU at the same time; J.A.R.V.I.S. deliberately keeps speech here so the GPU stays free for the language model.',
-          bg: 'Компилации в Unity, Docker, локален PostgreSQL и гласовите модели работят на процесора едновременно; J.A.R.V.I.S. нарочно държи гласа тук, за да остане видеокартата свободна за езиковия модел.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-9-5900x.html',
-        for: ['caelora', 'jarvis', 'uss-x-academy', 'zone-32-19'],
-      },
-      {
-        id: 'gpu',
-        kind: { en: 'Graphics', bg: 'Видеокарта' },
-        name: 'NVIDIA GeForce RTX 3080',
-        spec: {
-          en: '10 GB VRAM, compute capability 8.6',
-          bg: '10 GB видеопамет, compute capability 8.6',
-        },
-        note: {
-          en: 'Runs the local model for J.A.R.V.I.S. through a CUDA build of llama.cpp and renders Caelora. The 10 GB is the tightest limit in the whole setup.',
-          bg: 'Изпълнява локалния модел на J.A.R.V.I.S. чрез CUDA компилация на llama.cpp и рендира Caelora. Десетте гигабайта са най-тясното ограничение в цялата конфигурация.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3080-3080ti/',
-        for: ['jarvis', 'caelora'],
-      },
-      {
-        id: 'ram',
-        kind: { en: 'Memory', bg: 'Памет' },
-        name: 'Kingston FURY Beast DDR4',
-        spec: { en: '64 GB: 4 × 16 GB at 3200 MT/s', bg: '64 GB: 4 × 16 GB при 3200 MT/s' },
-        note: {
-          en: 'Enough to keep the Unity editor, several worktrees, Docker and a browser test run open together.',
-          bg: 'Достатъчно, за да са отворени заедно редакторът на Unity, няколко работни копия, Docker и браузърни тестове.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.kingston.com/en/memory/gaming/kingston-fury-beast-ddr4-memory',
-        for: ['caelora', 'jarvis'],
-      },
-      {
-        id: 'board',
-        kind: { en: 'Motherboard', bg: 'Дънна платка' },
-        name: 'MSI MPG X570 GAMING PLUS',
-        spec: { en: 'AM4, X570 chipset, PCIe 4.0', bg: 'AM4, чипсет X570, PCIe 4.0' },
-        note: {
-          en: 'Its spare PCIe slots are what make the Wi-Fi 7 and USB expansion cards possible.',
-          bg: 'Свободните ѝ PCIe слотове правят възможни картите за Wi-Fi 7 и за допълнителни USB портове.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.msi.com/Motherboard/MPG-X570-GAMING-PLUS',
-      },
-      {
-        id: 'nvme',
-        kind: { en: 'System and work drives', bg: 'Системен и работен диск' },
-        name: 'Samsung 990 PRO 1 TB · Samsung 990 EVO Plus 1 TB',
-        spec: { en: 'Two NVMe SSDs', bg: 'Два NVMe SSD диска' },
-        note: {
-          en: 'Repositories, worktrees, build caches and model files live on NVMe; the local model alone is about 5 GB.',
-          bg: 'Хранилищата, работните копия, кешовете на компилациите и файловете на моделите са на NVMe; само локалният модел е около 5 GB.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://semiconductor.samsung.com/consumer-storage/internal-ssd/990-evo-plus/',
-        for: ['caelora', 'jarvis'],
-      },
-      {
-        id: 'hdd',
-        kind: { en: 'Bulk storage', bg: 'Архив' },
-        name: 'Seagate SkyHawk 1 TB · WD Purple 1 TB · Toshiba 500 GB',
-        spec: { en: 'Three SATA hard drives', bg: 'Три SATA твърди диска' },
-        note: {
-          en: 'Recordings, raw captures and archives that do not need SSD speed.',
-          bg: 'Записи, необработени кадри и архиви, на които не им трябва скоростта на SSD.',
-        },
-        use: 'in-use',
-        source: 'machine',
-      },
-      {
-        id: 'cooling',
-        kind: { en: 'Cooling and power', bg: 'Охлаждане и захранване' },
-        name: 'Corsair liquid cooler · 850 W 80 PLUS Gold PSU',
-        spec: { en: 'Exact models not recorded yet', bg: 'Точните модели още не са записани' },
-        use: 'in-use',
-        source: 'owner',
-      },
-      {
-        id: 'os',
-        kind: { en: 'Operating system', bg: 'Операционна система' },
-        name: 'Windows 11 Pro',
-        spec: { en: 'With WSL 2 for Docker Desktop', bg: 'С WSL 2 за Docker Desktop' },
-        use: 'in-use',
-        source: 'machine',
-      },
-      {
-        id: 'displays',
-        kind: { en: 'Displays and input', bg: 'Монитори и периферия' },
-        name: '2 × AOC 27G4 · Logitech G502 HERO · Cougar Attack X3',
-        spec: {
-          en: 'Two 27-inch monitors, mouse and mechanical keyboard',
-          bg: 'Два 27-инчови монитора, мишка и механична клавиатура',
-        },
-        note: {
-          en: 'The monitors and mouse are identified by the system; the keyboard reports itself only as a generic device.',
-          bg: 'Мониторите и мишката се разпознават от системата; клавиатурата се представя само като общо устройство.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.logitechg.com/en-us/products/gaming-mice/g502-hero-gaming-mouse.html',
-      },
-    ],
+    id: 'desk',
+    view: 'desk',
+    n: 1,
+    kind: t('Desk', 'Бюро'),
+    maker: 'Gudewill',
+    model: t(
+      'Electric height-adjustable desk, 160 × 76 cm',
+      'Бюро с електрическа регулация на височината, 160 × 76 см',
+    ),
+    purpose: t(
+      'Moves between sitting and standing height, so long sessions are not spent in one position.',
+      'Сменя височината между седнало и право положение, за да не минават дългите сесии в една поза.',
+    ),
+    specs: [t('160 × 76 cm top, brown and black', 'Плот 160 × 76 см, кафяво и черно')],
+    status: 'current',
+    source: 'owner',
   },
   {
-    id: 'audio',
-    label: { en: '02 · Audio and camera', bg: '02 · Звук и камера' },
-    title: {
-      en: 'A broadcast microphone on a real interface',
-      bg: 'Излъчвателен микрофон през истински аудиоинтерфейс',
-    },
-    lede: {
-      en: 'Calls, recordings and voice tests for J.A.R.V.I.S. all go through the same chain. A dynamic microphone with an XLR cable needs a proper preamp, which is what the interface is for.',
-      bg: 'Разговорите, записите и гласовите тестове на J.A.R.V.I.S. минават през една и съща верига. Динамичен микрофон с XLR кабел има нужда от истински предусилвател и точно за това е интерфейсът.',
-    },
-    parts: [
-      {
-        id: 'mic',
-        kind: { en: 'Microphone', bg: 'Микрофон' },
-        name: 'RØDE Procaster',
-        spec: { en: 'Dynamic, end-address, XLR', bg: 'Динамичен, с челно насочване, XLR' },
-        note: {
-          en: 'My main microphone, on a RØDE boom arm with a shock mount.',
-          bg: 'Основният ми микрофон, на стойка-рамо на RØDE с антивибрационен държач.',
-        },
-        use: 'in-use',
-        source: 'owner',
-        link: 'https://rode.com/en/microphones/broadcast/procaster',
-        for: ['jarvis'],
-      },
-      {
-        id: 'interface',
-        kind: { en: 'Audio interface', bg: 'Аудиоинтерфейс' },
-        name: 'Focusrite Scarlett 2i2 4th Gen',
-        spec: { en: 'Two mic/line inputs, USB', bg: 'Два микрофонни/линейни входа, USB' },
-        note: {
-          en: 'Gain is set on the interface, not in software, so a quiet dynamic microphone reaches a usable level before any processing.',
-          bg: 'Усилването се настройва на интерфейса, а не в софтуера, така че тих динамичен микрофон достига използваемо ниво преди всякаква обработка.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://focusrite.com/products/scarlett-2i2',
-        for: ['jarvis'],
-      },
-      {
-        id: 'webcam',
-        kind: { en: 'Webcam', bg: 'Уеб камера' },
-        name: 'ASUS ROG Eye S',
-        spec: {
-          en: 'USB webcam with built-in microphones',
-          bg: 'USB уеб камера с вградени микрофони',
-        },
-        note: {
-          en: 'Used for calls, and in a 240-second physical test of the J.A.R.V.I.S. presence sensor, which stays off by default.',
-          bg: 'Използва се за разговори и в 240-секунден физически тест на сензора за присъствие на J.A.R.V.I.S., който по подразбиране е изключен.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        for: ['jarvis'],
-      },
-      {
-        id: 'camera',
-        kind: { en: 'Camera', bg: 'Фотоапарат' },
-        name: 'Sony Alpha a6400',
-        spec: {
-          en: 'Mirrorless camera, not bought yet',
-          bg: 'Безогледален фотоапарат, още не е купен',
-        },
-        note: {
-          en: 'For project demos, development diaries and hardware close-ups. It would also need a lens, a mount, continuous power and a capture path into the PC; none of those are bought either.',
-          bg: 'За демонстрации на проекти, дневници на разработката и близки кадри на хардуер. Ще са нужни и обектив, стойка, постоянно захранване и начин за подаване на картината към компютъра; нищо от това също не е купено.',
-        },
-        use: 'planned',
-        source: 'owner',
-      },
-    ],
+    id: 'chair',
+    view: 'desk',
+    n: 2,
+    kind: t('Chair', 'Стол'),
+    maker: 'Mark Adler',
+    model: 'Expert 7.9 Black',
+    purpose: t(
+      'Ergonomic mesh office chair with a footrest.',
+      'Ергономичен офис стол с мрежа и подложка за краката.',
+    ),
+    specs: [t('Black mesh, footrest', 'Черна мрежа, подложка за краката')],
+    status: 'current',
+    source: 'owner',
+    link: 'https://markadler.pl/products/fotel-biurowy-z-podnozkiem-mark-adler-expert-79-black',
   },
   {
-    id: 'expansion',
-    label: { en: '03 · Connectivity and expansion', bg: '03 · Свързаност и разширения' },
-    title: {
-      en: 'Two cards that added what the board lacked',
-      bg: 'Две карти, които добавиха липсващото на платката',
-    },
-    lede: {
-      en: 'The X570 board predates Wi-Fi 7 and runs short of USB ports with a microphone interface, a webcam, two boat controllers and test hardware attached. Both gaps were filled with PCIe cards rather than a new board.',
-      bg: 'Платката X570 е по-стара от Wi-Fi 7 и не ѝ стигат USB портовете, когато са включени аудиоинтерфейс, уеб камера, двата контролера на лодката и тестов хардуер. И двете липси са запълнени с PCIe карти вместо с нова платка.',
-    },
-    parts: [
-      {
-        id: 'wifi',
-        kind: { en: 'Wireless', bg: 'Безжична мрежа' },
-        name: 'GIGABYTE GC-WIFI7 (Rev. 1.0)',
-        spec: {
-          en: 'PCIe ×1 · Wi-Fi 7 on 2.4, 5 and 6 GHz · MLO · Bluetooth 5.3 · 2T2R antenna',
-          bg: 'PCIe ×1 · Wi-Fi 7 на 2,4, 5 и 6 GHz · MLO · Bluetooth 5.3 · антена 2T2R',
-        },
-        note: {
-          en: 'The system sees a Qualcomm FastConnect 7800 adapter. Multi-Link Operation lets the card hold links on two bands at once, and the 6 GHz band only works with a router that supports it. I have not measured its throughput, so no speed figure is quoted here; it also gives the PC Bluetooth.',
-          bg: 'Системата го разпознава като адаптер Qualcomm FastConnect 7800. Multi-Link Operation позволява връзка в две честотни ленти едновременно, а лентата 6 GHz работи само с рутер, който я поддържа. Не съм измервал скоростта, затова тук няма цифри; картата дава на компютъра и Bluetooth.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.gigabyte.com/PC-Accessory/GC-WIFI7-rev-10',
-      },
-      {
-        id: 'usb',
-        kind: { en: 'USB expansion', bg: 'Допълнителни USB портове' },
-        name: 'JESWO 7-port PCIe to USB 3.0 card',
-        spec: {
-          en: 'Renesas µPD720201 controller · one PCIe 2.0 ×1 link',
-          bg: 'Контролер Renesas µPD720201 · една PCIe 2.0 ×1 връзка',
-        },
-        note: {
-          en: 'An internal card, not an external hub. Windows reports its link as PCIe 2.0 ×1, so all seven ports share that one lane: plenty for keyboards, controllers and serial boards, but two fast drives copying at once would share it.',
-          bg: 'Вътрешна карта, а не външен хъб. Windows отчита връзката ѝ като PCIe 2.0 ×1, така че седемте порта делят една линия: предостатъчно за клавиатури, контролери и платки със серийна връзка, но два бързи диска, които копират едновременно, ще си я поделят.',
-        },
-        use: 'in-use',
-        source: 'machine',
-        link: 'https://www.renesas.com/en/products/upd720201',
-        for: ['kobait'],
-      },
-    ],
+    id: 'monitors',
+    view: 'desk',
+    n: 3,
+    kind: t('Monitors', 'Монитори'),
+    maker: 'AOC',
+    model: '2 × 27G4',
+    purpose: t(
+      'Code and documentation on one screen, the running app, game or browser test on the other.',
+      'Код и документация на единия екран, работещото приложение, игра или браузърен тест на другия.',
+    ),
+    specs: [t('Two 27-inch displays', 'Два 27-инчови екрана')],
+    status: 'current',
+    source: 'machine',
+    for: ['caelora', 'uss-x-academy', 'zone-32-19'],
   },
   {
-    id: 'secondary',
-    label: { en: '04 · Secondary PC', bg: '04 · Втори компютър' },
-    title: { en: 'Older hardware, waiting for a job', bg: 'По-стар хардуер, който чака задача' },
-    lede: {
-      en: 'My previous desktop still works. It has no role yet, and everything listed for it below is a possibility, not something that runs today.',
-      bg: 'Предишният ми настолен компютър още работи. Засега няма роля и всичко, изброено за него по-долу, е възможност, а не нещо, което работи днес.',
-    },
-    parts: [
-      {
-        id: 'old-pc',
-        kind: { en: 'Desktop', bg: 'Настолен компютър' },
-        name: 'Intel Core i7-4790K · NVIDIA GTX 1080 Ti 11 GB · 16 GB DDR3',
-        spec: { en: 'Hard drive only', bg: 'Само твърд диск' },
-        note: {
-          en: 'The 11 GB of VRAM is more than the main PC has, which makes it interesting as a second inference machine, even though its Pascal GPU lacks tensor cores and bf16.',
-          bg: 'Единадесетте гигабайта видеопамет са повече, отколкото има основният компютър, и това го прави интересен като втора машина за изпълнение на модели, въпреки че видеокартата му е Pascal и няма тензорни ядра и bf16.',
-        },
-        use: 'spare',
-        source: 'owner',
-      },
-      {
-        id: 'old-ssd',
-        kind: { en: 'Planned upgrade', bg: 'Планиран ъпгрейд' },
-        name: '2.5-inch SATA SSD, 1 TB or 2 TB',
-        spec: { en: 'Not bought', bg: 'Не е купен' },
-        note: {
-          en: '1 TB is enough for an operating system, Docker images and a few models; 2 TB leaves room for backups and recordings. Before buying, the free drive bay, SATA ports and power connectors need checking.',
-          bg: '1 TB стига за операционна система, Docker образи и няколко модела; 2 TB оставят място за резервни копия и записи. Преди покупка трябва да се проверят свободното гнездо, SATA портовете и кабелите за захранване.',
-        },
-        use: 'planned',
-        source: 'owner',
-      },
-    ],
+    id: 'arm',
+    view: 'desk',
+    n: 4,
+    kind: t('Monitor mount', 'Стойка за монитори'),
+    maker: 'StableArm',
+    model: 'Lifter Duo',
+    purpose: t(
+      'Holds both monitors above the desk, which frees the surface for the audio interface, Stream Deck and boards on the bench.',
+      'Държи двата монитора над бюрото и освобождава плота за аудиоинтерфейса, Stream Deck и платките.',
+    ),
+    specs: [t('Dual-monitor arm', 'Стойка-рамо за два монитора')],
+    status: 'current',
+    source: 'owner',
   },
   {
-    id: 'laptop',
-    label: { en: '05 · Linux laptop', bg: '05 · Лаптоп с Linux' },
-    title: {
-      en: 'Where the code learned to leave Windows',
-      bg: 'Къде кодът се научи да работи и извън Windows',
-    },
-    lede: {
-      en: 'For a stretch of August 2026 the laptop was my only machine, so J.A.R.V.I.S. had to build, test and run on Ubuntu as well.',
-      bg: 'За известно време през август 2026 г. лаптопът беше единственият ми компютър, затова J.A.R.V.I.S. трябваше да се компилира, тества и работи и под Ubuntu.',
-    },
-    parts: [
-      {
-        id: 'nitro',
-        kind: { en: 'Laptop', bg: 'Лаптоп' },
-        name: 'Acer Nitro AN515-52',
-        spec: {
-          en: 'Intel Core i7-8750H · GTX 1050 Ti 4 GB · 24 GB RAM · Ubuntu 26.04 LTS',
-          bg: 'Intel Core i7-8750H · GTX 1050 Ti 4 GB · 24 GB RAM · Ubuntu 26.04 LTS',
-        },
-        note: {
-          en: 'Measured in August: the 4 GB Pascal GPU fits roughly a 6B-parameter model at 4-bit, so it is a development machine, not an inference host.',
-          bg: 'Измерено през август: видеокартата Pascal с 4 GB събира приблизително модел с 6 милиарда параметъра при 4 бита, така че това е машина за разработка, а не за изпълнение на модели.',
-        },
-        use: 'in-use',
-        source: 'docs',
-        for: ['jarvis'],
-      },
-    ],
+    id: 'webcam',
+    view: 'desk',
+    n: 5,
+    kind: t('Webcam', 'Уеб камера'),
+    maker: 'ASUS',
+    model: 'ROG Eye S',
+    purpose: t('Video calls and on-camera tests.', 'Видеоразговори и тестове с камера.'),
+    specs: [t('USB webcam with built-in microphones', 'USB уеб камера с вградени микрофони')],
+    workflow: t(
+      'Used in a 240-second physical test of the J.A.R.V.I.S. presence sensor, which stays off by default.',
+      'Използвана в 240-секунден физически тест на сензора за присъствие на J.A.R.V.I.S., който по подразбиране е изключен.',
+    ),
+    status: 'current',
+    source: 'machine',
+    for: ['jarvis'],
   },
   {
-    id: 'bench',
-    label: { en: '06 · Electronics bench', bg: '06 · Работна маса за електроника' },
-    title: {
-      en: 'Hardware that has to fail safely',
-      bg: 'Хардуер, който трябва да отказва безопасно',
-    },
-    lede: {
-      en: 'The KObait boat and its remote are built and tested here. The parts are named by kind on purpose, so this site is not a shopping list for copying the boat.',
-      bg: 'Лодката KObait и нейното дистанционно се сглобяват и тестват тук. Частите са назовани само по вид нарочно, за да не е сайтът списък за покупки, по който лодката да се копира.',
-    },
-    parts: [
-      {
-        id: 'boards',
-        kind: { en: 'Controllers', bg: 'Контролери' },
-        spec: {
-          en: 'Two microcontroller boards: one in the boat, one in the handheld remote',
-          bg: 'Две микроконтролерни платки: една в лодката и една в ръчното дистанционно',
-        },
-        use: 'in-use',
-        source: 'owner',
-        for: ['kobait'],
-      },
-      {
-        id: 'modules',
-        kind: { en: 'Modules', bg: 'Модули' },
-        spec: {
-          en: 'Long-range radio modules, a GPS module, a gyro module, displays and ESC motor controllers',
-          bg: 'Радиомодули с голям обхват, GPS модул, жироскопичен модул, дисплеи и ESC контролери за моторите',
-        },
-        note: {
-          en: 'Everything is bench-tested only. The boat has not been on the water yet.',
-          bg: 'Всичко е изпитано само на стенд. Лодката още не е пускана на вода.',
-        },
-        use: 'in-use',
-        source: 'owner',
-        for: ['kobait'],
-      },
+    id: 'mic',
+    view: 'desk',
+    n: 6,
+    kind: t('Microphone', 'Микрофон'),
+    maker: 'RØDE',
+    model: 'Procaster',
+    purpose: t(
+      'My main microphone for calls, recordings and voice tests.',
+      'Основният ми микрофон за разговори, записи и гласови тестове.',
+    ),
+    specs: [
+      t('Dynamic broadcast microphone, XLR output', 'Динамичен излъчвателен микрофон, XLR изход'),
+      t(
+        'Internal pop filter and capsule shock mounting',
+        'Вграден поп филтър и окачване на капсулата',
+      ),
     ],
+    workflow: t(
+      'Replaced a RØDE PodMic. Voice work for J.A.R.V.I.S. goes through it, via the audio interface.',
+      'Замени RØDE PodMic. Гласовата работа по J.A.R.V.I.S. минава през него и аудиоинтерфейса.',
+    ),
+    status: 'current',
+    source: 'owner',
+    link: 'https://rode.com/en-bg/products/procaster',
+    for: ['jarvis'],
   },
+  {
+    id: 'micarm',
+    view: 'desk',
+    n: 7,
+    kind: t('Microphone arm and mount', 'Рамо и държач за микрофона'),
+    maker: 'RØDE',
+    model: 'PSA1+ · PSM1',
+    purpose: t(
+      'The PSA1+ arm brings the microphone close and swings it away; the PSM1 shock mount isolates it from desk knocks.',
+      'Рамото PSA1+ доближава микрофона и го прибира; държачът PSM1 го изолира от удари по бюрото.',
+    ),
+    specs: [
+      t(
+        'PSA1+: 360° rotation, damped springs, cable management',
+        'PSA1+: въртене на 360°, амортизирани пружини, прибиране на кабела',
+      ),
+      t('PSM1: shock mount', 'PSM1: антивибрационен държач'),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: 'https://rode.com/en-bg/products/psa1-plus',
+  },
+  {
+    id: 'interface',
+    view: 'desk',
+    n: 8,
+    kind: t('Audio interface', 'Аудиоинтерфейс'),
+    maker: 'Focusrite',
+    model: 'Scarlett 2i2 4th Gen',
+    purpose: t(
+      'Powers the microphone chain: a proper preamp and gain set on hardware, then USB into Windows.',
+      'Сърцето на звуковата верига: истински предусилвател и усилване на хардуера, после USB към Windows.',
+    ),
+    specs: [t('Two mic/line inputs, USB', 'Два микрофонни/линейни входа, USB')],
+    workflow: t(
+      'A quiet dynamic microphone needs real gain; setting it on the interface keeps the level clean before any software processing.',
+      'Тихият динамичен микрофон има нужда от истинско усилване; когато е настроено на интерфейса, нивото е чисто още преди софтуерната обработка.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://eu.focusrite.com/products/scarlett-2i2',
+    for: ['jarvis'],
+  },
+  {
+    id: 'streamdeck',
+    view: 'desk',
+    n: 9,
+    kind: t('Control deck', 'Контролен панел'),
+    maker: 'Elgato',
+    model: t('Stream Deck (15 keys)', 'Stream Deck (15 бутона)'),
+    purpose: t(
+      'Programmable keys with their own icons: application shortcuts, multi-step actions, profiles and streaming controls through Elgato’s plugins.',
+      'Програмируеми бутони със собствени икони: бързи клавиши за приложения, действия в няколко стъпки, профили и контрол на стрийма чрез плъгините на Elgato.',
+    ),
+    specs: [
+      t('5 × 3 key layout (from its profile)', 'Подредба 5 × 3 бутона (от профила му)'),
+      t(
+        'Model code 20GBA9901; the exact generation is not confirmed, so it is not called MK.2 here',
+        'Модел 20GBA9901; точното поколение не е потвърдено, затова тук не е наречен MK.2',
+      ),
+    ],
+    workflow: t(
+      'Its one profile drives OBS Studio, Discord, a microphone mute toggle and media playback. It is not connected to my development tools or to J.A.R.V.I.S.',
+      'Единственият му профил управлява OBS Studio, Discord, изключване на микрофона и възпроизвеждането на музика. Не е свързан с инструментите ми за разработка, нито с J.A.R.V.I.S.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.elgato.com/us/en/explorer/products/stream-deck/which-stream-deck-should-you-get/',
+  },
+  {
+    id: 'keyboard',
+    view: 'desk',
+    n: 10,
+    kind: t('Keyboard', 'Клавиатура'),
+    maker: 'Cougar',
+    model: 'Attack X3',
+    purpose: t(
+      'Mechanical keyboard for long writing and coding sessions.',
+      'Механична клавиатура за дълги сесии с текст и код.',
+    ),
+    specs: [t('Mechanical switches', 'Механични бутони')],
+    status: 'current',
+    source: 'owner',
+  },
+  {
+    id: 'mouse',
+    view: 'desk',
+    n: 11,
+    kind: t('Mouse and mat', 'Мишка и подложка'),
+    maker: 'Logitech · Razer',
+    model: 'G502 HERO · Goliathus Chroma Extended',
+    purpose: t(
+      'A mouse with extra programmable buttons, on an extended RGB mat.',
+      'Мишка с допълнителни програмируеми бутони, върху удължена RGB подложка.',
+    ),
+    specs: [
+      t('Extended cloth mat with RGB lighting', 'Удължена текстилна подложка с RGB подсветка'),
+    ],
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.logitechg.com/en-eu/shop/p/g502-hero-gaming-mouse.910-005470',
+  },
+  {
+    id: 'tower',
+    view: 'desk',
+    n: 12,
+    kind: t('Workstation', 'Работна станция'),
+    maker: t('Custom build', 'Собствена конфигурация'),
+    model: 'Ryzen 9 5900X · RTX 3080',
+    purpose: t(
+      'The PC everything on this site was built on. Open “Inside the PC” to explore it part by part.',
+      'Компютърът, на който е създадено всичко на този сайт. Отворете „Вътре в компютъра“, за да го разгледате част по част.',
+    ),
+    specs: [
+      t('Windows 11 Pro, 64 GB RAM, two NVMe SSDs', 'Windows 11 Pro, 64 GB RAM, два NVMe SSD'),
+    ],
+    status: 'current',
+    source: 'machine',
+    for: ['caelora', 'jarvis', 'uss-x-academy', 'zone-32-19', 'kobait'],
+  },
+  {
+    id: 'camera',
+    view: 'desk',
+    n: 13,
+    kind: t('Camera', 'Фотоапарат'),
+    maker: 'Sony',
+    model: 'Alpha a6400',
+    purpose: t(
+      'For project demos, development diaries, streaming and hardware close-ups.',
+      'За демонстрации на проекти, дневници на разработката, стрийминг и близки кадри на хардуер.',
+    ),
+    specs: [t('Mirrorless camera', 'Безогледален фотоапарат')],
+    workflow: t(
+      'Not bought. It would also need a lens, a mount, continuous power and a way to get video into the PC; none of those are bought either.',
+      'Не е купен. Ще трябват и обектив, стойка, постоянно захранване и начин видеото да стига до компютъра; нищо от това също не е купено.',
+    ),
+    status: 'planned',
+    source: 'owner',
+  },
+  {
+    id: 'podmic',
+    view: 'desk',
+    kind: t('Previous microphone', 'Предишен микрофон'),
+    maker: 'RØDE',
+    model: 'PodMic',
+    purpose: t(
+      'My microphone before the Procaster, also a dynamic broadcast model.',
+      'Микрофонът ми преди Procaster, също динамичен излъчвателен модел.',
+    ),
+    specs: [t('Dynamic, XLR', 'Динамичен, XLR')],
+    status: 'past',
+    source: 'owner',
+    link: 'https://rode.com/en-bg/products/podmic',
+  },
+
+  // ---------- Inside the PC ----------
+  {
+    id: 'cpu',
+    view: 'inside',
+    n: 1,
+    kind: t('Processor', 'Процесор'),
+    maker: 'AMD',
+    model: 'Ryzen 9 5900X',
+    purpose: t(
+      'Builds, tests, Docker, the local database and speech models, often all at once.',
+      'Компилации, тестове, Docker, локалната база данни и гласовите модели, често едновременно.',
+    ),
+    specs: [t('12 cores, 24 threads, AM4', '12 ядра, 24 нишки, AM4')],
+    workflow: t(
+      'J.A.R.V.I.S. keeps speech on the CPU on purpose, so the GPU stays free for the language model.',
+      'J.A.R.V.I.S. нарочно държи гласа на процесора, за да остане видеокартата свободна за езиковия модел.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.amd.com/en/products/processors/desktops/ryzen/5000-series/amd-ryzen-9-5900x.html',
+    for: ['caelora', 'jarvis', 'uss-x-academy', 'zone-32-19'],
+  },
+  {
+    id: 'cooler',
+    view: 'inside',
+    n: 2,
+    kind: t('CPU cooling', 'Охлаждане на процесора'),
+    maker: 'Corsair',
+    model: 'H100i RGB Platinum',
+    purpose: t(
+      'All-in-one liquid cooler for the 12-core CPU under long builds.',
+      'Течно охлаждане за 12-ядрения процесор при дълги компилации.',
+    ),
+    specs: [
+      t(
+        '240 mm radiator, two 120 mm ML PRO RGB fans',
+        'Радиатор 240 мм, два вентилатора ML PRO RGB 120 мм',
+      ),
+      t('Pump and fans controlled in iCUE', 'Помпата и вентилаторите се управляват в iCUE'),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: 'https://www.corsair.com/newsroom/press-release/corsair-launches-new-hydro-series-h100i-and-h115i-rgb-platinum-liquid-cpu-coolers',
+  },
+  {
+    id: 'ram',
+    view: 'inside',
+    n: 3,
+    kind: t('Memory', 'Памет'),
+    maker: 'Kingston',
+    model: 'FURY Beast DDR4, 4 × 16 GB',
+    purpose: t(
+      'Room for the Unity editor, several worktrees, Docker and browser tests at the same time.',
+      'Място за редактора на Unity, няколко работни копия, Docker и браузърни тестове едновременно.',
+    ),
+    specs: [t('64 GB at 3200 MT/s', '64 GB при 3200 MT/s')],
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.kingston.com/en/memory/gaming/kingston-fury-beast-ddr4-memory',
+    for: ['caelora', 'jarvis'],
+  },
+  {
+    id: 'gpu',
+    view: 'inside',
+    n: 4,
+    kind: t('Graphics', 'Видеокарта'),
+    maker: 'NVIDIA',
+    model: 'GeForce RTX 3080 10 GB',
+    purpose: t(
+      'Runs the local language model for J.A.R.V.I.S. and renders Caelora.',
+      'Изпълнява локалния езиков модел на J.A.R.V.I.S. и рендира Caelora.',
+    ),
+    specs: [
+      t('10,240 MiB VRAM, compute capability 8.6', '10 240 MiB видеопамет, compute capability 8.6'),
+    ],
+    workflow: t(
+      'Only about 8 GB is free at idle, which is the tightest limit in the setup and decided which model J.A.R.V.I.S. runs.',
+      'В покой свободни са само около 8 GB – това е най-тясното ограничение в цялата техника и то реши кой модел работи в J.A.R.V.I.S.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.nvidia.com/en-us/geforce/graphics-cards/30-series/rtx-3080-3080ti/',
+    for: ['jarvis', 'caelora'],
+  },
+  {
+    id: 'board',
+    view: 'inside',
+    n: 5,
+    kind: t('Motherboard', 'Дънна платка'),
+    maker: 'MSI',
+    model: 'MPG X570 GAMING PLUS',
+    purpose: t(
+      'Ties it together; its spare PCIe slots made the Wi-Fi 7 and USB cards possible.',
+      'Свързва всичко; свободните ѝ PCIe слотове направиха възможни картите за Wi-Fi 7 и USB.',
+    ),
+    specs: [t('AM4, X570 chipset, PCIe 4.0', 'AM4, чипсет X570, PCIe 4.0')],
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.msi.com/Motherboard/MPG-X570-Gaming-PLUS/Specification',
+  },
+  {
+    id: 'ssd',
+    view: 'inside',
+    n: 6,
+    kind: t('System and work drives', 'Системен и работен диск'),
+    maker: 'Samsung',
+    model: '990 EVO Plus 1 TB · 990 PRO 1 TB',
+    purpose: t(
+      'Repositories, worktrees, build caches and model files; the local model alone is about 5 GB.',
+      'Хранилища, работни копия, кешове на компилации и файлове на модели; само локалният модел е около 5 GB.',
+    ),
+    specs: [t('Two NVMe SSDs on the board', 'Два NVMe SSD на платката')],
+    workflow: t(
+      'No Samsung 970 EVO Plus was found in this machine.',
+      'В този компютър не беше открит Samsung 970 EVO Plus.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.samsung.com/bg/memory-storage/nvme-ssd/990-evo-plus-1tb-nvme-pcie-gen-4-mz-v9s1t0bw/',
+    for: ['caelora', 'jarvis'],
+  },
+  {
+    id: 'hdd',
+    view: 'inside',
+    n: 7,
+    kind: t('Bulk storage', 'Архив'),
+    maker: 'Seagate · WD · Toshiba',
+    model: 'SkyHawk 1 TB · Purple 1 TB · 500 GB',
+    purpose: t(
+      'Recordings, raw captures and archives that do not need SSD speed.',
+      'Записи, необработени кадри и архиви, на които не им трябва скоростта на SSD.',
+    ),
+    specs: [t('Three SATA hard drives', 'Три SATA твърди диска')],
+    status: 'current',
+    source: 'machine',
+  },
+  {
+    id: 'psu',
+    view: 'inside',
+    n: 8,
+    kind: t('Power supply', 'Захранване'),
+    maker: 'Super Flower',
+    model: 'Leadex III Gold 850 W',
+    purpose: t(
+      'Steady power for the CPU, the RTX 3080 and the expansion cards.',
+      'Стабилно захранване за процесора, RTX 3080 и картите за разширение.',
+    ),
+    specs: [
+      t('80 PLUS Gold, fully modular', '80 PLUS Gold, напълно модулно'),
+      t('140 mm fluid-dynamic-bearing fan', 'Вентилатор 140 мм с FDB лагер'),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: 'https://www.super-flower.com.tw/products-detail/LIII-G/',
+  },
+  {
+    id: 'wifi',
+    view: 'inside',
+    n: 9,
+    kind: t('Wireless card', 'Безжична карта'),
+    maker: 'GIGABYTE',
+    model: 'GC-WIFI7 (Rev. 1.0)',
+    purpose: t(
+      'Adds Wi-Fi 7 and Bluetooth to a board that predates both.',
+      'Добавя Wi-Fi 7 и Bluetooth към платка, по-стара и от двете.',
+    ),
+    specs: [
+      t('PCIe ×1 · Wi-Fi 7 on 2.4, 5 and 6 GHz · MLO', 'PCIe ×1 · Wi-Fi 7 на 2,4, 5 и 6 GHz · MLO'),
+      t(
+        'Bluetooth 5.3 · 2T2R antenna · Windows 11 only',
+        'Bluetooth 5.3 · антена 2T2R · само Windows 11',
+      ),
+    ],
+    workflow: t(
+      'Windows sees a Qualcomm FastConnect 7800 adapter. Multi-Link Operation keeps links on two bands at once, and 6 GHz needs a router that supports it. Its throughput is not measured, so no speed is quoted.',
+      'Windows го вижда като адаптер Qualcomm FastConnect 7800. Multi-Link Operation държи връзка в две ленти едновременно, а за 6 GHz е нужен рутер, който я поддържа. Скоростта не е измерена, затова тук няма цифри.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.gigabyte.com/PC-Accessory/GC-WIFI7-rev-10',
+  },
+  {
+    id: 'usb',
+    view: 'inside',
+    n: 10,
+    kind: t('USB card', 'USB карта'),
+    maker: 'JESWO',
+    model: t('7-port PCIe to USB 3.0 card', 'PCIe карта със 7 порта USB 3.0'),
+    purpose: t(
+      'More USB ports for the audio interface, webcam, controllers and development boards.',
+      'Повече USB портове за аудиоинтерфейса, уеб камерата, контролерите и платките за разработка.',
+    ),
+    specs: [
+      t('Renesas µPD720201 controller', 'Контролер Renesas µPD720201'),
+      t(
+        'One PCIe 2.0 ×1 link, shared by all seven ports',
+        'Една PCIe 2.0 ×1 връзка, обща за седемте порта',
+      ),
+    ],
+    workflow: t(
+      'An internal card, not a hub. Plenty for peripherals and serial boards; two fast drives copying at once would share one lane.',
+      'Вътрешна карта, а не хъб. Предостатъчно за периферия и платки със серийна връзка; два бързи диска, които копират едновременно, ще делят една линия.',
+    ),
+    status: 'current',
+    source: 'machine',
+    link: 'https://www.jeswo.com/',
+    for: ['kobait'],
+  },
+
+  // ---------- Secondary PC ----------
+  {
+    id: 'old-cpu',
+    view: 'secondary',
+    n: 1,
+    kind: t('Processor', 'Процесор'),
+    maker: 'Intel',
+    model: 'Core i7-4790K',
+    purpose: t(
+      'Four cores, eight threads: enough for light Linux services.',
+      'Четири ядра, осем нишки: достатъчно за леки услуги под Linux.',
+    ),
+    specs: [t('4 cores, 8 threads, LGA 1150', '4 ядра, 8 нишки, LGA 1150')],
+    status: 'spare',
+    source: 'owner',
+    link: 'https://www.intel.com/content/www/us/en/products/sku/80807/intel-core-i74790k-processor-8m-cache-up-to-4-40-ghz/specifications.html',
+  },
+  {
+    id: 'old-gpu',
+    view: 'secondary',
+    n: 2,
+    kind: t('Graphics', 'Видеокарта'),
+    maker: 'NVIDIA',
+    model: 'GeForce GTX 1080 Ti 11 GB',
+    purpose: t(
+      'More VRAM than the main PC, which makes it interesting for a second model host.',
+      'Повече видеопамет от основния компютър, което я прави интересна за втори хост на модели.',
+    ),
+    specs: [
+      t(
+        '11 GB VRAM, Pascal: no tensor cores, no bf16',
+        '11 GB видеопамет, Pascal: без тензорни ядра и bf16',
+      ),
+    ],
+    status: 'spare',
+    source: 'owner',
+    link: 'https://www.nvidia.com/en-gb/geforce/graphics-cards/geforce-gtx-1080-ti/',
+  },
+  {
+    id: 'old-ram',
+    view: 'secondary',
+    n: 3,
+    kind: t('Memory', 'Памет'),
+    maker: '—',
+    model: '16 GB DDR3',
+    purpose: t(
+      'Enough for a few containers, not for large builds.',
+      'Достатъчно за няколко контейнера, но не и за големи компилации.',
+    ),
+    specs: [t('16 GB, DDR3', '16 GB, DDR3')],
+    status: 'spare',
+    source: 'owner',
+  },
+  {
+    id: 'old-hdd',
+    view: 'secondary',
+    n: 4,
+    kind: t('Storage', 'Диск'),
+    maker: '—',
+    model: t('Hard drive', 'Твърд диск'),
+    purpose: t(
+      'The current system drive and the main bottleneck.',
+      'Сегашният системен диск и основното тясно място.',
+    ),
+    specs: [t('Spinning hard drive', 'Механичен твърд диск')],
+    status: 'spare',
+    source: 'owner',
+  },
+  {
+    id: 'old-ssd',
+    view: 'secondary',
+    n: 5,
+    kind: t('Planned upgrade', 'Планиран ъпгрейд'),
+    maker: '—',
+    model: t('2.5-inch SATA SSD, 1 TB or 2 TB', '2,5-инчов SATA SSD, 1 TB или 2 TB'),
+    purpose: t(
+      'Fixes the slow hard drive before the machine gets any role.',
+      'Решава проблема с бавния диск, преди машината да получи роля.',
+    ),
+    specs: [t('Not bought, not installed', 'Не е купен и не е монтиран')],
+    workflow: t(
+      '1 TB covers an operating system, Docker images and a few models; 2 TB leaves room for backups and recordings. The free bay, SATA port and power connector come first.',
+      '1 TB стига за операционна система, Docker образи и няколко модела; 2 TB оставят място за резервни копия и записи. Първо трябва да се проверят свободното гнездо, SATA портът и захранващият кабел.',
+    ),
+    status: 'planned',
+    source: 'owner',
+  },
+
+  // ---------- Laptop ----------
+  {
+    id: 'nitro',
+    view: 'laptop',
+    n: 1,
+    kind: t('Laptop', 'Лаптоп'),
+    maker: 'Acer',
+    model: 'Nitro AN515-52',
+    purpose: t(
+      'Portable development, and the machine that forced J.A.R.V.I.S. to work on Linux.',
+      'Преносима разработка и машината, заради която J.A.R.V.I.S. трябваше да заработи под Linux.',
+    ),
+    specs: [t('15.6-inch gaming laptop', '15,6-инчов геймърски лаптоп')],
+    status: 'current',
+    source: 'docs',
+    for: ['jarvis'],
+  },
+  {
+    id: 'l-cpu',
+    view: 'laptop',
+    n: 2,
+    kind: t('Processor', 'Процесор'),
+    maker: 'Intel',
+    model: 'Core i7-8750H',
+    purpose: t(
+      'Builds and tests the TypeScript core on Linux.',
+      'Компилира и тества ядрото на TypeScript под Linux.',
+    ),
+    specs: [t('6 cores, 12 threads', '6 ядра, 12 нишки')],
+    status: 'current',
+    source: 'docs',
+    link: 'https://www.intel.com/content/www/us/en/products/sku/134906/intel-core-i78750h-processor-9m-cache-up-to-4-10-ghz/specifications.html',
+  },
+  {
+    id: 'l-gpu',
+    view: 'laptop',
+    n: 3,
+    kind: t('Graphics', 'Видеокарта'),
+    maker: 'NVIDIA',
+    model: 'GeForce GTX 1050 Ti 4 GB',
+    purpose: t(
+      'Measured to fit roughly a 6B-parameter model at 4-bit: a development machine, not a model host.',
+      'Измерено: побира приблизително модел с 6 милиарда параметъра при 4 бита – машина за разработка, а не хост на модели.',
+    ),
+    specs: [t('4 GB VRAM, compute capability 6.1', '4 GB видеопамет, compute capability 6.1')],
+    status: 'current',
+    source: 'docs',
+  },
+  {
+    id: 'l-ram',
+    view: 'laptop',
+    n: 4,
+    kind: t('Memory', 'Памет'),
+    maker: '—',
+    model: '24 GB',
+    purpose: t(
+      'Editor, Node and tests, without the game engine.',
+      'Редактор, Node и тестове, без енджина на играта.',
+    ),
+    specs: [t('About 23,355 MB reported by Linux', 'Около 23 355 MB според Linux')],
+    status: 'current',
+    source: 'docs',
+  },
+  {
+    id: 'l-os',
+    view: 'laptop',
+    n: 5,
+    kind: t('Operating system', 'Операционна система'),
+    maker: 'Canonical',
+    model: 'Ubuntu 26.04 LTS',
+    purpose: t(
+      'GNOME on Wayland, Node 24, Git and the GitHub CLI; the storage layout is not verified here.',
+      'GNOME на Wayland, Node 24, Git и GitHub CLI; разпределението на дисковете тук не е проверено.',
+    ),
+    specs: [t('Recorded in August 2026', 'Записано през август 2026 г.')],
+    status: 'current',
+    source: 'docs',
+  },
+];
+
+/** The views of the explorers, in page order. */
+export const views: readonly View[] = ['desk', 'inside', 'secondary', 'laptop'];
+export const partsIn = (view: View) => parts.filter((p) => p.view === view);
+
+/** Possible roles for the secondary PC. None of them runs today. */
+export const secondaryRoles: readonly L[] = [
+  t('Linux home server and Docker host', 'Домашен сървър с Linux и Docker'),
+  t('Backups and storage for recordings', 'Резервни копия и място за записите'),
+  t('A CI or test runner for my repositories', 'CI или тестов агент за хранилищата ми'),
+  t(
+    'A second model host for J.A.R.V.I.S., thanks to its 11 GB GPU',
+    'Втори хост на модели за J.A.R.V.I.S. заради видеокартата с 11 GB',
+  ),
+  t('A dedicated streaming PC', 'Отделен компютър за стрийминг'),
+];
+
+/** Honest costs of reusing old hardware. */
+export const reuseLimits: readonly L[] = [
+  t(
+    'Higher idle power than a modern mini PC',
+    'По-висока консумация в покой от съвременен мини компютър',
+  ),
+  t(
+    'DDR3 and a 2014 CPU cap how much it can build or run',
+    'DDR3 и процесор от 2014 г. ограничават колко може да компилира и изпълнява',
+  ),
+  t(
+    'A hard drive is too slow until the SSD arrives',
+    'Твърдият диск е твърде бавен, докато не дойде SSD',
+  ),
+  t('One more machine to patch and maintain', 'Още една машина за обновяване и поддръжка'),
 ];
 
 /** Problem → decision → implementation → trade-offs → result → lesson. */
@@ -637,77 +957,151 @@ export const tools: readonly Tool[] = [
   },
 ];
 
-export type Stage = 'operational' | 'building' | 'planned' | 'vision';
+export type Stage = 'operational' | 'building' | 'past' | 'planned' | 'vision';
 
-export const roadmap: Record<Stage, readonly L[]> = {
+export interface Milestone {
+  item: L;
+  /** What it would enable, or which limit it addresses. Never a result. */
+  why?: L;
+}
+
+export const roadmap: Record<Stage, readonly Milestone[]> = {
   operational: [
     {
-      en: 'A local Qwen3-8B on the RTX 3080 answers selected low-risk J.A.R.V.I.S. requests',
-      bg: 'Локален Qwen3-8B на RTX 3080 отговаря на избрани заявки с нисък риск в J.A.R.V.I.S.',
+      item: t(
+        'Local Qwen3-8B on the RTX 3080 for selected J.A.R.V.I.S. requests',
+        'Локален Qwen3-8B на RTX 3080 за избрани заявки в J.A.R.V.I.S.',
+      ),
     },
     {
-      en: 'Push-to-talk voice and an opt-in wake word',
-      bg: 'Глас с push-to-talk и дума за събуждане по желание',
+      item: t(
+        'Push-to-talk voice and an opt-in wake word',
+        'Глас с push-to-talk и дума за събуждане по желание',
+      ),
     },
     {
-      en: 'The Procaster and Scarlett chain for calls and recording',
-      bg: 'Веригата Procaster и Scarlett за разговори и записи',
+      item: t(
+        'Procaster and Scarlett chain for calls and recording',
+        'Веригата Procaster и Scarlett за разговори и записи',
+      ),
     },
-    { en: 'A playable Windows build of Caelora', bg: 'Играема версия на Caelora за Windows' },
-    { en: 'The KObait bench rig', bg: 'Стендът за KObait' },
+    { item: t('A playable Windows build of Caelora', 'Играема версия на Caelora за Windows') },
+    { item: t('The KObait test bench', 'Стендът за изпитване на KObait') },
   ],
   building: [
     {
-      en: 'A new J.A.R.V.I.S. desktop window, on an integration branch',
-      bg: 'Нов прозорец на J.A.R.V.I.S., в интеграционен клон',
+      item: t('A new J.A.R.V.I.S. desktop window', 'Нов прозорец на J.A.R.V.I.S.'),
+      why: t(
+        'On an integration branch; real-hardware acceptance is still open.',
+        'В интеграционен клон; приемането на реален хардуер предстои.',
+      ),
     },
     {
-      en: 'A multi-device link for J.A.R.V.I.S., merged but switched off',
-      bg: 'Връзка между няколко устройства за J.A.R.V.I.S., слята, но изключена',
+      item: t('A multi-device link for J.A.R.V.I.S.', 'Връзка между устройства за J.A.R.V.I.S.'),
+      why: t('Merged but switched off by default.', 'Слята, но изключена по подразбиране.'),
     },
     {
-      en: 'Creatures and villagers in Caelora’s playable valley',
-      bg: 'Същества и селяни в играемата долина на Caelora',
+      item: t(
+        'Creatures and villagers in Caelora’s valley',
+        'Същества и селяни в долината на Caelora',
+      ),
+      why: t(
+        'Tested core code that the game does not use yet.',
+        'Тестван код в ядрото, който играта още не използва.',
+      ),
     },
     {
-      en: 'A second version of the KObait remote interface',
-      bg: 'Втора версия на интерфейса на дистанционното на KObait',
+      item: t(
+        'KObait remote interface, second version',
+        'Втора версия на интерфейса на дистанционното за KObait',
+      ),
+      why: t('Written, not yet on the hardware.', 'Написана, още не е качена на хардуера.'),
+    },
+  ],
+  past: [
+    {
+      item: t('RØDE PodMic', 'RØDE PodMic'),
+      why: t('Replaced by the Procaster.', 'Заменен от Procaster.'),
+    },
+    {
+      item: t(
+        'The laptop as the only development machine',
+        'Лаптопът като единствен компютър за разработка',
+      ),
+      why: t(
+        'August 2026; development moved back to the desktop.',
+        'Август 2026 г.; разработката се върна на настолния компютър.',
+      ),
     },
   ],
   planned: [
     {
-      en: 'A SATA SSD for the secondary PC, then a Linux home server for Docker, backups and self-hosted services',
-      bg: 'SATA SSD за втория компютър, а след това домашен сървър с Linux за Docker, резервни копия и собствени услуги',
+      item: t(
+        'A 1 TB or 2 TB SATA SSD for the secondary PC',
+        'SATA SSD с 1 TB или 2 TB за втория компютър',
+      ),
+      why: t(
+        'Removes the hard-drive bottleneck that rules out any server role today.',
+        'Маха тясното място с твърдия диск, което днес изключва всяка сървърна роля.',
+      ),
     },
     {
-      en: 'A Sony a6400 for project demos and development diaries',
-      bg: 'Sony a6400 за демонстрации на проекти и дневници на разработката',
+      item: t('A Linux home lab on that machine', 'Домашна лаборатория с Linux на тази машина'),
+      why: t(
+        'Docker services, backups and a CI runner away from the main PC.',
+        'Docker услуги, резервни копия и CI агент извън основния компютър.',
+      ),
     },
     {
-      en: 'A J.A.R.V.I.S. mobile companion, so far only a design document',
-      bg: 'Мобилен придружител на J.A.R.V.I.S., засега само проектен документ',
+      item: t('Sony a6400 for video', 'Sony a6400 за видео'),
+      why: t(
+        'Better image quality than a webcam for demos and development diaries.',
+        'По-добро качество от уеб камера за демонстрации и дневници на разработката.',
+      ),
     },
     {
-      en: 'KObait water tests, starting tethered',
-      bg: 'Изпитания на KObait във вода, първо с въже',
+      item: t('J.A.R.V.I.S. mobile companion', 'Мобилен придружител на J.A.R.V.I.S.'),
+      why: t('So far only a design document.', 'Засега само проектен документ.'),
+    },
+    {
+      item: t(
+        'KObait water tests, starting tethered',
+        'Изпитания на KObait във вода, първо с въже',
+      ),
+      why: t('The step after bench testing.', 'Следващата стъпка след изпитанията на стенд.'),
     },
   ],
   vision: [
     {
-      en: 'The secondary PC’s 11 GB GPU as a second inference machine',
-      bg: 'Видеокартата с 11 GB на втория компютър като втора машина за модели',
+      item: t('A second model host for J.A.R.V.I.S.', 'Втори хост на модели за J.A.R.V.I.S.'),
+      why: t(
+        'The 11 GB GPU could take load the 10 GB card cannot.',
+        'Видеокартата с 11 GB би поела това, което картата с 10 GB не може.',
+      ),
     },
     {
-      en: 'Dual-PC streaming of Caelora development',
-      bg: 'Стрийминг на разработката на Caelora с два компютъра',
+      item: t('Streaming Caelora development', 'Стрийминг на разработката на Caelora'),
+      why: t(
+        'With the camera, the audio chain and possibly a second PC for encoding.',
+        'С фотоапарата, звуковата верига и евентуално втори компютър за кодиране.',
+      ),
     },
     {
-      en: 'A headless Caelora server, then multiplayer',
-      bg: 'Headless сървър за Caelora, а после мултиплейър',
+      item: t(
+        'A headless Caelora server, then multiplayer',
+        'Headless сървър за Caelora, после мултиплейър',
+      ),
+      why: t(
+        'The engine-free rules core was designed for this.',
+        'Ядрото с правилата, независимо от енджина, е проектирано за това.',
+      ),
     },
     {
-      en: 'New sensors and microcontrollers for the next embedded prototype',
-      bg: 'Нови сензори и микроконтролери за следващия вграден прототип',
+      item: t('A next-generation embedded prototype', 'Следващо поколение вграден прототип'),
+      why: t(
+        'Better sensing, communication and reliability than KObait’s first build.',
+        'По-добри сензори, връзка и надеждност от първата версия на KObait.',
+      ),
     },
   ],
 };

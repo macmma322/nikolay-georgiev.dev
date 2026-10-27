@@ -1,0 +1,16 @@
+---
+/** A numbered marker in a setup schematic; the number matches the list. */
+interface Props {
+  n: number;
+  x: number;
+  y: number;
+}
+const { n, x, y } = Astro.props;
+---
+
+<g class="mark">
+  <circle cx={x} cy={y} r="10"></circle>
+  <text x={x} y={y + 4} text-anchor="middle">
+    {n}
+  </text>
+</g>

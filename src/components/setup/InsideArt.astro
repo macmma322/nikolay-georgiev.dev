@@ -1,0 +1,87 @@
+---
+/**
+ * Inside the main PC, as an educational schematic: the parts and how they
+ * connect, not their exact physical placement or scale.
+ */
+import Mark from './Mark.astro';
+---
+
+<svg class="setup-art" viewBox="0 0 800 470" focusable="false">
+  <rect class="case" x="30" y="16" width="740" height="438" rx="6"></rect>
+
+  <g data-part="board">
+    <rect class="ink" x="200" y="72" width="380" height="262" rx="4"></rect>
+    <path class="faint" d="M214 300h120M214 312h90M520 90v40M540 90v40"></path>
+    <Mark n={5} x={560} y={316} />
+  </g>
+
+  <g data-part="cooler">
+    <rect class="ink" x="230" y="30" width="300" height="28" rx="3"></rect>
+    <circle class="wire" cx="305" cy="44" r="11"></circle>
+    <circle class="wire" cx="455" cy="44" r="11"></circle>
+    <path class="wire" d="M300 58C300 90 330 100 336 116M314 58C318 88 346 96 352 116"></path>
+    <circle class="wire" cx="348" cy="138" r="24"></circle>
+    <Mark n={2} x={548} y={44} />
+  </g>
+
+  <g data-part="cpu">
+    <rect class="ink" x="324" y="114" width="48" height="48"></rect>
+    <path class="faint" d="M332 122h32v32h-32z"></path>
+    <Mark n={1} x={300} y={150} />
+  </g>
+
+  <g data-part="ram">
+    <rect class="ink" x="410" y="94" width="7" height="90"></rect>
+    <rect class="ink" x="422" y="94" width="7" height="90"></rect>
+    <rect class="ink" x="434" y="94" width="7" height="90"></rect>
+    <rect class="ink" x="446" y="94" width="7" height="90"></rect>
+    <Mark n={3} x={476} y={110} />
+  </g>
+
+  <g data-part="ssd">
+    <rect class="ink" x="360" y="196" width="84" height="10" rx="1"></rect>
+    <rect class="ink" x="360" y="290" width="84" height="10" rx="1"></rect>
+    <Mark n={6} x={466} y={201} />
+  </g>
+
+  <g data-part="gpu">
+    <rect class="ink" x="208" y="216" width="428" height="50" rx="3"></rect>
+    <circle class="wire" cx="330" cy="241" r="18"></circle>
+    <circle class="wire" cx="500" cy="241" r="18"></circle>
+    <rect class="wire" x="196" y="214" width="8" height="54"></rect>
+    <Mark n={4} x={656} y={241} />
+  </g>
+
+  <g data-part="wifi">
+    <rect class="ink" x="232" y="276" width="70" height="12" rx="1"></rect>
+    <rect class="wire" x="196" y="272" width="8" height="20"></rect>
+    <path class="wire" d="M196 282H120V214"></path>
+    <rect class="ink" x="104" y="200" width="32" height="14" rx="2"></rect>
+    <path class="wire" d="M112 200V160M128 200V166"></path>
+    <Mark n={9} x={84} y={176} />
+  </g>
+
+  <g data-part="usb">
+    <rect class="ink" x="232" y="306" width="104" height="14" rx="1"></rect>
+    <rect class="wire" x="196" y="302" width="8" height="22"></rect>
+    {Array.from({ length: 7 }, (_, i) => (
+      <rect class="wire" x={240 + i * 13} y="309" width="9" height="7" />
+    ))}
+    <Mark n={10} x={356} y={313} />
+  </g>
+
+  <g data-part="psu">
+    <rect class="ink" x="50" y="362" width="210" height="78" rx="3"></rect>
+    <circle class="wire" cx="155" cy="401" r="28"></circle>
+    <path class="wire" d="M260 380C300 380 300 340 330 334"></path>
+    <Mark n={8} x={282} y={420} />
+  </g>
+
+  <g data-part="hdd">
+    <rect class="wire" x="600" y="350" width="150" height="90" rx="2"></rect>
+    <rect class="ink" x="612" y="360" width="126" height="18" rx="1"></rect>
+    <rect class="ink" x="612" y="386" width="126" height="18" rx="1"></rect>
+    <rect class="ink" x="612" y="412" width="126" height="18" rx="1"></rect>
+    <Mark n={7} x={580} y={366} />
+  </g>
+</svg>

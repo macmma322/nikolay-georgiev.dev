@@ -41,9 +41,12 @@ interface Props {
   diagram: Diagram;
   figure?: string | undefined;
   accent?: string | undefined;
+  /** Where the legend's "built" and "planned" keys lead (a case study's sections by default). */
+  todayHref?: string;
+  nextHref?: string;
 }
 
-const { diagram: d, figure, accent } = Astro.props;
+const { diagram: d, figure, accent, todayHref = '#today', nextHref = '#next' } = Astro.props;
 const { l, t } = useI18n(Astro);
 const s = t(ui);
 const W = d.cols * CELL_W;
@@ -113,7 +116,7 @@ const headingId = `fig-${d.id}`;
     </p>
     <ul class="legend" role="list">
       <li>
-        <a class="lg lg-built" href="#today">
+        <a class="lg lg-built" href={todayHref}>
           <i aria-hidden="true"></i>
           {s.legend.built}
           <span class="visually-hidden">{s.legend.seeToday}</span>
@@ -121,7 +124,7 @@ const headingId = `fig-${d.id}`;
       </li>
       {hasPlanned && (
         <li>
-          <a class="lg lg-planned" href="#next">
+          <a class="lg lg-planned" href={nextHref}>
             <i aria-hidden="true" />
             {s.legend.planned}
             <span class="visually-hidden">{s.legend.seeNext}</span>

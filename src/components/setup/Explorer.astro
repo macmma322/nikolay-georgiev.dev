@@ -1,0 +1,531 @@
+---
+/**
+ * An equipment explorer: one or more schematic views, a numbered list of the
+ * parts in each, and one detail panel.
+ *
+ * Selecting a list item (click, Enter or Space) or a part in the drawing shows
+ * its details, lights the part and dims the rest; pointing at or focusing an
+ * item lights its part first, the same label-to-drawing language as the rest
+ * of the site. The drawing is decorative (aria-hidden): the list is the
+ * accessible control. The choice is remembered (localStorage) so switching
+ * language keeps it.
+ *
+ * Without JavaScript every detail panel is shown in order and the views stack.
+ */
+import { getProjects } from '@/lib/projects';
+import { useI18n, type L } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { setup } from '@/i18n/ui/setup';
+import type { Part, View } from '@/data/setup';
+
+interface Props {
+  id: string;
+  views: readonly { view: View; label: string; art: any }[];
+  parts: readonly Part[];
+}
+
+const { id, views, parts } = Astro.props;
+const { locale, l, t, href } = useI18n(Astro);
+const u = t(setup);
+const s = t(common);
+const projects = await getProjects(locale);
+const project = (slug: string) => projects.find((p) => p.id === slug);
+const multi = views.length > 1;
+/** A brand or model name as written, or a description in this language. */
+const text = (value: string | L) => (typeof value === 'string' ? value : l(value));
+---
+
+<div class="explorer" data-explorer={id}>
+  {multi && (
+    <fieldset class="switch">
+      <legend class="visually-hidden">{u.explorer.view}</legend>
+      {views.map((v, i) => (
+        <label>
+          <input type="radio" name={`${id}-view`} value={v.view} data-view checked={i === 0} />
+          <span>{v.label}</span>
+        </label>
+      ))}
+    </fieldset>
+  )}
+
+  <div class="explorer-grid">
+    <div class="views">
+      {views.map((v) => (
+        <div class="view" data-view-pane={v.view}>
+          <figure class="art" aria-hidden="true">
+            <v.art />
+          </figure>
+          <ol role="list" class="picker" aria-label={`${u.explorer.parts}: ${v.label}`}>
+            {parts
+              .filter((p) => p.view === v.view)
+              .map((p) => (
+                <li>
+                  <button
+                    type="button"
+                    class:list={['pick', `status-${p.status}`]}
+                    data-pick={p.id}
+                    data-view={p.view}
+                    aria-pressed="false"
+                    aria-controls={`detail-${p.id}`}
+                  >
+                    <span class="pick-n" aria-hidden="true">
+                      {p.n ?? '·'}
+                    </span>
+                    <span class="pick-kind">{t(p.kind)}</span>
+                    <span class="pick-model">{text(p.model)}</span>
+                  </button>
+                </li>
+              ))}
+          </ol>
+        </div>
+      ))}
+    </div>
+
+    <div class="details" aria-live="polite">
+      {parts.map((p) => (
+        <article
+          class:list={['detail', `status-${p.status}`]}
+          id={`detail-${p.id}`}
+          data-detail={p.id}
+        >
+          <p class="detail-kind label">{t(p.kind)}</p>
+          <h3 class="detail-name">
+            <span class="maker">{p.maker === '—' ? '' : text(p.maker)}</span> {text(p.model)}
+          </h3>
+          <p class="badges">
+            <span class:list={['status', `status-${p.status}`]}>
+              <i aria-hidden="true" />
+              {u.status[p.status]}
+            </span>
+            <span class="source label">{u.source[p.source]}</span>
+          </p>
+          <p class="purpose">{t(p.purpose)}</p>
+          {p.specs.length > 0 && (
+            <ul role="list" class="specs">
+              {p.specs.map((spec) => (
+                <li>{t(spec)}</li>
+              ))}
+            </ul>
+          )}
+          {p.workflow && <p class="workflow">{t(p.workflow)}</p>}
+          {p.for && p.for.length > 0 && (
+            <p class="for">
+              <span class="label">{u.usedFor}</span>
+              {p.for.map((slug) => {
+                const target = project(slug);
+                return target ? <a href={href(`/work/${slug}`)}>{target.data.name}</a> : null;
+              })}
+            </p>
+          )}
+          <p class="actions">
+            {p.id === 'tower' && multi && (
+              <button type="button" class="go" data-go-view="inside">
+                {u.explorer.inside}
+                <span aria-hidden="true">→</span>
+              </button>
+            )}
+            {p.link && (
+              <a class="maker-link" href={p.link} target="_blank" rel="noopener noreferrer">
+                {u.manufacturer}
+                <span aria-hidden="true">↗</span>
+                <span class="visually-hidden">
+                  : {text(p.maker)} {text(p.model)} ({s.newTab})
+                </span>
+              </a>
+            )}
+          </p>
+        </article>
+      ))}
+    </div>
+  </div>
+</div>
+
+<script>
+  import '@/scripts/explorer';
+</script>
+
+<style>
+  .explorer {
+    --accent: var(--signal);
+  }
+
+  /* ---------- View switch (native radios) ---------- */
+  .switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs);
+    margin: 0 0 var(--space-m);
+    padding: 0;
+    border: 0;
+  }
+
+  .switch label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    color: var(--fg-2);
+    cursor: pointer;
+  }
+
+  .switch label:has(:checked) {
+    border-color: var(--fg-2);
+    color: var(--fg);
+  }
+
+  .switch label:has(:focus-visible) {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .switch input {
+    accent-color: var(--fg);
+  }
+
+  /* With the switch, only the checked view shows; without :has both stack. */
+  .explorer:has(.switch) .view {
+    display: none;
+  }
+
+  .explorer:has(input[value='desk']:checked) [data-view-pane='desk'],
+  .explorer:has(input[value='inside']:checked) [data-view-pane='inside'] {
+    display: block;
+  }
+
+  /* ---------- Layout ---------- */
+  .explorer-grid {
+    display: grid;
+    gap: var(--space-l);
+  }
+
+  @media (min-width: 64rem) {
+    .explorer-grid {
+      grid-template-columns: minmax(0, 7fr) minmax(0, 4fr);
+      align-items: start;
+    }
+
+    .details {
+      position: sticky;
+      top: 6rem;
+    }
+  }
+
+  .art {
+    margin: 0;
+    padding: var(--space-s);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-s);
+    background:
+      radial-gradient(
+        circle at 70% 20%,
+        color-mix(in oklch, var(--accent) 6%, transparent),
+        transparent 60%
+      ),
+      var(--ink-deep);
+  }
+
+  .art :global(.setup-art) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* ---------- Drawing vocabulary ---------- */
+  .art :global(.ink) {
+    fill: var(--ink-1);
+    stroke: var(--line-strong);
+    stroke-width: 1.2;
+  }
+
+  .art :global(.wire) {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-width: 1.4;
+  }
+
+  .art :global(.thick) {
+    stroke-width: 3;
+  }
+
+  .art :global(.faint) {
+    fill: none;
+    stroke: var(--line);
+    stroke-width: 1;
+  }
+
+  .art :global(.screen) {
+    fill: var(--ink-deep);
+    stroke: var(--line);
+  }
+
+  .art :global(.case) {
+    fill: none;
+    stroke: var(--line);
+    stroke-dasharray: 2 5;
+  }
+
+  .art :global(.floor) {
+    stroke: var(--line);
+  }
+
+  .art :global(.key) {
+    fill: var(--steel-dim);
+  }
+
+  .art :global(.mat) {
+    fill: var(--ink-2);
+    stroke: color-mix(in oklch, var(--acc-zone) 70%, var(--acc-jarvis));
+    stroke-width: 1.2;
+  }
+
+  .art :global(.is-planned :is(rect, circle, path, polygon)) {
+    stroke-dasharray: 4 4;
+    fill: none;
+  }
+
+  .art :global(.mark circle) {
+    fill: var(--ink-deep);
+    stroke: var(--fg-3);
+    stroke-width: 1;
+  }
+
+  .art :global(.mark text) {
+    font-family: var(--ff-mono);
+    font-size: 11px;
+    fill: var(--fg-2);
+  }
+
+  .art :global([data-part]) {
+    cursor: pointer;
+    transition: opacity var(--dur-ui) var(--ease-out);
+  }
+
+  .art :global([data-part] :is(rect, circle, path, polygon, ellipse, line)) {
+    transition:
+      stroke var(--dur-ui) var(--ease-out),
+      fill var(--dur-ui) var(--ease-out);
+  }
+
+  /* Once a part is chosen, the rest steps back. */
+  .explorer[data-ready] .art :global([data-part]:not(.is-on, .is-hover)) {
+    opacity: 0.5;
+  }
+
+  .art
+    :global([data-part]:is(.is-on, .is-hover) :is(rect, circle, path, polygon, ellipse):not(.key)) {
+    stroke: var(--accent);
+  }
+
+  .art :global([data-part].is-on .mark circle) {
+    fill: var(--accent);
+    stroke: var(--accent);
+  }
+
+  .art :global([data-part].is-on .mark text) {
+    fill: var(--ink-0);
+  }
+
+  /* ---------- Picker ---------- */
+  .picker {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13.5rem, 1fr));
+    gap: var(--space-3xs) var(--space-xs);
+    margin-top: var(--space-s);
+  }
+
+  .pick {
+    display: grid;
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    column-gap: 0.4rem;
+    width: 100%;
+    min-height: 44px;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-s);
+    text-align: left;
+    color: var(--fg-2);
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .pick:is(:hover, :focus-visible) {
+    border-color: var(--line);
+    color: var(--fg);
+  }
+
+  .pick[aria-pressed='true'] {
+    border-color: var(--accent);
+    color: var(--fg);
+  }
+
+  .pick-n {
+    grid-row: span 2;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    color: var(--fg-3);
+    padding-top: 0.15rem;
+  }
+
+  .pick[aria-pressed='true'] .pick-n {
+    color: var(--accent);
+  }
+
+  .pick-kind {
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .pick-model {
+    font-size: var(--text-caption);
+  }
+
+  .pick.status-planned .pick-model,
+  .pick.status-past .pick-model {
+    font-style: italic;
+  }
+
+  /* ---------- Detail panel ---------- */
+  .explorer[data-ready] .detail[hidden] {
+    display: none;
+  }
+
+  .detail {
+    padding: var(--space-m);
+    border: 1px solid var(--line-soft);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+  }
+
+  .detail + .detail {
+    margin-top: var(--space-s);
+  }
+
+  .detail-name {
+    margin-top: var(--space-3xs);
+    font-size: var(--step-2);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    line-height: 1.1;
+    letter-spacing: var(--track-heading);
+    overflow-wrap: anywhere;
+  }
+
+  .maker {
+    color: var(--fg-3);
+  }
+
+  .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1rem;
+    align-items: center;
+    margin-top: var(--space-xs);
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: var(--text-caption);
+  }
+
+  /* Shape carries the state: solid current, half idle, ring past, dashed planned. */
+  .status i {
+    width: 10px;
+    height: 10px;
+    border: 1px solid var(--fg-2);
+  }
+
+  .status-current i {
+    background: var(--fg-2);
+  }
+
+  .status-spare i {
+    background: linear-gradient(90deg, var(--fg-2) 50%, transparent 50%);
+  }
+
+  .status-past i {
+    border-radius: 50%;
+  }
+
+  .status-planned i {
+    border-style: dashed;
+  }
+
+  .purpose {
+    margin-top: var(--space-s);
+    color: var(--fg);
+  }
+
+  .specs {
+    display: grid;
+    gap: 0.3rem;
+    margin-top: var(--space-xs);
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.02em;
+    color: var(--fg-2);
+  }
+
+  .specs li::before {
+    content: '— ';
+    color: var(--fg-3);
+  }
+
+  .workflow {
+    margin-top: var(--space-xs);
+    color: var(--fg-2);
+  }
+
+  .for {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.8rem;
+    align-items: center;
+    margin-top: var(--space-xs);
+  }
+
+  .for a {
+    color: var(--fg-2);
+  }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2xs) var(--space-s);
+    margin-top: var(--space-s);
+  }
+
+  .maker-link,
+  .go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    color: var(--fg);
+  }
+
+  .go {
+    padding: 0 0.9rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+  }
+
+  .go:is(:hover, :focus-visible) {
+    border-color: var(--fg);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .art :global([data-part]),
+    .art :global([data-part] *) {
+      transition: none;
+    }
+  }
+</style>

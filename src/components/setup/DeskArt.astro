@@ -1,0 +1,133 @@
+---
+/**
+ * The desk, drawn as a front elevation. A schematic, not a photograph: the
+ * positions are mine, the proportions are approximate. Each component is a
+ * <g data-part> whose id matches src/data/setup.ts, with a numbered marker
+ * that matches the list beside the drawing. The planned camera is dashed and
+ * has no cable: it is not connected to anything.
+ */
+import Mark from './Mark.astro';
+---
+
+<svg class="setup-art" viewBox="0 0 800 470" focusable="false">
+  <line class="floor" x1="10" y1="452" x2="790" y2="452"></line>
+
+  <g data-part="desk">
+    <polygon class="ink" points="112,238 690,238 712,262 90,262"></polygon>
+    <rect class="ink" x="90" y="262" width="622" height="10"></rect>
+    <rect class="wire" x="146" y="272" width="22" height="80"></rect>
+    <rect class="wire" x="150" y="352" width="14" height="86"></rect>
+    <rect class="wire" x="632" y="272" width="22" height="80"></rect>
+    <rect class="wire" x="636" y="352" width="14" height="86"></rect>
+    <rect class="ink" x="118" y="438" width="78" height="8"></rect>
+    <rect class="ink" x="604" y="438" width="78" height="8"></rect>
+    <rect class="wire" x="660" y="264" width="18" height="6"></rect>
+    <Mark n={1} x={200} y={300} />
+  </g>
+
+  <g data-part="arm">
+    <rect class="ink" x="388" y="230" width="24" height="10"></rect>
+    <rect class="wire" x="396" y="122" width="8" height="110"></rect>
+    <rect class="wire" x="262" y="128" width="276" height="7"></rect>
+    <Mark n={4} x={420} y={214} />
+  </g>
+
+  <g data-part="monitors">
+    <rect class="ink" x="176" y="66" width="212" height="126" rx="4"></rect>
+    <rect class="screen" x="184" y="74" width="196" height="108"></rect>
+    <rect class="ink" x="412" y="66" width="212" height="126" rx="4"></rect>
+    <rect class="screen" x="420" y="74" width="196" height="108"></rect>
+    <path class="faint" d="M196 92h90M196 104h130M196 116h70M196 128h110M196 140h80"></path>
+    <path class="faint" d="M440 160l30-26 26 14 34-40 30 20 34-30"></path>
+    <Mark n={3} x={640} y={80} />
+  </g>
+
+  <g data-part="webcam">
+    <rect class="ink" x="262" y="52" width="40" height="13" rx="6"></rect>
+    <circle class="wire" cx="282" cy="58.5" r="3.5"></circle>
+    <Mark n={5} x={244} y={44} />
+  </g>
+
+  <g data-part="mouse">
+    <polygon class="mat" points="250,244 562,244 568,258 244,258"></polygon>
+    <ellipse class="ink" cx="520" cy="251" rx="13" ry="5"></ellipse>
+    <Mark n={11} x={520} y={226} />
+  </g>
+
+  <g data-part="keyboard">
+    <polygon class="ink" points="300,247 474,247 478,256 296,256"></polygon>
+    <path class="faint" d="M308 251.5h162"></path>
+    <Mark n={10} x={386} y={226} />
+  </g>
+
+  <g data-part="streamdeck">
+    <polygon class="ink" points="186,244 234,244 237,257 183,257"></polygon>
+    {Array.from({ length: 15 }, (_, i) => (
+      <rect
+        class="key"
+        x={191 + (i % 5) * 8.6}
+        y={246.6 + Math.floor(i / 5) * 3.4}
+        width="5"
+        height="2.2"
+      />
+    ))}
+    <Mark n={9} x={210} y={226} />
+  </g>
+
+  <g data-part="interface">
+    <rect class="ink" x="596" y="222" width="66" height="22" rx="2"></rect>
+    <circle class="wire" cx="610" cy="233" r="5.5"></circle>
+    <circle class="wire" cx="626" cy="233" r="5.5"></circle>
+    <circle class="wire" cx="648" cy="233" r="7"></circle>
+    <Mark n={8} x={629} y={208} />
+  </g>
+
+  <g data-part="micarm">
+    <rect class="ink" x="672" y="232" width="14" height="14"></rect>
+    <path class="wire thick" d="M679 232L702 150L612 116"></path>
+    <circle class="wire" cx="600" cy="124" r="15"></circle>
+    <Mark n={7} x={718} y={140} />
+  </g>
+
+  <g data-part="mic">
+    <rect class="ink" x="548" y="116" width="58" height="17" rx="8.5"></rect>
+    <path class="faint" d="M556 120v9M561 120v9M566 120v9"></path>
+    <Mark n={6} x={560} y={98} />
+  </g>
+
+  <g data-part="tower">
+    <rect class="ink" x="722" y="296" width="62" height="148" rx="3"></rect>
+    <path class="faint" d="M732 312h42M732 320h42M732 328h42"></path>
+    <circle class="wire" cx="753" cy="425" r="5"></circle>
+    <Mark n={12} x={753} y={276} />
+  </g>
+
+  <g data-part="chair">
+    <path class="wire thick" d="M34 296C36 250 40 214 50 188"></path>
+    <rect
+      class="ink"
+      x="40"
+      y="186"
+      width="20"
+      height="70"
+      rx="6"
+      transform="rotate(-9 50 220)"
+    ></rect>
+    <rect class="ink" x="32" y="294" width="86" height="13" rx="4"></rect>
+    <path class="wire" d="M48 282h44"></path>
+    <rect class="wire" x="70" y="307" width="8" height="74"></rect>
+    <path class="wire" d="M26 392h96"></path>
+    <circle class="wire" cx="30" cy="398" r="5"></circle>
+    <circle class="wire" cx="74" cy="398" r="5"></circle>
+    <circle class="wire" cx="118" cy="398" r="5"></circle>
+    <rect class="wire" x="98" y="324" width="44" height="6"></rect>
+    <Mark n={2} x={22} y={176} />
+  </g>
+
+  <g data-part="camera" class="is-planned">
+    <rect class="wire" x="116" y="216" width="44" height="22" rx="3"></rect>
+    <circle class="wire" cx="146" cy="227" r="8"></circle>
+    <rect class="wire" x="120" y="210" width="12" height="6"></rect>
+    <Mark n={13} x={104} y={204} />
+  </g>
+</svg>

@@ -3,6 +3,7 @@ import { caeloraWorld } from './caelora';
 import { jarvisRequestPath, jarvisTopology } from './jarvis';
 import { kobaitSystem } from './kobait';
 import { malrynthBoot } from './malrynth';
+import { setupEcosystem } from './setup';
 import { steminiPipeline } from './stemini';
 import { ussxPlatform, ussxSso } from './ussx';
 import { zonePayments, zonePlatform } from './zone';
@@ -18,6 +19,7 @@ const all = [
   kobaitSystem,
   steminiPipeline,
   malrynthBoot,
+  setupEcosystem,
 ];
 
 // SVG text does not wrap: text that would overflow, in any language, fails the build.

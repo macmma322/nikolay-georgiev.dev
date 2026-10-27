@@ -4,6 +4,8 @@ type Tree = L | { readonly [key: string]: Tree } | readonly Tree[];
 
 /** The About page. Shared CV and contact labels come from common.ts. */
 export const about = {
+  /** Link to the /setup page from the intro. */
+  setupLink: { en: 'My setup', bg: 'Моята техника' },
   label: { en: 'About', bg: 'За мен' },
   title: { en: 'I like building the whole thing.', bg: 'Обичам да изграждам цялата система.' },
   /** Three paragraphs; the first carries the name in <strong>. */

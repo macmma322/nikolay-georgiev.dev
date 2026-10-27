@@ -2,7 +2,23 @@
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import SectionHeader from '@/components/ui/SectionHeader.astro';
-import { decisions, groups, roadmap, tools, type Stage } from '@/data/setup';
+import ArchitectureDiagram from '@/components/diagrams/ArchitectureDiagram.astro';
+import Explorer from '@/components/setup/Explorer.astro';
+import DeskArt from '@/components/setup/DeskArt.astro';
+import InsideArt from '@/components/setup/InsideArt.astro';
+import SecondaryArt from '@/components/setup/SecondaryArt.astro';
+import LaptopArt from '@/components/setup/LaptopArt.astro';
+import { setupEcosystem } from '@/data/diagrams/setup';
+import {
+  decisions,
+  parts,
+  partsIn,
+  reuseLimits,
+  roadmap,
+  secondaryRoles,
+  tools,
+  type Stage,
+} from '@/data/setup';
 import { useI18n } from '@/i18n';
 import { setup } from '@/i18n/ui/setup';
 import { getProjects } from '@/lib/projects';
@@ -12,192 +28,219 @@ const u = t(setup);
 const projects = await getProjects(locale);
 const project = (slug: string) => projects.find((p) => p.id === slug);
 const stages = Object.keys(roadmap) as Stage[];
+const workstation = parts.filter((p) => p.view === 'desk' || p.view === 'inside');
 ---
 
 <BaseLayout>
-  <div class="setup">
-    <section class="container intro" aria-labelledby="setup-h1">
-      <p class="label">{u.eyebrow}</p>
-      <h1 id="setup-h1" class="title" data-vt-lang="title">
-        {u.title}
-      </h1>
-      <p class="lede" data-vt-lang="lede">
-        {u.lede}
-      </p>
-      <p class="disclosure">{u.disclosure}</p>
-      <p class="hint label">{u.hint}</p>
-    </section>
+  <section class="container intro" aria-labelledby="setup-h1">
+    <p class="label">{u.eyebrow}</p>
+    <h1 id="setup-h1" class="title" data-vt-lang="title">
+      {u.title}
+    </h1>
+    <p class="lede" data-vt-lang="lede">
+      {u.lede}
+    </p>
+    <p class="disclosure">{u.disclosure}</p>
+  </section>
 
-    {groups.map((g) => (
-      <section id={g.id} class="container group" aria-labelledby={`g-${g.id}`}>
-        <SectionHeader label={t(g.label)} id={`g-${g.id}`} title={t(g.title)} lede={t(g.lede)} />
+  <section id="workstation" class="container group" aria-labelledby="g-workstation">
+    <SectionHeader
+      label={u.workstation.label}
+      id="g-workstation"
+      title={u.workstation.title}
+      lede={u.workstation.lede}
+    />
+    <Explorer
+      id="workstation"
+      views={[
+        { view: 'desk', label: u.explorer.desk, art: DeskArt },
+        { view: 'inside', label: u.explorer.insidePc, art: InsideArt },
+      ]}
+      parts={workstation}
+    />
+    <p class="schematic label">{u.schematic}</p>
+  </section>
 
-        {g.id === 'audio' && (
-          <ol class="flow reveal" aria-label={u.chain.label}>
-            {u.chain.steps.map((step) => (
-              <li>{step}</li>
-            ))}
-          </ol>
-        )}
-        {g.id === 'expansion' && (
-          <div
-            class="lanes reveal"
-            role="img"
-            aria-label={`${u.lanes.label}: ${u.lanes.wifi}; ${u.lanes.usb}, ${u.lanes.shared}`}
-          >
-            <span class="lane-board">{u.lanes.board}</span>
-            <span class="lane">{u.lanes.wifi}</span>
-            <span class="lane">
-              {u.lanes.usb}
-              <span class="ports" aria-hidden="true">
-                {Array.from({ length: 7 }, () => (
-                  <i />
-                ))}
-              </span>
-              <small>{u.lanes.shared}</small>
-            </span>
-          </div>
-        )}
-
-        <ul role="list" class="parts reveal">
-          {g.parts.map((p) => (
-            <li class:list={['part', `use-${p.use}`]} data-for={p.for?.join(' ')}>
-              <p class="kind label">{t(p.kind)}</p>
-              <div class="body">
-                {p.name && <h3 class="name">{p.name}</h3>}
-                <p class:list={['spec', { lead: !p.name }]}>{t(p.spec)}</p>
-                {p.note && <p class="note">{t(p.note)}</p>}
-                {p.for && p.for.length > 0 && (
-                  <p class="for">
-                    <span class="label">{u.usedFor}</span>
-                    {p.for.map((slug) => {
-                      const target = project(slug);
-                      return target ? (
-                        <a
-                          href={href(`/work/${slug}`)}
-                          data-slug={slug}
-                          data-accent={target.data.accent}
-                        >
-                          {target.data.name}
-                        </a>
-                      ) : null;
-                    })}
-                  </p>
-                )}
-              </div>
-              <div class="meta">
-                <span class:list={['use', `use-${p.use}`]}>
-                  <i aria-hidden="true" />
-                  {u.use[p.use]}
-                </span>
-                <span class="source label">{u.source[p.source]}</span>
-                {p.link && (
-                  <a class="maker" href={p.link} rel="noopener noreferrer">
-                    {u.manufacturer}
-                    <span class="visually-hidden">: {p.name}</span>
-                  </a>
-                )}
-              </div>
-            </li>
+  <section id="secondary" class="container group" aria-labelledby="g-secondary">
+    <SectionHeader
+      label={u.secondary.label}
+      id="g-secondary"
+      title={u.secondary.title}
+      lede={u.secondary.lede}
+    />
+    <Explorer
+      id="secondary"
+      views={[{ view: 'secondary', label: u.secondary.label, art: SecondaryArt }]}
+      parts={partsIn('secondary')}
+    />
+    <div class="two-lists reveal">
+      <div>
+        <h3 class="label">{u.secondary.roles}</h3>
+        <ul role="list" class="dashed-list">
+          {secondaryRoles.map((role) => (
+            <li>{t(role)}</li>
           ))}
         </ul>
-      </section>
-    ))}
-
-    <section id="decisions" class="container group" aria-labelledby="g-decisions">
-      <SectionHeader
-        label={u.decisions.label}
-        id="g-decisions"
-        title={u.decisions.title}
-        lede={u.decisions.lede}
-      />
-      <div class="decisions">
-        {decisions.map((d) => {
-          const target = project(d.project);
-          return (
-            <article class="decision reveal" data-for={d.project} aria-labelledby={`d-${d.id}`}>
-              <h3 id={`d-${d.id}`} class="d-title">
-                {t(d.title)}
-              </h3>
-              <dl class="steps">
-                {d.steps.map((step, i) => (
-                  <div>
-                    <dt class="label">{u.decisions.steps[i]}</dt>
-                    <dd>{t(step)}</dd>
-                  </div>
-                ))}
-              </dl>
-              {target && (
-                <a
-                  class="d-link"
-                  href={href(`/work/${d.project}`)}
-                  data-slug={d.project}
-                  data-accent={target.data.accent}
-                >
-                  {u.decisions.caseStudy}: {target.data.name}
-                  <span aria-hidden="true">→</span>
-                </a>
-              )}
-            </article>
-          );
-        })}
       </div>
-    </section>
+      <div>
+        <h3 class="label">{u.secondary.limits}</h3>
+        <ul role="list" class="plain-list">
+          {reuseLimits.map((limit) => (
+            <li>{t(limit)}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  </section>
 
-    <section id="environment" class="container group" aria-labelledby="g-tools">
-      <SectionHeader label={u.tools.label} id="g-tools" title={u.tools.title} lede={u.tools.lede} />
-      <ul role="list" class="tools reveal">
-        {tools.map((tool) => (
-          <li class:list={['tool', `usage-${tool.usage}`]}>
-            <span class="tool-name">{tool.name}</span>
-            <span class="tool-what">{t(tool.what)}</span>
-            <span class="tool-usage label">{u.tools.usage[tool.usage]}</span>
-          </li>
-        ))}
-      </ul>
-      <p class="tools-more">
-        <a href={href('/open-source#blueprint')}>
-          {u.tools.blueprint}
-          <span aria-hidden="true">→</span>
-        </a>
-      </p>
-    </section>
+  <section id="laptop" class="container group" aria-labelledby="g-laptop">
+    <SectionHeader
+      label={u.laptop.label}
+      id="g-laptop"
+      title={u.laptop.title}
+      lede={u.laptop.lede}
+    />
+    <Explorer
+      id="laptop"
+      views={[{ view: 'laptop', label: u.laptop.label, art: LaptopArt }]}
+      parts={partsIn('laptop')}
+    />
+  </section>
 
-    <section id="roadmap" class="container group" aria-labelledby="g-roadmap">
-      <SectionHeader
-        label={u.roadmap.label}
-        id="g-roadmap"
-        title={u.roadmap.title}
-        lede={u.roadmap.lede}
-      />
-      <div class="stages reveal">
-        {stages.map((stage) => (
-          <section class:list={['stage', `stage-${stage}`]} aria-labelledby={`s-${stage}`}>
-            <h3 id={`s-${stage}`} class="label">
-              {u.roadmap.stages[stage]}
+  <section id="ecosystem" class="container group" aria-labelledby="g-ecosystem">
+    <SectionHeader
+      label={u.ecosystem.label}
+      id="g-ecosystem"
+      title={u.ecosystem.title}
+      lede={u.ecosystem.lede}
+    />
+    <ArchitectureDiagram diagram={setupEcosystem} todayHref="#workstation" nextHref="#roadmap" />
+  </section>
+
+  <section id="journey" class="container group" aria-labelledby="g-journey">
+    <SectionHeader label={u.journey.label} id="g-journey" title={u.journey.title} />
+    <div class="areas reveal">
+      {u.journey.areas.map((area) => {
+        const target = area.slug ? project(area.slug) : undefined;
+        return (
+          <article class="area" data-accent={target?.data.accent}>
+            <h3 class="area-title">{area.title}</h3>
+            <p>{area.body}</p>
+            {target ? (
+              <a class="area-link" href={href(`/work/${area.slug}`)}>
+                {u.journey.caseStudy}: {target.data.name}
+                <span aria-hidden="true">→</span>
+              </a>
+            ) : (
+              <a class="area-link" href={href('/open-source#blueprint')}>
+                {u.journey.blueprint}
+                <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  </section>
+
+  <section id="decisions" class="container group" aria-labelledby="g-decisions">
+    <SectionHeader
+      label={u.decisions.label}
+      id="g-decisions"
+      title={u.decisions.title}
+      lede={u.decisions.lede}
+    />
+    <div class="decisions">
+      {decisions.map((d) => {
+        const target = project(d.project);
+        return (
+          <article
+            class="decision reveal"
+            data-accent={target?.data.accent}
+            aria-labelledby={`d-${d.id}`}
+          >
+            <h3 id={`d-${d.id}`} class="d-title">
+              {t(d.title)}
             </h3>
-            <ul role="list">
-              {roadmap[stage].map((item) => (
-                <li>{t(item)}</li>
+            <dl class="steps">
+              {d.steps.map((step, i) => (
+                <div>
+                  <dt class="label">{u.decisions.steps[i]}</dt>
+                  <dd>{t(step)}</dd>
+                </div>
               ))}
-            </ul>
-          </section>
-        ))}
-      </div>
-    </section>
+            </dl>
+            {target && (
+              <a class="area-link" href={href(`/work/${d.project}`)}>
+                {u.decisions.caseStudy}: {target.data.name}
+                <span aria-hidden="true">→</span>
+              </a>
+            )}
+          </article>
+        );
+      })}
+    </div>
+  </section>
 
-    <section class="container group closing" aria-labelledby="g-next">
-      <h2 id="g-next" class="closing-title">
-        {u.next.title}
-      </h2>
-      <div class="closing-actions">
-        <Button href={href('/work')}>{u.next.work}</Button>
-        <Button href={href('/open-source')} variant="secondary">
-          {u.next.openSource}
-        </Button>
-      </div>
-    </section>
-  </div>
+  <section id="environment" class="container group" aria-labelledby="g-tools">
+    <SectionHeader label={u.tools.label} id="g-tools" title={u.tools.title} lede={u.tools.lede} />
+    <ul role="list" class="tools reveal">
+      {tools.map((tool) => (
+        <li class:list={['tool', `usage-${tool.usage}`]}>
+          <span class="tool-name">{tool.name}</span>
+          <span class="tool-what">{t(tool.what)}</span>
+          <span class="tool-usage label">{u.tools.usage[tool.usage]}</span>
+        </li>
+      ))}
+    </ul>
+    <p class="tools-more">
+      <a href={href('/open-source#blueprint')}>
+        {u.tools.blueprint}
+        <span aria-hidden="true">→</span>
+      </a>
+    </p>
+  </section>
+
+  <section id="roadmap" class="container group" aria-labelledby="g-roadmap">
+    <SectionHeader
+      label={u.roadmap.label}
+      id="g-roadmap"
+      title={u.roadmap.title}
+      lede={u.roadmap.lede}
+    />
+    <div class="stages reveal">
+      {stages.map((stage) => (
+        <section class:list={['stage', `stage-${stage}`]} aria-labelledby={`s-${stage}`}>
+          <h3 id={`s-${stage}`} class="label">
+            {u.roadmap.stages[stage]}
+          </h3>
+          <ul role="list">
+            {roadmap[stage].map((m) => (
+              <li>
+                <span class="m-item">{t(m.item)}</span>
+                {m.why && <span class="m-why">{t(m.why)}</span>}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  </section>
+
+  <section class="container group closing" aria-labelledby="g-next">
+    <h2 id="g-next" class="closing-title">
+      {u.next.title}
+    </h2>
+    <div class="closing-actions">
+      <Button href={href('/work')}>{u.next.work}</Button>
+      <Button href={href('/open-source')} variant="secondary">
+        {u.next.openSource}
+      </Button>
+      <Button href={href('/about')} variant="ghost">
+        {u.next.about}
+      </Button>
+    </div>
+  </section>
 </BaseLayout>
 
 <style>
@@ -233,250 +276,90 @@ const stages = Object.keys(roadmap) as Stage[];
     color: var(--fg-2);
   }
 
-  .hint {
-    margin-top: var(--space-s);
-  }
-
   .group {
     padding-top: var(--space-2xl);
   }
 
-  /* ---------- Hardware rows ---------- */
-  .parts {
-    border-top: 1px solid var(--line-soft);
+  .schematic {
+    margin-top: var(--space-s);
   }
 
-  .part {
+  /* ---------- Secondary PC lists ---------- */
+  .two-lists {
     display: grid;
-    gap: var(--space-2xs) var(--space-m);
-    padding-block: var(--space-m);
-    border-bottom: 1px solid var(--line-soft);
-    transition: opacity var(--dur-ui) var(--ease-out);
+    gap: var(--space-l);
+    margin-top: var(--space-l);
   }
 
-  @media (min-width: 60rem) {
-    .part {
-      grid-template-columns: 11rem minmax(0, 1fr) 13rem;
-      align-items: start;
+  @media (min-width: 52rem) {
+    .two-lists {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  .name {
+  .two-lists ul {
+    display: grid;
+    gap: var(--space-2xs);
+    margin-top: var(--space-xs);
+    color: var(--fg-2);
+  }
+
+  .two-lists li {
+    padding-left: var(--space-s);
+    border-left: 1px solid var(--line);
+  }
+
+  .dashed-list li {
+    border-left-style: dashed;
+  }
+
+  /* ---------- Journey ---------- */
+  .areas {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  @media (min-width: 52rem) {
+    .areas {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 80rem) {
+    .areas {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .area {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding: var(--space-m);
+    border-top: 2px solid var(--accent);
+    background: var(--ink-1);
+    color: var(--fg-2);
+  }
+
+  .area-title,
+  .d-title {
     font-size: var(--step-1);
     font-stretch: var(--wide-2);
     font-weight: var(--w-bold);
-    letter-spacing: var(--track-heading);
-    color: color-mix(in oklch, var(--accent) calc(var(--lit, 0) * 100%), var(--fg));
-    transition: color var(--dur-ui) var(--ease-out);
-  }
-
-  .spec {
-    margin-top: var(--space-3xs);
-    font-family: var(--ff-mono);
-    font-size: var(--text-label);
-    letter-spacing: 0.02em;
-    color: var(--fg-2);
-  }
-
-  .spec.lead {
-    margin-top: 0;
-    font-family: var(--ff-body, inherit);
-    font-size: var(--step-0);
     color: var(--fg);
   }
 
-  .note {
-    margin-top: var(--space-2xs);
-    max-width: 66ch;
-    color: var(--fg-2);
-  }
-
-  .for {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.25rem 0.9rem;
-    margin-top: var(--space-xs);
-  }
-
-  .for a,
-  .d-link {
+  .area-link {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    min-height: 32px;
-    color: var(--fg-2);
-    text-decoration-color: var(--line-strong);
+    min-height: 44px;
+    margin-top: auto;
+    color: var(--fg);
   }
 
-  .for a:is(:hover, :focus-visible),
-  .d-link:is(:hover, :focus-visible) {
+  .area-link:is(:hover, :focus-visible) {
     color: var(--accent);
-  }
-
-  .meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2xs) var(--space-s);
-    align-items: center;
-  }
-
-  @media (min-width: 60rem) {
-    .meta {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-
-  .use {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    font-size: var(--text-caption);
-    color: var(--fg);
-  }
-
-  /* Shape carries the state: solid in use, half owned and idle, dashed planned. */
-  .use i {
-    width: 10px;
-    height: 10px;
-    border: 1px solid var(--fg-2);
-  }
-
-  .use-in-use i {
-    background: var(--fg-2);
-  }
-
-  .use-spare i {
-    background: linear-gradient(90deg, var(--fg-2) 50%, transparent 50%);
-  }
-
-  .use-planned i {
-    border-style: dashed;
-  }
-
-  .part.use-planned :is(.name, .spec.lead) {
-    color: var(--fg-2);
-  }
-
-  .maker {
-    font-size: var(--text-caption);
-    color: var(--fg-2);
-  }
-
-  /*
-   * Linked hover (the site's signature): pointing at or focusing a project tag
-   * lights every part and decision that project runs on and dims the rest.
-   * One static rule per project; generated styles would break the CSP.
-   */
-  .setup:has([data-slug]:is(:hover, :focus-visible)) :is(.part, .decision) {
-    opacity: 0.4;
-  }
-
-  .setup:has([data-slug='caelora']:is(:hover, :focus-visible))
-    :is(.part, .decision)[data-for~='caelora'] {
-    opacity: 1;
-    --lit: 1;
-    --accent: var(--acc-caelora);
-  }
-
-  .setup:has([data-slug='jarvis']:is(:hover, :focus-visible))
-    :is(.part, .decision)[data-for~='jarvis'] {
-    opacity: 1;
-    --lit: 1;
-    --accent: var(--acc-jarvis);
-  }
-
-  .setup:has([data-slug='uss-x-academy']:is(:hover, :focus-visible))
-    :is(.part, .decision)[data-for~='uss-x-academy'] {
-    opacity: 1;
-    --lit: 1;
-    --accent: var(--acc-ussx);
-  }
-
-  .setup:has([data-slug='zone-32-19']:is(:hover, :focus-visible))
-    :is(.part, .decision)[data-for~='zone-32-19'] {
-    opacity: 1;
-    --lit: 1;
-    --accent: var(--acc-zone);
-  }
-
-  .setup:has([data-slug='kobait']:is(:hover, :focus-visible))
-    :is(.part, .decision)[data-for~='kobait'] {
-    opacity: 1;
-    --lit: 1;
-    --accent: var(--acc-kobait);
-  }
-
-  /* ---------- Small diagrams ---------- */
-  .flow {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--space-2xs);
-    margin-bottom: var(--space-l);
-    counter-reset: flow;
-  }
-
-  .flow li {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--space-2xs);
-    padding: 0.55rem 0.85rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-s);
-    background: var(--ink-1);
-    font-size: var(--text-caption);
-    color: var(--fg);
-  }
-
-  .flow li:not(:last-child)::after {
-    content: '→';
-    margin-left: var(--space-2xs);
-    color: var(--fg-3);
-  }
-
-  .lanes {
-    display: grid;
-    gap: var(--space-2xs);
-    margin-bottom: var(--space-l);
-    max-width: 40rem;
-  }
-
-  .lane-board {
-    font-family: var(--ff-mono);
-    font-size: var(--text-label);
-    letter-spacing: var(--track-label);
-    text-transform: uppercase;
-    color: var(--fg-3);
-  }
-
-  .lane {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--space-2xs) var(--space-s);
-    margin-left: var(--space-s);
-    padding: 0.6rem 0.9rem;
-    border: 1px solid var(--line);
-    border-left: 2px solid var(--accent);
-    background: var(--ink-1);
-    font-size: var(--text-caption);
-    color: var(--fg);
-  }
-
-  .lane small {
-    color: var(--fg-3);
-  }
-
-  .ports {
-    display: inline-flex;
-    gap: 4px;
-  }
-
-  .ports i {
-    width: 12px;
-    height: 7px;
-    border: 1px solid var(--fg-3);
   }
 
   /* ---------- Decisions ---------- */
@@ -494,16 +377,9 @@ const stages = Object.keys(roadmap) as Stage[];
   .decision {
     padding: var(--space-m);
     border: 1px solid var(--line-soft);
+    border-top: 2px solid var(--accent);
     border-radius: var(--radius-s);
     background: var(--ink-1);
-    transition: opacity var(--dur-ui) var(--ease-out);
-  }
-
-  .d-title {
-    font-size: var(--step-1);
-    font-stretch: var(--wide-2);
-    font-weight: var(--w-bold);
-    color: color-mix(in oklch, var(--accent) calc(var(--lit, 0) * 100%), var(--fg));
   }
 
   .steps {
@@ -526,10 +402,6 @@ const stages = Object.keys(roadmap) as Stage[];
 
   .steps dd {
     color: var(--fg-2);
-  }
-
-  .d-link {
-    margin-top: var(--space-s);
   }
 
   /* ---------- Tools ---------- */
@@ -585,7 +457,13 @@ const stages = Object.keys(roadmap) as Stage[];
 
   @media (min-width: 52rem) {
     .stages {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (min-width: 80rem) {
+    .stages {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
     }
   }
 
@@ -594,9 +472,13 @@ const stages = Object.keys(roadmap) as Stage[];
     border-top: 2px solid var(--fg-2);
   }
 
-  /* Further from today, fainter and dashed: the same vocabulary as the diagrams. */
+  /* Further from today, fainter and dashed: the diagrams' vocabulary. */
   .stage-building {
     border-top-color: var(--fg-3);
+  }
+
+  .stage-past {
+    border-top-color: var(--line);
   }
 
   .stage-planned,
@@ -607,13 +489,25 @@ const stages = Object.keys(roadmap) as Stage[];
 
   .stage ul {
     display: grid;
-    gap: var(--space-xs);
+    gap: var(--space-s);
     margin-top: var(--space-s);
-    color: var(--fg-2);
   }
 
-  .stage-vision ul {
+  .m-item {
+    display: block;
+    color: var(--fg);
+  }
+
+  .m-why {
+    display: block;
+    margin-top: var(--space-3xs);
+    font-size: var(--text-caption);
     color: var(--fg-3);
+  }
+
+  .stage-vision .m-item,
+  .stage-past .m-item {
+    color: var(--fg-2);
   }
 
   /* ---------- Closing ---------- */
