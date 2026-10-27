@@ -40,7 +40,7 @@ export const setupEcosystem: Diagram = {
     {
       id: 'laptop',
       label: { en: 'Linux laptop', bg: 'Лаптоп с Linux' },
-      sub: { en: 'Ubuntu 26.04,\nportable work', bg: 'Ubuntu 26.04,\nработа навън' },
+      sub: { en: 'Ubuntu Linux,\nportable work', bg: 'Ubuntu Linux,\nработа навън' },
       kind: 'hardware',
       col: 3,
       row: 0,

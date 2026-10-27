@@ -84,7 +84,10 @@ Planned items (Sony a6400, the secondary PC's SATA SSD) stay visibly planned.
 Manufacturer links only, no shops or affiliate links, and the non-sponsorship
 disclosure stays. KObait appears there only by area (embedded electronics,
 wireless communication, sensors, motor control), with no component list
-(owner decision, 2026-10-27). The Stream Deck is an MK.2 (owner, 2026-10-27; its
+(owner decision, 2026-10-27). The secondary PC (ASRock H81M, i7-4790K, GTX 1080 Ti, 16 GB DDR3, 1 TB +
+500 GB HDDs) and the laptop's storage (Samsung 970 EVO, a Toshiba HDD) and
+current Ubuntu version are owner-stated or unverified; say so on the page.
+The Stream Deck is an MK.2 (owner, 2026-10-27; its
 profile shows a 5 × 3 layout). Never
 publish serials, MAC or IP addresses, Bluetooth device names or local paths.
 

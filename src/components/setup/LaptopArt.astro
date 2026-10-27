@@ -6,7 +6,7 @@ import Mark from './Mark.astro';
 <svg class="setup-art" viewBox="0 0 400 300" focusable="false">
   <g data-part="nitro">
     <rect class="ink" x="76" y="20" width="248" height="160" rx="7"></rect>
-    <polygon class="ink" points="52,186 348,186 376,250 24,250"></polygon>
+    <polygon class="ink" points="52,186 348,186 376,256 24,256"></polygon>
     <Mark n={1} x={346} y={34} />
   </g>
 
@@ -14,22 +14,33 @@ import Mark from './Mark.astro';
     <rect class="screen" x="88" y="32" width="224" height="136"></rect>
     <path class="faint" d="M100 52h70M100 66h120M100 80h96M100 94h140M100 108h60"></path>
     <rect class="key" x="166" y="104" width="7" height="9"></rect>
-    <Mark n={5} x={292} y={150} />
+    <Mark n={7} x={292} y={150} />
   </g>
 
   <g data-part="l-cpu">
-    <rect class="ink" x="96" y="200" width="44" height="26" rx="2"></rect>
-    <Mark n={2} x={118} y={240} />
+    <rect class="ink" x="72" y="196" width="40" height="22" rx="2"></rect>
+    <Mark n={2} x={92} y={232} />
   </g>
 
   <g data-part="l-gpu">
-    <rect class="ink" x="166" y="200" width="60" height="26" rx="2"></rect>
-    <Mark n={3} x={196} y={240} />
+    <rect class="ink" x="122" y="196" width="52" height="22" rx="2"></rect>
+    <Mark n={3} x={148} y={232} />
   </g>
 
   <g data-part="l-ram">
-    <rect class="ink" x="252" y="200" width="18" height="26" rx="1"></rect>
-    <rect class="ink" x="274" y="200" width="18" height="26" rx="1"></rect>
-    <Mark n={4} x={272} y={240} />
+    <rect class="ink" x="184" y="196" width="14" height="22" rx="1"></rect>
+    <rect class="ink" x="202" y="196" width="14" height="22" rx="1"></rect>
+    <Mark n={4} x={200} y={232} />
+  </g>
+
+  <g data-part="l-ssd">
+    <rect class="ink" x="228" y="202" width="46" height="10" rx="1"></rect>
+    <Mark n={5} x={251} y={232} />
+  </g>
+
+  <g data-part="l-hdd">
+    <rect class="ink" x="286" y="194" width="50" height="26" rx="2"></rect>
+    <circle class="wire" cx="302" cy="207" r="8"></circle>
+    <Mark n={6} x={311} y={232} />
   </g>
 </svg>

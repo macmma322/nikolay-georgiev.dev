@@ -1,16 +1,25 @@
 ---
-/** The secondary PC, schematic. The planned SSD is dashed: not bought. */
+/**
+ * The secondary PC, schematic: an ASRock H81M (Micro-ATX) with its parts.
+ * The planned SSD is dashed: not bought, not installed.
+ */
 import Mark from './Mark.astro';
 ---
 
 <svg class="setup-art" viewBox="0 0 400 300" focusable="false">
   <rect class="case" x="16" y="14" width="368" height="272" rx="5"></rect>
-  <rect class="ink" x="110" y="36" width="210" height="150" rx="3"></rect>
+
+  <g data-part="old-board">
+    <rect class="ink" x="110" y="36" width="210" height="150" rx="3"></rect>
+    <rect class="wire" x="128" y="176" width="10" height="6"></rect>
+    <rect class="wire" x="142" y="176" width="10" height="6"></rect>
+    <Mark n={1} x={96} y={44} />
+  </g>
 
   <g data-part="old-cpu">
     <rect class="ink" x="170" y="62" width="42" height="42"></rect>
     <path class="faint" d="M177 69h28v28h-28z"></path>
-    <Mark n={1} x={150} y={72} />
+    <Mark n={2} x={150} y={72} />
   </g>
 
   <g data-part="old-ram">
@@ -23,18 +32,21 @@ import Mark from './Mark.astro';
     <rect class="ink" x="118" y="132" width="236" height="38" rx="3"></rect>
     <circle class="wire" cx="190" cy="151" r="13"></circle>
     <circle class="wire" cx="290" cy="151" r="13"></circle>
-    <Mark n={2} x={370} y={140} />
+    <Mark n={4} x={370} y={140} />
   </g>
 
   <g data-part="old-hdd">
-    <rect class="ink" x="248" y="214" width="112" height="44" rx="2"></rect>
-    <circle class="wire" cx="282" cy="236" r="14"></circle>
-    <Mark n={4} x={230} y={206} />
+    <rect class="ink" x="248" y="206" width="112" height="30" rx="2"></rect>
+    <circle class="wire" cx="276" cy="221" r="10"></circle>
+    <rect class="ink" x="248" y="244" width="112" height="30" rx="2"></rect>
+    <circle class="wire" cx="276" cy="259" r="10"></circle>
+    <Mark n={5} x={230} y={206} />
   </g>
 
   <g data-part="old-ssd" class="is-planned">
-    <rect class="wire" x="128" y="222" width="76" height="30" rx="2"></rect>
-    <path class="wire" d="M138 237h56"></path>
-    <Mark n={5} x={110} y={214} />
+    <rect class="wire" x="128" y="226" width="76" height="30" rx="2"></rect>
+    <path class="wire" d="M138 241h56"></path>
+    <path class="wire" d="M133 226V186"></path>
+    <Mark n={6} x={110} y={218} />
   </g>
 </svg>
