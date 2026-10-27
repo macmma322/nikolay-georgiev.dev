@@ -28,6 +28,14 @@ for (const locale of locales) {
       await expect(page.locator('main a[href*="TinyGPSPlus"]')).toHaveCount(0);
     });
 
+    test('the KObait case study names no sensor modules', async ({ page }) => {
+      await page.goto(localize('/work/kobait', locale));
+      // The diagram's text and its text alternative, the credits and the copy.
+      const text = await page.locator('main').evaluate((el) => el.textContent ?? '');
+      expect(text).not.toMatch(/GPS|TinyGPS|gyro|гироскоп|жироскоп/i);
+      await expect(page.getByText(locale === 'en' ? 'Sensors' : 'Сензори').first()).toBeAttached();
+    });
+
     test('offers read, download, copy and source', async ({ page }) => {
       await page.goto(localize('/open-source', locale));
       const blueprint = page.locator('#blueprint');

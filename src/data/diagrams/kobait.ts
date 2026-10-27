@@ -4,8 +4,8 @@ import type { Diagram } from '@/lib/diagram';
  * Layout: the two boards side by side, the radio link under both of them;
  * on the boat the stop and gate edges share one vertical through the state machine.
  *
- * Hardware is named by kind (radio module, GPS module, gyro module, ESC
- * controllers), never by model; no ratings and no timing constants (PRODUCT.md).
+ * Hardware is named by kind (radio module, sensors, ESC controllers), never by
+ * model or module type; no ratings and no timing constants (PRODUCT.md).
  */
 export const kobaitSystem: Diagram = {
   id: 'kobait-system',
@@ -107,10 +107,10 @@ export const kobaitSystem: Diagram = {
     },
     {
       id: 'nav',
-      label: { en: 'GPS + gyro modules', bg: 'GPS + гироскоп' },
+      label: { en: 'Sensors', bg: 'Сензори' },
       sub: {
-        en: 'fix age, heading with\ncalibration health',
-        bg: 'давност на позицията,\nкурс и калибриране',
+        en: 'position and heading,\nwith health checks',
+        bg: 'позиция и курс,\nс проверка на данните',
       },
       kind: 'hardware',
       col: 2,
