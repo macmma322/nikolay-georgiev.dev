@@ -329,3 +329,14 @@ test('disguised amounts fail closed', () => {
   assert.equal(pricesFromBrief('Calls in Sofia time (Europe/Sofia), from €550.'), true);
   assert.equal(pricesFromBrief('Цена от €550 за Европа.'), true);
 });
+
+test('inflected currency words and stray marks are caught by position', () => {
+  assert.equal(pricesFromBrief('Only 50 euros.'), false);
+  assert.equal(pricesFromBrief('Only 1.5k euros.'), false);
+  assert.equal(pricesFromBrief('Цена 50 евра.'), false);
+  assert.equal(pricesFromBrief('Just 20 dollars.'), false);
+  assert.equal(pricesFromBrief('From 550 euros.'), true);
+  assert.equal(pricesFromBrief('From €550 €'), true);
+  assert.equal(pricesFromBrief('From €550, € extra.'), false);
+  assert.equal(pricesFromBrief('Sofia time (Europe/Sofia), European clients, Европа.'), true);
+});

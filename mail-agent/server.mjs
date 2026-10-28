@@ -57,20 +57,32 @@ const TEST_RECIPIENTS = (env.SEND_TEST_RECIPIENTS ?? '')
 const BOOKING_TOKEN = '{{BOOKING_LINK}}';
 
 const NUMBER = String.raw`\d{1,3}(?:[ ,. ]\d{3})+|\d+`;
-// Currency words only as whole words: "Europe/Sofia" is not a price.
-const CURRENCY = String.raw`€|\$|£|(?<!\p{L})(?:eur|euro|евро|лв|лева|bgn|usd|gbp)(?!\p{L})\.?`;
-const EURO = /^(€|eur|euro|евро)$/iu;
+// Currency words by stem, any inflection ("euros", "евра", "лева", "dollars"), but
+// never "Europe"/"Европа": time zones in replies are not prices.
+const CURRENCY = String.raw`€|\$|£|(?<!\p{L})(?:eur(?!op)\p{L}*|евр(?!оп)\p{L}*|лв|лев\p{L}*|bgn|usd|dollar\p{L}*|долар\p{L}*|gbp|pound\p{L}*)\.?`;
+const EURO = /^(€|eur\p{L}*|евр\p{L}*)$/iu;
 const toNumber = (digits) => Number(digits.replace(/\D/g, ''));
 
-const PREFIXED = new RegExp(String.raw`(${CURRENCY})\s?(${NUMBER})`, 'giu');
-const SUFFIXED = new RegExp(String.raw`(${NUMBER})\s?(${CURRENCY})`, 'giu');
+// "d": match indices, so each currency mark is tied to the amount it belongs to.
+const PREFIXED = new RegExp(String.raw`(${CURRENCY})\s?(${NUMBER})`, 'giud');
+const SUFFIXED = new RegExp(String.raw`(${NUMBER})\s?(${CURRENCY})`, 'giud');
+
+const moneyMatches = (text) => [
+  ...[...text.matchAll(PREFIXED)].map((m) => ({
+    currency: m[1],
+    digits: m[2],
+    at: m.indices[1][0],
+  })),
+  ...[...text.matchAll(SUFFIXED)].map((m) => ({
+    currency: m[2],
+    digits: m[1],
+    at: m.indices[2][0],
+  })),
+];
 
 /** Money in a text, with its currency: "€1,500", "€5 000", "1500 EUR", "550 лв", "$200". */
 export const amounts = (text) =>
-  [
-    ...[...text.matchAll(PREFIXED)].map((m) => [m[1], m[2]]),
-    ...[...text.matchAll(SUFFIXED)].map((m) => [m[2], m[1]]),
-  ].map(([currency, digits]) => ({
+  moneyMatches(text).map(({ currency, digits }) => ({
     currency: currency.trim().replace(/\.$/, ''),
     value: toNumber(digits),
   }));
@@ -85,11 +97,12 @@ export function pricesFromBrief(raw) {
   const text = raw.normalize('NFKC');
   // Digits outside ASCII (Arabic-Indic and others) are never quoted by the brief.
   if (/[^\P{Nd}0-9]/u.test(text)) return false;
+  // Every currency mark belongs to a matched amount, by position: "€1.5k", "50 euros"
+  // spelled out, "a thousand euro" or a bare "лв" leaves a mark of its own, and drafts.
+  const priced = new Set(moneyMatches(text).map((match) => match.at));
+  const marks = [...text.matchAll(new RegExp(CURRENCY, 'giu'))];
+  if (marks.some((mark) => !priced.has(mark.index))) return false;
   const found = amounts(text);
-  // Every currency mark sits next to an exact brief price: "€1.5k", "a thousand euro" or
-  // a bare "лв" leaves a mark without a price, and the reply drafts.
-  const marks = text.match(new RegExp(CURRENCY, 'giu')) ?? [];
-  if (marks.length > found.length) return false;
   if (!found.every((a) => EURO.test(a.currency) && BRIEF_PRICES.has(a.value))) return false;
   const words = text.replace(SCHEMED, ' ');
   const bigNumbers = words.match(/\d{1,3}(?:[ ,. ]\d{3})+|\d{3,}/g);
