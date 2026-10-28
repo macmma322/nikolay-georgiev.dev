@@ -30,7 +30,7 @@ const expected = {
     'Caelora',
     'KObait',
     'PostgreSQL',
-    'nikolay.georgiev00@outlook.com',
+    'info@nikolay-georgiev.dev',
   ],
   bg: [
     'Николай Георгиев',
@@ -45,7 +45,7 @@ const expected = {
     'USS X Academy',
     'KObait',
     'Езици',
-    'nikolay.georgiev00@outlook.com',
+    'info@nikolay-georgiev.dev',
   ],
 };
 
@@ -145,7 +145,7 @@ for (const locale of ['en', 'bg'] as const) {
     expect(pdf.text).not.toContain('�');
     expect(pdf.links).toEqual(
       expect.arrayContaining([
-        'mailto:nikolay.georgiev00@outlook.com',
+        'mailto:info@nikolay-georgiev.dev',
         'https://github.com/macmma322',
         'https://www.linkedin.com/in/nikolaygeorgiev0049/',
       ]),
@@ -247,7 +247,7 @@ test('the application version is one column of text in the conventional order', 
     // Employers and dates as words, contact details as text and links.
     expect(pdf.text).toContain('DXC Technology');
     expect(pdf.text).toContain('Genpact');
-    expect(pdf.text).toContain('nikolay.georgiev00@outlook.com');
+    expect(pdf.text).toContain('info@nikolay-georgiev.dev');
     expect(pdf.text).toContain('github.com/macmma322');
     expect(pdf.links).toContain('https://github.com/macmma322');
     // No photo: the document holds no image at all.

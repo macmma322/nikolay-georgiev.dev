@@ -44,7 +44,9 @@ export const SITE = 'https://nikolay-georgiev.dev';
 /** Canonical URL: the root keeps its slash, nothing else has one. */
 export const canonical = (path: string) => `${SITE}${path}`;
 
-export const EMAIL = 'nikolay.georgiev00@outlook.com';
+export const EMAIL = 'info@nikolay-georgiev.dev';
+/** The second address: contact page only. */
+export const EMAIL_ALT = 'nikolay.georgiev00@outlook.com';
 export const PHONE_TEL = '+359893670247';
 /** The phone number in any spacing, with or without the country code. */
 export const PHONE_RE = /(\+?359[\s-]*)?89[\s-]*367[\s-]*0247/;

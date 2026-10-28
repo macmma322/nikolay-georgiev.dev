@@ -2,9 +2,10 @@
 /**
  * The contact block, in two variants:
  *   footer  the finale that closes every page except the contact page
- *   page    the /contact page itself: the h1, and the only place the phone
- *           number is rendered (see site.ts)
- * Email is the largest thing in both; the phone sits under it, a size down.
+ *   page    the /contact page itself: the h1, and the only place the second
+ *           email and the phone number are rendered (see site.ts)
+ * Email is the largest thing in both; the second email and the phone sit under
+ * it, a size down.
  */
 import { site } from '@/data/site';
 import CopyButton from '@/components/ui/CopyButton.astro';
@@ -62,10 +63,30 @@ const linkedinMark =
   </div>
 
   {page && (
-    <div class="phone-row">
-      <a class="phone" href={`tel:${site.phone.tel}`}>
+    <div class="sub-row">
+      <a class="sub" href={`mailto:${site.emailAlt}`}>
         <svg
-          class="phone-glyph"
+          class="sub-glyph"
+          viewBox="0 0 16 16"
+          width="16"
+          height="16"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <path d="M2.5 4h11v8h-11zM2.5 4.5 8 9l5.5-4.5" />
+        </svg>
+        <span class="visually-hidden">{s.emailAlt}</span>
+        <span>{site.emailAlt}</span>
+      </a>
+      <CopyButton value={site.emailAlt} label={s.copyEmailAlt} />
+    </div>
+  )}
+
+  {page && (
+    <div class="sub-row">
+      <a class="sub phone" href={`tel:${site.phone.tel}`}>
+        <svg
+          class="sub-glyph"
           viewBox="0 0 16 16"
           width="16"
           height="16"
@@ -241,7 +262,7 @@ const linkedinMark =
 
   /* ---------- Email: the largest thing on the page ---------- */
   .email-row,
-  .phone-row {
+  .sub-row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -252,8 +273,8 @@ const linkedinMark =
     margin-top: var(--space-xs);
   }
 
-  /* The phone answers the email from just below it. */
-  .phone-row {
+  /* The second email and the phone answer the email from just below it. */
+  .sub-row {
     margin-top: calc(var(--space-s) - var(--space-l));
     column-gap: var(--space-s);
   }
@@ -264,7 +285,7 @@ const linkedinMark =
    * The underline sweeps in from the left and leaves to the right.
    */
   .email,
-  .phone {
+  .sub {
     font-family: var(--ff-body);
     text-decoration: none;
     padding-bottom: 0.08em;
@@ -275,7 +296,7 @@ const linkedinMark =
   }
 
   .email:is(:hover, :focus-visible),
-  .phone:is(:hover, :focus-visible) {
+  .sub:is(:hover, :focus-visible) {
     background-position: 0 100%;
     background-size: 100% 0.04em;
   }
@@ -288,7 +309,7 @@ const linkedinMark =
     overflow-wrap: anywhere;
   }
 
-  .phone {
+  .sub {
     display: inline-flex;
     align-items: center;
     gap: 0.5em;
@@ -301,7 +322,7 @@ const linkedinMark =
     color: var(--fg-2);
   }
 
-  .phone:is(:hover, :focus-visible) {
+  .sub:is(:hover, :focus-visible) {
     color: var(--fg);
   }
 
@@ -310,7 +331,7 @@ const linkedinMark =
     white-space: nowrap;
   }
 
-  .phone-glyph {
+  .sub-glyph {
     flex: none;
     width: 0.8em;
     height: 0.8em;
@@ -322,7 +343,7 @@ const linkedinMark =
     transition: color var(--dur-fast) var(--ease-out);
   }
 
-  .phone:is(:hover, :focus-visible) .phone-glyph {
+  .sub:is(:hover, :focus-visible) .sub-glyph {
     color: currentColor;
   }
 
@@ -454,7 +475,7 @@ const linkedinMark =
       border-bottom: 1px solid var(--line-soft);
     }
     .email-row,
-    .phone-row,
+    .sub-row,
     .channels,
     .elsewhere {
       grid-column: 1 / -1;

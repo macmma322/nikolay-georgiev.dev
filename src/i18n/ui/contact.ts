@@ -16,6 +16,9 @@ export const contact = {
     bg: 'Втория списък превръщам в код и тестове.',
   },
   copyEmail: { en: 'Copy email address', bg: 'Копирайте имейла' },
+  copyEmailAlt: { en: 'Copy second email address', bg: 'Копирайте втория имейл' },
+  /** Visually hidden before the second address. */
+  emailAlt: { en: 'Second email: ', bg: 'Втори имейл: ' },
   copyPhone: { en: 'Copy phone number', bg: 'Копирайте телефона' },
   /** Personal profiles, a step down from the professional links. */
   elsewhere: { en: 'Elsewhere', bg: 'Още профили' },

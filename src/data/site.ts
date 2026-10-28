@@ -51,7 +51,10 @@ export const site = {
     en: 'Open to remote and Varna-based engineering roles',
     bg: 'Отворен за инженерни позиции\u00a0– дистанционно или във Варна',
   } satisfies L,
-  email: 'nikolay.georgiev00@outlook.com',
+  /** Primary: everywhere an email is shown, including the CV and JSON-LD. */
+  email: 'info@nikolay-georgiev.dev',
+  /** Secondary: the personal mailbox, contact page only, under the primary. */
+  emailAlt: 'nikolay.georgiev00@outlook.com',
   /** Contact page only (see above). */
   phone: { display: '+359 89 367 0247', tel: '+359893670247' },
   url: 'https://nikolay-georgiev.dev',

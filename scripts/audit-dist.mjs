@@ -67,7 +67,7 @@ const TEXT = new Set([
   '.svg',
   '.md',
 ]);
-const ALLOWED_EMAILS = new Set(['nikolay.georgiev00@outlook.com']);
+const ALLOWED_EMAILS = new Set(['info@nikolay-georgiev.dev', 'nikolay.georgiev00@outlook.com']);
 
 const LEAKS = [
   [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, 'private key'],

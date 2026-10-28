@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 import {
   allRoutes,
   EMAIL,
+  EMAIL_ALT,
   localize,
   locales,
   notFoundPage,
@@ -16,10 +17,14 @@ for (const locale of locales) {
   test.describe(`contact page (${locale})`, () => {
     const path = localize('/contact', locale);
 
-    test('offers the phone and the email', async ({ page }) => {
+    test('offers the phone and both emails, primary first', async ({ page }) => {
       await page.goto(path);
       await expect(page.locator(`a[href="tel:${PHONE_TEL}"]`).first()).toBeVisible();
-      await expect(page.locator(`a[href="mailto:${EMAIL}"]`).first()).toBeVisible();
+      const mail = page.locator('#contact a[href^="mailto:"]');
+      await expect(mail).toHaveCount(2);
+      await expect(mail.nth(0)).toHaveAttribute('href', `mailto:${EMAIL}`);
+      await expect(mail.nth(1)).toHaveAttribute('href', `mailto:${EMAIL_ALT}`);
+      await expect(mail.nth(1)).toBeVisible();
     });
 
     test('copy buttons confirm at once', async ({ page, context, browserName }) => {
@@ -28,12 +33,15 @@ for (const locale of locales) {
       await page.goto(path);
 
       const email = page.locator(`button[data-copy="${EMAIL}"]`).filter({ visible: true });
+      const emailAlt = page.locator(`button[data-copy="${EMAIL_ALT}"]`).filter({ visible: true });
       const phone = page.locator('button[data-copy*="359"]').filter({ visible: true });
       await expect(email).toHaveCount(1);
+      await expect(emailAlt).toHaveCount(1);
       await expect(phone).toHaveCount(1);
 
       for (const [button, value] of [
         [email, EMAIL],
+        [emailAlt, EMAIL_ALT],
         [phone, PHONE_TEL],
       ] as const) {
         await button.click();
