@@ -1,9 +1,11 @@
 // Who is asking, for rate limits only. The service sits behind exactly one
 // proxy, Railway's edge: no CDN, no other hop (the form posts straight to the
 // *.up.railway.app domain). Railway documents one header as the client's
-// address, X-Real-IP, and sets it at the edge, replacing anything a client sent;
-// X-Forwarded-For is undocumented, so it is only a cross-check in diagnostics.
-// docs/contact-flow.md records the live test of both.
+// address, X-Real-IP. Measured live on 28 October 2026: the edge replaces a
+// client's X-Real-IP and X-Forwarded-For, and sends X-Forwarded-For as two
+// hops, "client, edge", so its right-most entry is Railway's own address.
+// X-Forwarded-For is undocumented and only appears in diagnostics.
+// docs/contact-flow.md records the probe.
 import { isIP } from 'node:net';
 
 const v4ToNumber = (ip) => ip.split('.').reduce((n, part) => n * 256 + Number(part), 0);
@@ -100,6 +102,7 @@ export function forwardedShape(headers) {
   return {
     xff: hops.map(ipKind),
     real_ip: real ? ipKind(real) : 'absent',
+    real_is_first_hop: Boolean(real) && ipBucket(real) === ipBucket(hops[0]),
     real_is_last_hop: Boolean(real) && ipBucket(real) === ipBucket(hops.at(-1)),
   };
 }

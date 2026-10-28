@@ -67,6 +67,7 @@ test('diagnostics describe the proxy chain without any address', () => {
   assert.deepEqual(shape, {
     xff: ['documentation', 'public', 'private'],
     real_ip: 'public',
+    real_is_first_hop: false,
     real_is_last_hop: false,
   });
   assert.equal(JSON.stringify(shape).includes('81.161'), false);
