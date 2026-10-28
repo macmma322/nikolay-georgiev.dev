@@ -57,7 +57,8 @@ const TEST_RECIPIENTS = (env.SEND_TEST_RECIPIENTS ?? '')
 const BOOKING_TOKEN = '{{BOOKING_LINK}}';
 
 const NUMBER = String.raw`\d{1,3}(?:[ ,. ]\d{3})+|\d+`;
-const CURRENCY = String.raw`€|\$|£|eur\b|euro|евро|лв\.?|лева|bgn\b|usd\b|gbp\b`;
+// Currency words only as whole words: "Europe/Sofia" is not a price.
+const CURRENCY = String.raw`€|\$|£|(?<!\p{L})(?:eur|euro|евро|лв|лева|bgn|usd|gbp)(?!\p{L})\.?`;
 const EURO = /^(€|eur|euro|евро)$/iu;
 const toNumber = (digits) => Number(digits.replace(/\D/g, ''));
 
@@ -69,7 +70,10 @@ export const amounts = (text) =>
   [
     ...[...text.matchAll(PREFIXED)].map((m) => [m[1], m[2]]),
     ...[...text.matchAll(SUFFIXED)].map((m) => [m[2], m[1]]),
-  ].map(([currency, digits]) => ({ currency: currency.trim(), value: toNumber(digits) }));
+  ].map(([currency, digits]) => ({
+    currency: currency.trim().replace(/\.$/, ''),
+    value: toNumber(digits),
+  }));
 const BRIEF_PRICES = new Set(amounts(BRIEF).map((a) => a.value));
 
 /**
@@ -77,10 +81,18 @@ const BRIEF_PRICES = new Set(amounts(BRIEF).map((a) => a.value));
  * echoed budgets or other currencies. Any other number of 3+ digits outside a
  * link must be a brief price too, so an amount without a currency can't slip by.
  */
-export function pricesFromBrief(text) {
-  if (!amounts(text).every((a) => EURO.test(a.currency) && BRIEF_PRICES.has(a.value))) return false;
+export function pricesFromBrief(raw) {
+  const text = raw.normalize('NFKC');
+  // Digits outside ASCII (Arabic-Indic and others) are never quoted by the brief.
+  if (/[^\P{Nd}0-9]/u.test(text)) return false;
+  const found = amounts(text);
+  // Every currency mark sits next to an exact brief price: "€1.5k", "a thousand euro" or
+  // a bare "лв" leaves a mark without a price, and the reply drafts.
+  const marks = text.match(new RegExp(CURRENCY, 'giu')) ?? [];
+  if (marks.length > found.length) return false;
+  if (!found.every((a) => EURO.test(a.currency) && BRIEF_PRICES.has(a.value))) return false;
   const words = text.replace(SCHEMED, ' ');
-  const bigNumbers = words.match(new RegExp(String.raw`\d{1,3}(?:[ ,. ]\d{3})+|\d{3,}`, 'g'));
+  const bigNumbers = words.match(/\d{1,3}(?:[ ,. ]\d{3})+|\d{3,}/g);
   return (bigNumbers ?? []).every((digits) => BRIEF_PRICES.has(toNumber(digits)));
 }
 

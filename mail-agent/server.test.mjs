@@ -319,3 +319,13 @@ test('money in any currency, or a bare big number, must be a brief euro price', 
   assert.equal(pricesFromBrief('Price: 1 200 for everything.'), false);
   assert.equal(pricesFromBrief('Calls Mon–Fri 13:00–13:30 and 18:30–20:30.'), true);
 });
+
+test('disguised amounts fail closed', () => {
+  assert.equal(pricesFromBrief('From €1.5k only.'), false);
+  assert.equal(pricesFromBrief('Roughly a thousand euro.'), false);
+  assert.equal(pricesFromBrief('From １５００ EUR.'), true); // full-width digits become 1500, a brief price
+  assert.equal(pricesFromBrief('From ５５ EUR.'), false);
+  assert.equal(pricesFromBrief('From ٥٥٠ €.'), false);
+  assert.equal(pricesFromBrief('Calls in Sofia time (Europe/Sofia), from €550.'), true);
+  assert.equal(pricesFromBrief('Цена от €550 за Европа.'), true);
+});
