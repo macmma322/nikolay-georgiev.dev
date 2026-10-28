@@ -637,6 +637,20 @@ const handleContact = createContactHandler({
     }),
 });
 
+/**
+ * The client as Railway's proxy saw it: the right-most X-Forwarded-For entry,
+ * which the proxy appends. Entries to its left are whatever the client sent.
+ */
+export function clientAddress(forwarded, socketAddress = '') {
+  const hops = [forwarded]
+    .flat()
+    .join(',')
+    .split(',')
+    .map((hop) => hop.trim())
+    .filter(Boolean);
+  return hops.at(-1) ?? String(socketAddress);
+}
+
 async function readBody(req, limit) {
   let body = '';
   for await (const chunk of req) {
@@ -665,10 +679,7 @@ async function contactRoute(req, res) {
       ? { status: 413, body: { ok: false, error: 'invalid' } }
       : await handleContact({
           origin,
-          // Railway's proxy puts the client first in X-Forwarded-For.
-          ip: String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress)
-            .split(',')[0]
-            .trim(),
+          ip: clientAddress(req.headers['x-forwarded-for'], req.socket.remoteAddress),
           body,
         });
   res.statusCode = result.status;

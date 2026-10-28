@@ -19,6 +19,7 @@ import {
   pricesFromBrief,
   isFollowUp,
   headerMap,
+  clientAddress,
 } from './server.mjs';
 import { scheduleConfig } from './schedule.mjs';
 
@@ -355,4 +356,11 @@ test('the booking link goes to an agenda, never to a vague time request', () => 
   assert.ok(meetingContext(agenda, cfg, null).includes('{{BOOKING_LINK}}'));
   const moving = { category: 'meeting_change', offer_call: false, requested_time: '' };
   assert.ok(meetingContext(moving, cfg, null).includes('{{BOOKING_LINK}}'));
+});
+
+test('the rate-limit address is the hop the proxy added, not one the client wrote', () => {
+  assert.equal(clientAddress('6.6.6.6, 203.0.113.9'), '203.0.113.9');
+  assert.equal(clientAddress('203.0.113.9'), '203.0.113.9');
+  assert.equal(clientAddress(['6.6.6.6', '203.0.113.9']), '203.0.113.9');
+  assert.equal(clientAddress(undefined, '10.0.0.1'), '10.0.0.1');
 });
