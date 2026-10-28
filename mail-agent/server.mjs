@@ -84,11 +84,24 @@ export function isAnswerable(email, thread) {
 export const needsReview = (text, allowedUrls = []) =>
   /\[[^\]]+\]/.test(text) ||
   /\+?\d[\d ()-]{8,}\d/.test(text) ||
-  /[\w.+-]+@[\w-]+\.[\w.-]+/.test(text) ||
-  (text.match(/https?:\/\/[^\s)>\]]+/g) ?? []).some((url) => {
-    const link = url.replace(/[.,;:!?]+$/, '');
-    return !(link === SITE || link.startsWith(`${SITE}/`) || allowedUrls.includes(link));
-  });
+  // Any address, in any script, with a full-width at sign, or spelled "(at)".
+  /[\p{L}\p{N}._%+-]+\s*[@＠﹫]\s*[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/u.test(text) ||
+  /[({]\s*at\s*[)}]/i.test(text) ||
+  hosts(text).some((host) => !allowedHosts(allowedUrls).includes(host));
+
+const HOST_LIKE =
+  /\b(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}(?::\d+)?(?:[/?#][^\s)>\]]*)?/giu;
+const hostOf = (link) => {
+  try {
+    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(link) ? link : `https://${link}`;
+    return new URL(withScheme).hostname.toLowerCase().replace(/\.$/, '');
+  } catch {
+    return link.toLowerCase();
+  }
+};
+// Fails closed: anything shaped like a host counts, so "Node.js" drafts too. Drafting is the safe side.
+const hosts = (text) => (text.match(HOST_LIKE) ?? []).map(hostOf);
+const allowedHosts = (allowedUrls) => [new URL(SITE).hostname, ...allowedUrls.map(hostOf)];
 
 /** Cooldown key: "ana+web@studio.bg" and "ana@studio.bg" are one sender. */
 export const senderKey = (sender) => sender.replace(/\+[^@]*@/, '@');
@@ -343,7 +356,10 @@ async function answer({ inbox_id, thread_id, email_id, email, threadPath }) {
   const exception =
     verdict.category === 'meeting_change' ||
     schedule?.requested === 'outside_rules' ||
-    (email.reply_to ?? []).some((to) => address(to) !== address(email.from));
+    [full.reply_to, email.reply_to]
+      .flat()
+      .filter(Boolean)
+      .some((to) => address(String(to)) !== address(full.from ?? email.from));
   const send =
     !DRY_RUN &&
     !exception &&

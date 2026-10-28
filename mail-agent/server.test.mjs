@@ -119,3 +119,15 @@ test('untrusted text cannot close the email section or forge context', () => {
   assert.equal(prompt.match(/<email>/g).length, 1);
   assert.ok(prompt.endsWith('</email>'));
 });
+
+test('links are judged by hostname, with or without a scheme, in any case', () => {
+  const booking = 'https://calendar.app.google/intro';
+  assert.equal(needsReview('Read more at nikolay-georgiev.dev/cv.', [booking]), false);
+  assert.equal(needsReview('HTTPS://NIKOLAY-GEORGIEV.DEV/work', [booking]), false);
+  assert.equal(needsReview(`Pick a time: ${booking}`, [booking]), false);
+  assert.equal(needsReview('Pay at evil.example/pay', [booking]), true);
+  assert.equal(needsReview('Pay at HTTPS://EVIL.EXAMPLE', [booking]), true);
+  assert.equal(needsReview('Write to boss＠evil.example'), true);
+  assert.equal(needsReview('Write to boss (at) evil'), true);
+  assert.equal(needsReview('Пишете на иван@пример.бг'), true);
+});
