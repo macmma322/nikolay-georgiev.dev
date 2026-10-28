@@ -10,6 +10,13 @@
 import regular from '@expo-google-fonts/tiktok-sans/400Regular/TikTokSans_400Regular.ttf?url';
 import semibold from '@expo-google-fonts/tiktok-sans/600SemiBold/TikTokSans_600SemiBold.ttf?url';
 import bold from '@expo-google-fonts/tiktok-sans/700Bold/TikTokSans_700Bold.ttf?url';
+// The preview's copies: the same fonts subset to Latin, Cyrillic and punctuation as
+// WOFF2 (pyftsubset; about 47 kB each instead of 200), so the page paints sooner.
+// The glyph advances are unchanged, so the preview still matches the PDF line for line;
+// the full TrueType files load only to write a PDF or draw a tailored CV.
+import previewRegular from '@/assets/cv/TikTokSans-400Regular.woff2?url';
+import previewSemibold from '@/assets/cv/TikTokSans-600SemiBold.woff2?url';
+import previewBold from '@/assets/cv/TikTokSans-700Bold.woff2?url';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import { cv } from '@/data/cv';
 import { LOCALES, LOCALE_META, useI18n } from '@/i18n';
@@ -48,10 +55,11 @@ const previews = order.flatMap((lang) =>
   }),
 );
 
-const fontCss = Object.entries({ 400: regular, 600: semibold, 700: bold })
+const preview = { 400: previewRegular, 600: previewSemibold, 700: previewBold };
+const fontCss = Object.entries(preview)
   .map(
     ([weight, url]) =>
-      `@font-face{font-family:'CV Sans';src:url(${url}) format('truetype');font-weight:${weight};font-display:block}`,
+      `@font-face{font-family:'CV Sans';src:url(${url}) format('woff2');font-weight:${weight};font-display:block}`,
   )
   .join('');
 Astro.csp?.insertStyleHash(styleHash(fontCss));
@@ -74,8 +82,8 @@ const strings = {
 
 <BaseLayout>
   <Fragment slot="head">
-    {Object.values(fonts).map((url) => (
-      <link rel="preload" href={url} as="font" type="font/ttf" crossorigin />
+    {Object.values(preview).map((url) => (
+      <link rel="preload" href={url} as="font" type="font/woff2" crossorigin />
     ))}
     <style set:html={fontCss}></style>
   </Fragment>
