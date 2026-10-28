@@ -131,3 +131,15 @@ test('links are judged by hostname, with or without a scheme, in any case', () =
   assert.equal(needsReview('Write to boss (at) evil'), true);
   assert.equal(needsReview('Пишете на иван@пример.бг'), true);
 });
+
+test('only the exact booking page and the site pass; IPs, logins and lookalikes draft', () => {
+  const booking = 'https://calendar.app.google/intro';
+  assert.equal(needsReview(`Book: ${booking}`, [booking]), false);
+  assert.equal(needsReview('Book: https://calendar.app.google/someone-else', [booking]), true);
+  assert.equal(needsReview('Pay at http://1.2.3.4/pay', [booking]), true);
+  assert.equal(needsReview('Open http://localhost/x', [booking]), true);
+  assert.equal(needsReview('Open http://[::1]/x', [booking]), true);
+  assert.equal(needsReview('https://nikolay-georgiev.dev@evil.example/x', [booking]), true);
+  assert.equal(needsReview('ftp://nikolay-georgiev.dev/file', [booking]), true);
+  assert.equal(needsReview('Visit пример.бг', [booking]), true);
+});

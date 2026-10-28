@@ -87,21 +87,35 @@ export const needsReview = (text, allowedUrls = []) =>
   // Any address, in any script, with a full-width at sign, or spelled "(at)".
   /[\p{L}\p{N}._%+-]+\s*[@＠﹫]\s*[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/u.test(text) ||
   /[({]\s*at\s*[)}]/i.test(text) ||
-  hosts(text).some((host) => !allowedHosts(allowedUrls).includes(host));
+  // IP literals, v4 or bracketed v6.
+  /\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-f:]+\]/i.test(text) ||
+  (text.match(SCHEMED) ?? []).some((link) => !allowedLink(link, allowedUrls)) ||
+  (text.match(BARE_HOST) ?? []).some((host) => normalHost(host) !== SITE_HOST);
 
-const HOST_LIKE =
-  /\b(?:[a-z][a-z0-9+.-]*:\/\/)?(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}(?::\d+)?(?:[/?#][^\s)>\]]*)?/giu;
-const hostOf = (link) => {
+// Every "scheme://" link, whatever follows: parsed, never pattern-matched.
+const SCHEMED = /[a-z][a-z0-9+.-]*:\/\/[^\s)>\]]+/gi;
+// Domain-shaped text without a scheme, in any script. Fails closed, so "Node.js" drafts too.
+const BARE_HOST = /(?<![\p{L}\p{N}\-./@:])(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}(?![\p{L}\p{N}-])/gu;
+const SITE_HOST = new URL(SITE).hostname;
+const normalHost = (host) => host.toLowerCase().replace(/\.$/, '');
+const trimLink = (link) => link.replace(/[.,;:!?]+$/, '');
+
+/** Site links on any path; otherwise only a link that starts with an exact allowed URL. */
+function allowedLink(raw, allowedUrls) {
+  let url;
   try {
-    const withScheme = /^[a-z][a-z0-9+.-]*:\/\//i.test(link) ? link : `https://${link}`;
-    return new URL(withScheme).hostname.toLowerCase().replace(/\.$/, '');
+    url = new URL(trimLink(raw));
   } catch {
-    return link.toLowerCase();
+    return false;
   }
-};
-// Fails closed: anything shaped like a host counts, so "Node.js" drafts too. Drafting is the safe side.
-const hosts = (text) => (text.match(HOST_LIKE) ?? []).map(hostOf);
-const allowedHosts = (allowedUrls) => [new URL(SITE).hostname, ...allowedUrls.map(hostOf)];
+  if (url.username || url.password || !/^https?:$/.test(url.protocol)) return false;
+  if (url.hostname === SITE_HOST) return true;
+  const link = url.href.replace(/\/$/, '');
+  return allowedUrls.some((allowed) => {
+    const base = new URL(allowed).href.replace(/\/$/, '');
+    return link === base || link.startsWith(`${base}/`) || link.startsWith(`${base}?`);
+  });
+}
 
 /** Cooldown key: "ana+web@studio.bg" and "ana@studio.bg" are one sender. */
 export const senderKey = (sender) => sender.replace(/\+[^@]*@/, '@');
