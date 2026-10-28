@@ -102,8 +102,14 @@ export default defineConfig({
     },
     // Hubot Sans, Mona Sans and Martian Mono have no Cyrillic. These faces
     // cover only the Cyrillic range and come first in the stacks (tokens.css):
-    // Latin text never downloads them, Bulgarian text never falls back to a
-    // system font. No fallbacks, the next family in the stack is the fallback.
+    // Latin text never downloads them. No fallbacks, the next family in the
+    // stack is the fallback.
+    //
+    // display: 'optional', not 'swap': a late Cyrillic face re-wrapped the
+    // Bulgarian hero and moved everything under it (CLS 0.13 with fonts 800 ms
+    // late, 0.001 with optional). Bulgarian pages preload these faces; on a
+    // slow first view the system font stays for that page, later pages use
+    // the cached face.
     {
       provider: fontProviders.local(),
       name: 'TikTok Sans',
@@ -116,7 +122,7 @@ export default defineConfig({
             weight: '300 900',
             style: 'normal',
             stretch: '75% 150%',
-            display: 'swap',
+            display: 'optional',
             unicodeRange: CYRILLIC,
           },
         ],
@@ -133,7 +139,7 @@ export default defineConfig({
             src: [font('martian-mono/files/martian-mono-cyrillic-wght-normal.woff2')],
             weight: '100 800',
             style: 'normal',
-            display: 'swap',
+            display: 'optional',
             unicodeRange: CYRILLIC,
           },
         ],
