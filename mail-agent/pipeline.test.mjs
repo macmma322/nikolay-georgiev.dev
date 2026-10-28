@@ -303,7 +303,10 @@ test('limits, cooldowns and handled emails survive a restart', async () => {
   assert.equal((await settled(data.email_id))[0].action, 'drafted');
   await start(); // a new process on the same volume
   assert.match(startups.at(-1), /state on /); // reopened from disk, not in memory
-  assert.equal(audits.some((a) => a.state === 'degraded'), false);
+  assert.equal(
+    audits.some((a) => a.state === 'degraded'),
+    false,
+  );
   await deliver(data);
   assert.equal((await settled(data.email_id, 2))[1].action, 'duplicate');
   // The same mailbox writes again after the restart: still within its cooldown.
