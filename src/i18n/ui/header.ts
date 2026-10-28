@@ -12,6 +12,6 @@ export const header = {
   // Same wording as the footer facts (contact.ts).
   availability: { en: 'Availability', bg: 'На разположение' },
   language: { en: 'Language', bg: 'Език' },
-  /** Muted after "CV" in the menu; the CV is English only. */
-  cvMeta: { en: 'PDF', bg: 'PDF · англ.' },
+  /** Muted after "CV" in the menu, which opens the CV page. */
+  cvMeta: { en: 'EN · BG', bg: 'BG · EN' },
 } as const satisfies Record<string, L>;

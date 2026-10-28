@@ -6,8 +6,7 @@ type Dict = { readonly [key: string]: L | Dict | readonly Dict[] };
 export const home = {
   hero: {
     cta: { en: 'View selected work', bg: 'Вижте проектите' },
-    /** The CV is English only, so the Bulgarian button says so. */
-    cv: { en: 'Download CV', bg: 'Изтеглете CV · англ.' },
+    cv: { en: 'Download CV', bg: 'Изтеглете CV' },
     fig: { en: 'Fig. 01 · Layers', bg: 'Фиг. 01 · Слоеве' },
     stack: { en: 'The layers I build across', bg: 'Слоевете, в които работя' },
   },

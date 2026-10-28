@@ -103,6 +103,24 @@ The Stream Deck is an MK.2 (owner, 2026-10-27; its
 profile shows a 5 × 3 layout). Never
 publish serials, MAC or IP addresses, Bluetooth device names or local paths.
 
+## CV
+
+`/cv` and `/bg/cv` show one CV design in English and Bulgarian. The Generate
+button writes the PDF in the visitor's browser with pdf-lib: no service,
+account or cost. The same code writes `Nikolay-Georgiev-CV-EN.pdf` and
+`-BG.pdf` at build time as the ready-made copies (`/Nikolay-Georgiev-CV.pdf`
+stays the English one for old links).
+
+- The CV draws on the site's own data (`site.ts`, `experience.ts`, `tech.ts`,
+  the case studies). `src/data/cv.ts` holds only what the CV alone says, and
+  the build fails when it states a number a case study does not, names a
+  technology a project does not use, or lists a planned skill.
+- One page is not forced: both languages run to two full pages, and an entry
+  never breaks across a page.
+- Section titles are plain words, not letter-spaced capitals, so text
+  extraction reads them as words.
+- No phone number or address (the build refuses one), as on the rest of the site.
+
 ## Privacy
 
 Never publish: secrets or `.env` values, internal hostnames, local file paths,

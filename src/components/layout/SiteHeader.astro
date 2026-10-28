@@ -34,17 +34,12 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
           </li>
         ))}
       </ul>
-      <a class="cv-link" href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+      <a
+        class="cv-link"
+        href={href(site.cv.page)}
+        aria-current={isCurrent(site.cv.page) ? 'page' : undefined}
+      >
         {s.cv}
-        <svg class="nudge-down" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-          <path
-            d="M8 2v8m0 0 3.2-3.2M8 10 4.8 6.8M3 13.5h10"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.4"
-          ></path>
-        </svg>
-        <span class="visually-hidden">{s.pdfDownload}</span>
       </a>
       {/* Last, at the right edge: the CV link's width changes with the language, the switch never moves. */}
       <LangSwitch variant="header" />
@@ -109,11 +104,8 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
         <LangSwitch variant="menu" />
         <ul role="list" class="mobile-links">
           <li>
-            <a href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+            <a href={href(site.cv.page)}>
               CV <span class="muted">{h.cvMeta}</span>
-              <span class="nudge-down" aria-hidden="true">
-                ↓
-              </span>
             </a>
           </li>
           <li>
@@ -365,25 +357,18 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
     scale: 0.97;
   }
 
-  /* Direction-true nudges: down arrows drop, external arrows lift away. */
-  .nudge-down,
+  /* Direction-true nudge: external arrows lift away. */
   .nudge-ext {
     display: inline-block;
     transition: translate var(--dur-ui) var(--ease-out);
   }
 
   @media (hover: hover) and (pointer: fine) {
-    a:hover .nudge-down {
-      translate: 0 2px;
-    }
     a:hover .nudge-ext {
       translate: 2px -2px;
     }
   }
 
-  a:focus-visible .nudge-down {
-    translate: 0 2px;
-  }
   a:focus-visible .nudge-ext {
     translate: 2px -2px;
   }

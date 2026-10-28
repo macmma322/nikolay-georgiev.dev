@@ -47,7 +47,11 @@ export const site = {
   /** Contact page only (see above). */
   phone: { display: '+359 89 367 0247', tel: '+359893670247' },
   url: 'https://nikolay-georgiev.dev',
-  cv: { href: '/Nikolay-Georgiev-CV.pdf' },
+  /** The CV page, and the PDF in each language (written at build time, src/pages/[cv].pdf.ts). */
+  cv: {
+    page: '/cv',
+    file: { en: 'Nikolay-Georgiev-CV-EN.pdf', bg: 'Nikolay-Georgiev-CV-BG.pdf' } satisfies L,
+  },
   links: {
     github: 'https://github.com/macmma322',
     linkedin: 'https://www.linkedin.com/in/nikolaygeorgiev0049/',

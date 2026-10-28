@@ -51,7 +51,7 @@
 	map {path} {legacy} {
 		/cv-nikolay-georgiev.pdf /Nikolay-Georgiev-CV.pdf
 		/projects /work
-		/resume /about
+		/resume /cv
 		/sitemap.xml /sitemap-index.xml
 		/opengraph-image /og/home-en.7b8e0f49df.png
 		/icon /favicon-32.png

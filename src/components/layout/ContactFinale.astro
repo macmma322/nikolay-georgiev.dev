@@ -107,7 +107,7 @@ const linkedinMark =
       </a>
     </li>
     <li>
-      <a href={site.cv.href} download="Nikolay-Georgiev-CV.pdf">
+      <a href={`/${l(site.cv.file)}`} download={l(site.cv.file)}>
         CV <span class="muted">{s.cvMeta}</span>
         <span class="glyph down" aria-hidden="true">
           ↓

@@ -24,16 +24,16 @@ states its real status. [PRODUCT.md](PRODUCT.md) covers the content rules and
 
 ## Commands
 
-| Command             | What it does                                                        |
-| ------------------- | ------------------------------------------------------------------- |
-| `npm run dev`       | Dev server on http://localhost:4321                                 |
-| `npm run build`     | Production build, then `scripts/audit-dist.mjs` (fails on problems) |
-| `npm run preview`   | Serve `dist/`                                                       |
-| `npm run typecheck` | `astro check` and `tsc --noEmit`                                    |
-| `npm run format`    | Prettier (`format:check` in CI)                                     |
-| `npm run test:e2e`  | Playwright against the production build (desktop, phone, tablet)    |
-| `npm run og`        | Re-render the Open Graph cards (`public/og/`, `src/data/og.json`)   |
-| `npm run cv`        | Re-render `public/Nikolay-Georgiev-CV.pdf` (fails if over one page) |
+| Command              | What it does                                                                   |
+| -------------------- | ------------------------------------------------------------------------------ |
+| `npm run dev`        | Dev server on http://localhost:4321                                            |
+| `npm run build`      | Production build, then `scripts/audit-dist.mjs` (fails on problems)            |
+| `npm run preview`    | Serve `dist/`                                                                  |
+| `npm run typecheck`  | `astro check` and `tsc --noEmit`                                               |
+| `npm run format`     | Prettier (`format:check` in CI)                                                |
+| `npm run test:e2e`   | Playwright against the production build (desktop, phone, tablet)               |
+| `npm run og`         | Re-render the Open Graph cards (`public/og/`, `src/data/og.json`)              |
+| `npm run cv:inspect` | Check a built CV PDF: pages, fonts, links, text; `-- <pdf> <dir>` renders PNGs |
 
 Node 22.12 or newer. Run `npm run build` before `npm run test:e2e`.
 
@@ -52,10 +52,12 @@ src/
   components/             layout, home, work, diagrams and UI components
   components/work/art/    one drawn plate per project, framed by PlateFrame
   scripts/                small client scripts (reveal once, case contents)
-  pages/                  routes, plus icons/[name].svg.ts for the sprite
+  lib/cv/                 the CV: data join, layout, PDF writer (pdf-lib)
+  pages/                  routes, plus icons/[name].svg.ts and the CV PDFs
 scripts/
   audit-dist.mjs          post-build audit: leaks, SEO, a11y basics, links
-  og.mjs, cv.mjs          Playwright renderers for OG cards and the CV
+  og.mjs                  Playwright renderer for the OG cards
+  cv-inspect.mjs          reads a built CV PDF back with pdf.js (text, links, PNGs)
   shoot.mjs               screenshot helper for design review
 tests/e2e/                Playwright suites (pages, navigation, axe)
 ```

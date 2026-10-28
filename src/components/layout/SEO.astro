@@ -65,6 +65,7 @@ const sections = {
   setup: 'WebPage',
   about: 'ProfilePage',
   contact: 'ContactPage',
+  cv: 'WebPage',
 } as const satisfies Record<string, PageType>;
 const [section, slug, ...rest] = path.split('/').filter(Boolean);
 

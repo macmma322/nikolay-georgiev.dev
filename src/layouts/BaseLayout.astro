@@ -35,6 +35,7 @@ const s = t(common);
     <Font cssVariable="--font-mono-cyr" preload={locale === 'bg'} />
     <TechBrandStyles />
     <SEO title={title} description={description} noindex={noindex} />
+    <slot name="head" />
   </head>
   <body data-accent={accent}>
     <a class="skip-link" href="#main">

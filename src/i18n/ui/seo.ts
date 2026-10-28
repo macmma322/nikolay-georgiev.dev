@@ -56,6 +56,16 @@ export const seo = {
       bg: 'Свържете се с Николай Георгиев, софтуерен инженер от Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
     },
   },
+  cv: {
+    title: {
+      en: 'CV: a PDF in English or Bulgarian',
+      bg: 'CV: PDF на български или английски',
+    },
+    description: {
+      en: 'The CV of Nikolay Georgiev, software engineer in Varna: experience, selected projects and skills, written as a PDF in your browser, free and without an account.',
+      bg: 'CV на Николай Георгиев, софтуерен инженер от Варна: опит, избрани проекти и умения, записани като PDF в браузъра ви, безплатно и без акаунт.',
+    },
+  },
   setup: {
     title: {
       en: 'Setup: hardware, tools and decisions',
@@ -100,6 +110,7 @@ export const seo = {
     setup: { en: 'Setup', bg: 'Техника' },
     about: { en: 'About', bg: 'За мен' },
     contact: { en: 'Contact', bg: 'Контакт' },
+    cv: { en: 'CV', bg: 'CV' },
     openSource: { en: 'Open source', bg: 'Отворен код' },
     blueprint: { en: 'CLAUDE.md blueprint', bg: 'CLAUDE.md' },
   },

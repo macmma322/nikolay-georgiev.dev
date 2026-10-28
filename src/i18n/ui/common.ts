@@ -12,11 +12,10 @@ export const common = {
   homeSuffix: { en: ', home', bg: ', начало' },
   home: { en: 'Home', bg: 'Начало' },
   getInTouch: { en: 'Get in touch', bg: 'Свържете се с мен' },
-  /** The CV is English only; Bulgarian labels say so. */
-  cv: { en: 'CV', bg: 'CV · англ.' },
+  cv: { en: 'CV', bg: 'CV' },
   downloadCv: { en: 'Download CV', bg: 'Изтеглете CV' },
   /** Visually hidden after a CV download link. */
-  pdfDownload: { en: '(PDF download)', bg: '(PDF, на английски)' },
+  pdfDownload: { en: '(PDF download)', bg: '(PDF за изтегляне)' },
   /** Visually hidden before a status label. */
   statusPrefix: { en: 'Status: ', bg: 'Статус: ' },
 } as const satisfies Record<string, L>;

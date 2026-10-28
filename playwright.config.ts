@@ -14,7 +14,7 @@ const swiftshader = {
 const desktop = { width: 1440, height: 900 };
 // The other engines run the smoke paths and navigation; Chromium runs everything.
 const smoke = { grep: /@smoke/ };
-const crossEngine = ['smoke.spec.ts', 'navigation.spec.ts'];
+const crossEngine = ['smoke.spec.ts', 'navigation.spec.ts', 'cv.spec.ts'];
 
 // Runs against the production build (`astro preview` serves dist/), so the
 // tests see the same HTML, CSP and assets that ship.

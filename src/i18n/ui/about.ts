@@ -27,8 +27,8 @@ export const about = {
       bg: 'Следващата ми стъпка съзнателно излиза извън TypeScript: Java, Spring Boot и Angular в счетоводна платформа, където всичко опира до финансовата коректност.',
     },
   },
-  /** Only on Bulgarian pages: the CV is English only. */
-  cvLang: { en: '', bg: 'англ.' },
+  /** Opens the CV page (preview, language choice, Generate CV). */
+  cvPage: { en: 'View and generate CV', bg: 'Вижте и създайте CV' },
   portraitAlt: {
     en: 'Portrait of Nikolay Georgiev, a young man with short dark hair and a beard, in a dark shirt.',
     bg: 'Портрет на Николай Георгиев: млад мъж с къса тъмна коса и брада, в тъмна риза.',

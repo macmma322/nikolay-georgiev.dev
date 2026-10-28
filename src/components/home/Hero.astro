@@ -49,10 +49,10 @@ const statement = l(site.statement);
         </Button>
         <Button
           class="hero-cta"
-          href={site.cv.href}
+          href={`/${l(site.cv.file)}`}
           variant="secondary"
           icon="down"
-          download="Nikolay-Georgiev-CV.pdf"
+          download={l(site.cv.file)}
         >
           {s.hero.cv}
         </Button>

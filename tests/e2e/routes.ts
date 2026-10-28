@@ -21,6 +21,7 @@ export const pages = [
   '/setup',
   '/about',
   '/contact',
+  '/cv',
   '/open-source',
   '/open-source/blueprint',
   ...projects.map((p) => `/work/${p}`),

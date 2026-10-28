@@ -81,7 +81,8 @@ const LEAKS = [
   [/(?<![\w.-])\/(home|root|Users)\/[\w.-]+/, 'local filesystem path'],
   [/railway\.internal/, 'Railway private hostname'],
   [/abv\.bg|macmma422@/, 'private email'],
-  [/\.env(\.|\b)/, 'env file reference'],
+  // Not `process.env.X` in bundled libraries (fontkit reads NODE_DEBUG).
+  [/(?<![\w$])\.env(\.|\b)/, 'env file reference'],
 ];
 
 // Bulgarian numbers in international (+359 / 00359) and national (08x, 09x)

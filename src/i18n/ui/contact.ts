@@ -21,8 +21,8 @@ export const contact = {
   elsewhere: { en: 'Elsewhere', bg: 'Още профили' },
   /** Visually hidden before the number. */
   phone: { en: 'Phone: ', bg: 'Телефон: ' },
-  /** Muted after "CV" in the channel rail; the CV is English only. */
-  cvMeta: { en: 'PDF', bg: 'PDF · англ.' },
+  /** Muted after "CV" in the channel rail. */
+  cvMeta: { en: 'PDF', bg: 'PDF' },
   facts: {
     // "във": the value is "Варна, България", and the pair reads as one phrase.
     based: { en: 'Based in', bg: 'Живея във' },

@@ -51,15 +51,7 @@ const background = [
         <p>{a.bio.next}</p>
       </div>
       <div class="actions">
-        <Button href={site.cv.href} download="Nikolay-Georgiev-CV.pdf" icon="down">
-          {c.downloadCv}
-          {a.cvLang && (
-            <span class="cv-lang" aria-hidden="true">
-              {a.cvLang}
-            </span>
-          )}
-          <span class="visually-hidden">{c.pdfDownload}</span>
-        </Button>
+        <Button href={href(site.cv.page)}>{a.cvPage}</Button>
         <Button href={href('/contact')} variant="secondary">
           {c.getInTouch}
         </Button>
@@ -171,15 +163,6 @@ const background = [
   .bio strong {
     color: var(--fg);
     font-weight: var(--w-semibold);
-  }
-
-  /* The CV is English only: a quiet language tag on Bulgarian pages */
-  .cv-lang {
-    margin-inline-start: 0.5em;
-    font-family: var(--ff-mono);
-    font-size: 0.75em;
-    letter-spacing: 0.06em;
-    opacity: 0.72;
   }
 
   .actions {

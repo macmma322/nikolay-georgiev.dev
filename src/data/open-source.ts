@@ -605,8 +605,22 @@ export const credits: readonly CreditGroup[] = [
         license: 'OFL-1.1',
         kind: 'used',
         use: {
-          en: 'The Cyrillic companion face for the Bulgarian pages.',
-          bg: 'Шрифтът за кирилица на българските страници.',
+          en: 'The Cyrillic companion face for the Bulgarian pages, and the one typeface of the CV.',
+          bg: 'Шрифтът за кирилица на българските страници и единственият шрифт на CV-то.',
+        },
+      },
+      {
+        name: { en: 'pdf-lib and fontkit', bg: 'pdf-lib и fontkit' },
+        by: {
+          en: 'Andrew Dillon; Devon Govett and contributors',
+          bg: 'Andrew Dillon; Devon Govett и сътрудници',
+        },
+        url: 'https://github.com/Hopding/pdf-lib',
+        license: 'MIT',
+        kind: 'used',
+        use: {
+          en: 'Write the CV as a PDF in the browser and at build time, with embedded, subset fonts.',
+          bg: 'Записват CV-то като PDF в браузъра и при изграждането на сайта, с вградени подмножества на шрифтовете.',
         },
       },
       {
@@ -627,8 +641,8 @@ export const credits: readonly CreditGroup[] = [
         license: 'Apache-2.0; MPL-2.0',
         kind: 'used',
         use: {
-          en: 'End-to-end and accessibility tests, and the renderer for the CV and Open Graph cards. Development only.',
-          bg: 'Тестовете от край до край и за достъпност, и изобразяването на CV-то и картите за споделяне. Само при разработка.',
+          en: 'End-to-end and accessibility tests, and the renderer for the Open Graph cards. Development only.',
+          bg: 'Тестовете от край до край и за достъпност, и изобразяването на картите за споделяне. Само при разработка.',
         },
       },
       {

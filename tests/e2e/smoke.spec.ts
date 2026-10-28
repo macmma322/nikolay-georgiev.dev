@@ -27,7 +27,7 @@ const settled = (page: Page) =>
   });
 
 for (const locale of locales) {
-  for (const bare of ['/', '/setup', '/open-source', '/work/jarvis', '/about']) {
+  for (const bare of ['/', '/setup', '/open-source', '/work/jarvis', '/about', '/cv']) {
     const path = localize(bare, locale);
     test(`${path} renders without errors or overflow`, { tag: '@smoke' }, async ({ page }) => {
       const problems = watch(page);
@@ -110,7 +110,8 @@ test.describe('setup explorer', { tag: '@smoke' }, () => {
 
 test('pages stay in bounds from 320 to 1920 px', { tag: '@smoke' }, async ({ page }, info) => {
   test.skip(!/desktop|firefox|webkit$/.test(info.project.name), 'one sweep per engine');
-  for (const path of ['/setup', '/bg/setup', '/open-source', '/bg']) {
+  test.slow();
+  for (const path of ['/setup', '/bg/setup', '/open-source', '/bg', '/cv', '/bg/cv']) {
     await page.goto(path);
     for (const width of [320, 360, 375, 390, 414, 768, 1024, 1440, 1920]) {
       await page.setViewportSize({ width, height: 900 });
