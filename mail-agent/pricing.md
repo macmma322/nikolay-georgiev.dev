@@ -123,7 +123,7 @@ web platforms is quoted per project.
 ## How a project runs
 
 1. **Intro call (free, 30 min, Google Meet).** Goals, scope and questions.
-   Booked online for a weekday lunchtime or evening, or a Saturday morning
+   Booked online for a weekday lunchtime or evening, or on a Saturday
    (Sofia time). It is not a technical scoping
    session: for web platforms that is paid discovery, arranged separately.
 2. **Written scope and fixed quote,** usually within 2 working days of the

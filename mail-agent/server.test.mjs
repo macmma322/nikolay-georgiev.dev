@@ -93,7 +93,7 @@ test('the booking link appears only when a call fits, with free times only', () 
   assert.match(exception, /outside call hours/);
   assert.ok(
     exception.includes(
-      'Usual call times (Sofia time): Mon–Fri 13:00–13:30, 18:30–20:30; Sat 10:00–12:00',
+      'Usual call times (Sofia time): Mon–Fri 13:00–14:00, 18:30–20:30; Sat 11:00–16:00',
     ),
   );
   assert.match(meetingContext(keen, scheduleConfig({}), null), /No booking link/);
@@ -339,4 +339,20 @@ test('inflected currency words and stray marks are caught by position', () => {
   assert.equal(pricesFromBrief('From €550 €'), true);
   assert.equal(pricesFromBrief('From €550, € extra.'), false);
   assert.equal(pricesFromBrief('Sofia time (Europe/Sofia), European clients, Европа.'), true);
+});
+
+test('the booking link goes to an agenda, never to a vague time request', () => {
+  const cfg = scheduleConfig({ BOOKING_URL: 'https://calendar.app.google/intro' });
+  const vagueTime = {
+    category: 'website_project',
+    offer_call: false,
+    requested_time: '2026-11-03T18:30:00+02:00',
+  };
+  const context = meetingContext(vagueTime, cfg, { requested: 'free', slots: [] });
+  assert.ok(context.includes('No booking link'));
+  assert.equal(context.includes('{{BOOKING_LINK}}'), false);
+  const agenda = { category: 'website_project', offer_call: true, requested_time: '' };
+  assert.ok(meetingContext(agenda, cfg, null).includes('{{BOOKING_LINK}}'));
+  const moving = { category: 'meeting_change', offer_call: false, requested_time: '' };
+  assert.ok(meetingContext(moving, cfg, null).includes('{{BOOKING_LINK}}'));
 });

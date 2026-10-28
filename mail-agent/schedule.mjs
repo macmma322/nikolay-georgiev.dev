@@ -37,8 +37,9 @@ export const parseSchedule = (spec) => {
   return byDay;
 };
 
-// Nikolay's day job runs Mon–Fri 9:00–18:00 with lunch 13:00–14:00.
-const DEFAULT_SCHEDULE = '1-5 13:00-13:30,18:30-20:30; 6 10:00-12:00';
+// Mirrors the Google booking page (the authority at booking time): weekday lunch and
+// evenings around the day job, and Saturday. Override with MEETING_SCHEDULE.
+const DEFAULT_SCHEDULE = '1-5 13:00-14:00,18:30-20:30; 6 11:00-16:00';
 
 export function scheduleConfig(env) {
   return {

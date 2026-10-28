@@ -22,17 +22,19 @@ test('Sofia wall-clock time converts to UTC on both sides of DST', () => {
 
 test('rules: weekday lunch and evenings, Saturday morning, notice and window', () => {
   const t = (d, h, m) => withinRules(sofia(2026, 11, d, h, m), cfg, now);
-  assert.equal(t(3, 13), true); // Tue lunch 13:00-13:30
-  assert.equal(t(3, 13, 30), false); // would run past the lunch slot
+  assert.equal(t(3, 13), true); // Tue lunch 13:00-14:00
+  assert.equal(t(3, 13, 30), true); // ends 14:00
+  assert.equal(t(3, 14), false); // back at work
   assert.equal(t(3, 10), false); // day job
   assert.equal(t(3, 18), false); // straight after work
   assert.equal(t(3, 18, 30), true);
   assert.equal(t(3, 20), true); // ends 20:30
   assert.equal(t(3, 20, 30), false);
   assert.equal(t(2, 18, 30), false); // 10.5h notice < 12h
-  assert.equal(t(7, 10), true); // Saturday morning
-  assert.equal(t(7, 11, 30), true); // ends 12:00
-  assert.equal(t(7, 12), false);
+  assert.equal(t(7, 10), false); // before Saturday hours
+  assert.equal(t(7, 11), true); // Saturday
+  assert.equal(t(7, 15, 30), true); // ends 16:00
+  assert.equal(t(7, 16), false);
   assert.equal(t(8, 10), false); // Sunday
   assert.equal(t(20, 18, 30), false); // beyond 14 days
 });
