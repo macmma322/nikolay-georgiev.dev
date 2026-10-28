@@ -13,6 +13,11 @@ import {
   meetingContext,
   senderKey,
   asPrompt,
+  decide,
+  isAutomatedMail,
+  seenBefore,
+  pricesFromBrief,
+  isFollowUp,
 } from './server.mjs';
 import { scheduleConfig } from './schedule.mjs';
 
@@ -78,7 +83,8 @@ test('the booking link appears only when a call fits, with free times only', () 
   const keen = { category: 'website_project', offer_call: true, requested_time: '' };
   const slots = [Date.UTC(2026, 10, 3, 8), Date.UTC(2026, 10, 4, 12)];
   const context = meetingContext(keen, cfg, { requested: 'unavailable', slots });
-  assert.match(context, /intro call: https:\/\/calendar\.app\.google\/intro/);
+  assert.ok(context.includes('intro call: available (write {{BOOKING_LINK}})'));
+  assert.equal(context.includes('calendar.app.google'), false); // the model never sees the URL
   assert.match(context, /Requested time: unavailable/);
   assert.match(context, /Tue 3 Nov, 10:00–10:30; Wed 4 Nov, 14:00–14:30/);
 
@@ -166,4 +172,120 @@ test('look-alike dots and combining marks cannot hide a domain', () => {
   assert.equal(needsReview('Visit ｅｖｉｌ.ｅｘａｍｐｌｅ'), true);
   assert.equal(needsReview('Visit evil.exámple'), true);
   assert.equal(needsReview('Visit nikolay-georgiev。dev/work'), false);
+});
+
+const okVerdict = {
+  category: 'website_project',
+  confidence: 'high',
+  complexity: 'simple',
+  unusual: false,
+};
+const okEmail = {
+  from: 'Ana <ana@studio.bg>',
+  reply_to: [],
+  authentication: { spf: 'pass', dkim: 'pass', dmarc: 'pass' },
+};
+const okReply = {
+  text: 'A landing page starts from €550. https://nikolay-georgiev.dev/work',
+  complete: true,
+};
+const live = { bookingUrl: '', sendCap: 10, dryRun: false, testRecipients: [] };
+const decision = (over = {}) =>
+  decide({
+    verdict: okVerdict,
+    schedule: null,
+    reply: okReply,
+    email: okEmail,
+    sender: 'ana@studio.bg',
+    sentToday: 0,
+    cfg: live,
+    ...over,
+  });
+
+test('a safe, authenticated, simple enquiry is the only thing that sends', () => {
+  assert.deepEqual(decision(), { send: true, reasons: [] });
+});
+
+test('every uncertainty drafts, and says why', () => {
+  const reasons = (over) => decision(over).reasons;
+  assert.deepEqual(reasons({ email: { ...okEmail, authentication: { dmarc: 'fail' } } }), [
+    'dmarc fail',
+  ]);
+  assert.deepEqual(reasons({ email: { ...okEmail, authentication: null } }), ['dmarc unknown']);
+  assert.deepEqual(reasons({ email: { ...okEmail, reply_to: ['other@evil.example'] } }), [
+    'reply-to mismatch',
+  ]);
+  assert.deepEqual(reasons({ reply: { ...okReply, text: 'Only €1,750 in total!' } }), [
+    'price not in the brief',
+  ]);
+  assert.deepEqual(reasons({ reply: { ...okReply, text: 'Pay at evil.example' } }), [
+    'link, address, phone or placeholder',
+  ]);
+  assert.deepEqual(reasons({ verdict: { ...okVerdict, complexity: 'complex' } }), [
+    'complex enquiry',
+  ]);
+  assert.deepEqual(reasons({ verdict: { ...okVerdict, category: 'meeting_change' } }), [
+    'meeting change',
+  ]);
+  assert.deepEqual(reasons({ schedule: { requested: 'outside_rules', slots: [] } }), [
+    'time outside call hours',
+  ]);
+  assert.deepEqual(reasons({ reply: { ...okReply, complete: false } }), ['cut off']);
+  assert.deepEqual(reasons({ sentToday: 10 }), ['daily send cap']);
+  assert.deepEqual(reasons({ reply: { ...okReply, strayToken: true } }), [
+    'booking link without a booking page',
+  ]);
+});
+
+test('dry run drafts everything except listed test recipients', () => {
+  const dry = { ...live, dryRun: true, testRecipients: ['tester@gmail.com'] };
+  assert.deepEqual(decision({ cfg: dry }).reasons, ['dry run']);
+  assert.deepEqual(decision({ cfg: dry, sender: 'tester@gmail.com' }), { send: true, reasons: [] });
+});
+
+test('machine mail is recognised from its headers', () => {
+  assert.equal(isAutomatedMail({ 'Auto-Submitted': 'auto-replied' }), true);
+  assert.equal(isAutomatedMail({ 'auto-submitted': 'no' }), false);
+  assert.equal(isAutomatedMail({ precedence: 'bulk' }), true);
+  assert.equal(isAutomatedMail({ 'list-id': '<news.example>' }), true);
+  assert.equal(isAutomatedMail({ 'x-autoreply': 'yes' }), true);
+  assert.equal(isAutomatedMail({ from: 'ana@studio.bg', subject: 'Website' }), false);
+});
+
+test('a delivery or email seen once is ignored the second time', () => {
+  const seen = new Set();
+  assert.equal(seenBefore(seen, 'msg_1'), false);
+  assert.equal(seenBefore(seen, 'msg_1'), true);
+  const small = new Set();
+  for (const key of ['a', 'b', 'c']) seenBefore(small, key, 2);
+  assert.deepEqual([...small], ['b', 'c']);
+});
+
+test('prices must be ones the brief lists', () => {
+  assert.equal(
+    pricesFromBrief('Landing page from €550, business from €1,500, language €250.'),
+    true,
+  );
+  assert.equal(pricesFromBrief('Платформа от €5 000 без ДДС, проучване от €150.'), true);
+  assert.equal(pricesFromBrief('Your budget of €700 is fine.'), false);
+  assert.equal(pricesFromBrief('That is 1750 EUR in total.'), false);
+});
+
+test('an unusual request or a missing flag drafts', () => {
+  assert.deepEqual(decision({ verdict: { ...okVerdict, unusual: true } }).reasons, [
+    'unusual request',
+  ]);
+  const { unusual, ...noFlag } = okVerdict;
+  assert.deepEqual(decision({ verdict: noFlag }).reasons, ['unusual request']);
+});
+
+test('replies and follow-ups never get an automatic answer', () => {
+  assert.equal(isFollowUp({ 'in-reply-to': '<abc@mail.example>' }), true);
+  assert.equal(isFollowUp({ References: '<abc@mail.example>' }), true);
+  assert.equal(isFollowUp({ subject: 'Website' }), false);
+  const reasons = (subject) => decision({ email: { ...okEmail, subject } }).reasons;
+  assert.deepEqual(reasons('Re: Landing page'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('Отг: Сайт'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('Fwd: quote'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('Website for my bakery'), []);
 });
