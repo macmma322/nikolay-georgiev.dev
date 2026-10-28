@@ -81,39 +81,49 @@ export function isAnswerable(email, thread) {
  * phone number, an email address, or a link that is neither his site nor an
  * allowed URL. An injected or spoofed email must not get those sent from his domain.
  */
-export const needsReview = (text, allowedUrls = []) =>
-  /\[[^\]]+\]/.test(text) ||
-  /\+?\d[\d ()-]{8,}\d/.test(text) ||
-  // Any address, in any script, with a full-width at sign, or spelled "(at)".
-  /[\p{L}\p{N}._%+-]+\s*[@＠﹫]\s*[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/u.test(text) ||
-  /[({]\s*at\s*[)}]/i.test(text) ||
-  // IP literals, v4 or bracketed v6.
-  /\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-f:]+\]/i.test(text) ||
-  (text.match(SCHEMED) ?? []).some((link) => !allowedLink(link, allowedUrls)) ||
-  (text.match(BARE_HOST) ?? []).some((host) => normalHost(host) !== SITE_HOST);
+export function needsReview(text, allowedUrls = []) {
+  if (
+    /\[[^\]]+\]/.test(text) ||
+    /\+?\d[\d ()-]{8,}\d/.test(text) ||
+    // Any address, in any script, with a full-width at sign, or spelled "(at)".
+    /[\p{L}\p{N}._%+-]+\s*[@＠﹫]\s*[\p{L}\p{N}-]+(?:\.[\p{L}\p{N}-]+)+/u.test(text) ||
+    /[({]\s*at\s*[)}]/i.test(text) ||
+    // IP literals, v4 or bracketed v6.
+    /\d{1,3}(?:\.\d{1,3}){3}|\[[0-9a-f:]+\]/i.test(text)
+  ) {
+    return true;
+  }
+  if ((text.match(SCHEMED) ?? []).some((link) => !allowedLink(link, allowedUrls))) return true;
+  // With the checked links cut out, nothing link-like may remain except the site's own host:
+  // no "//host", no "scheme:host", and no other domain-shaped text (so "Node.js" drafts too).
+  const rest = text.replace(SCHEMED, ' ');
+  if (/\/\/\S/.test(rest) || /[a-z][a-z0-9+.-]*:[^\s/]*\.\p{L}/iu.test(rest)) return true;
+  return (rest.match(DOMAIN) ?? []).some((host) => normalHost(host) !== SITE_HOST);
+}
 
-// Every "scheme://" link, whatever follows: parsed, never pattern-matched.
-const SCHEMED = /[a-z][a-z0-9+.-]*:\/\/[^\s)>\]]+/gi;
-// Domain-shaped text without a scheme, in any script. Fails closed, so "Node.js" drafts too.
-const BARE_HOST = /(?<![\p{L}\p{N}\-./@:])(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}(?![\p{L}\p{N}-])/gu;
+// A "scheme://" link up to the first character that is not valid in a URL.
+const SCHEMED = /[a-z][a-z0-9+.-]*:\/\/[^\s<>"'{}|\\^`[\]()]+/gi;
+const DOMAIN = /(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}/gu;
 const SITE_HOST = new URL(SITE).hostname;
 const normalHost = (host) => host.toLowerCase().replace(/\.$/, '');
 const trimLink = (link) => link.replace(/[.,;:!?]+$/, '');
 
 /** Site links on any path; otherwise only a link that starts with an exact allowed URL. */
 function allowedLink(raw, allowedUrls) {
+  const link = trimLink(raw);
+  if (link.indexOf('://') !== link.lastIndexOf('://')) return false;
   let url;
   try {
-    url = new URL(trimLink(raw));
+    url = new URL(link);
   } catch {
     return false;
   }
   if (url.username || url.password || !/^https?:$/.test(url.protocol)) return false;
   if (url.hostname === SITE_HOST) return true;
-  const link = url.href.replace(/\/$/, '');
+  const href = url.href.replace(/\/$/, '');
   return allowedUrls.some((allowed) => {
     const base = new URL(allowed).href.replace(/\/$/, '');
-    return link === base || link.startsWith(`${base}/`) || link.startsWith(`${base}?`);
+    return href === base || href.startsWith(`${base}/`) || href.startsWith(`${base}?`);
   });
 }
 

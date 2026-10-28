@@ -143,3 +143,19 @@ test('only the exact booking page and the site pass; IPs, logins and lookalikes 
   assert.equal(needsReview('ftp://nikolay-georgiev.dev/file', [booking]), true);
   assert.equal(needsReview('Visit пример.бг', [booking]), true);
 });
+
+test('nothing link-like survives outside a checked link', () => {
+  const booking = 'https://calendar.app.google/intro';
+  assert.equal(needsReview('Visit //evil.example/pay', [booking]), true);
+  assert.equal(needsReview('https://nikolay-georgiev.dev/x|evil.example', [booking]), true);
+  assert.equal(needsReview('https://nikolay-georgiev.dev/a/https://evil.example', [booking]), true);
+  assert.equal(needsReview('Go to http:evil.example', [booking]), true);
+  assert.equal(
+    needsReview('See https://nikolay-georgiev.dev/work and nikolay-georgiev.dev/cv.', [booking]),
+    false,
+  );
+  assert.equal(
+    needsReview('Calls: Mon–Fri 13:00–13:30, 18:30–20:30 (Europe/Sofia).', [booking]),
+    false,
+  );
+});
