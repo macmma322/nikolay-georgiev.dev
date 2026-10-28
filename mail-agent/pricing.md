@@ -8,7 +8,7 @@ read the client's brief.
 
 ## Who builds it
 
-Nikolay Georgiev, software engineer in Varna, Bulgaria. Website projects are
+Nikolay Georgiev, software engineer near Varna, Bulgaria. Website projects are
 independent work alongside a full-time engineering role, so he takes one
 website project at a time. He works in English and Bulgarian.
 

@@ -15,11 +15,9 @@ import {
   asPrompt,
   decide,
   isAutomatedMail,
-  seenBefore,
   pricesFromBrief,
   isFollowUp,
   headerMap,
-  clientAddress,
 } from './server.mjs';
 import { scheduleConfig } from './schedule.mjs';
 
@@ -109,9 +107,14 @@ test('auto-send refuses foreign links and email addresses', () => {
   assert.equal(needsReview('Write to boss@evil.example today.'), true);
 });
 
-test('one sender per cooldown, whatever the +tag', () => {
-  assert.equal(senderKey('ana+web@studio.bg'), 'ana@studio.bg');
-  assert.equal(senderKey('ana@studio.bg'), 'ana@studio.bg');
+test('one cooldown per mailbox: +tags and Gmail dots merge only where the provider ignores them', () => {
+  assert.equal(senderKey('ana+web@gmail.com'), 'ana@gmail.com');
+  assert.equal(senderKey('A.n.A+x@GoogleMail.com'), 'ana@gmail.com');
+  assert.equal(senderKey('ana+web@outlook.com'), 'ana@outlook.com');
+  // A custom domain may route "ana+web" to a different person: kept apart.
+  assert.equal(senderKey('ana+web@studio.bg'), 'ana+web@studio.bg');
+  assert.equal(senderKey('a.na@studio.bg'), 'a.na@studio.bg');
+  assert.equal(senderKey('Ana@Studio.BG'), 'ana@studio.bg');
 });
 
 test('untrusted text cannot close the email section or forge context', () => {
@@ -192,14 +195,20 @@ const okReply = {
   text: 'A landing page starts from €550. https://nikolay-georgiev.dev/work',
   complete: true,
 };
-const live = { bookingUrl: '', sendCap: 10, dryRun: false, testRecipients: [] };
+const live = {
+  bookingUrl: '',
+  sendCap: 10,
+  dryRun: false,
+  testRecipients: [],
+  categories: ['website_project', 'portfolio_question'],
+  durable: true,
+};
 const decision = (over = {}) =>
   decide({
     verdict: okVerdict,
     schedule: null,
     reply: okReply,
     email: okEmail,
-    sender: 'ana@studio.bg',
     sentToday: 0,
     cfg: live,
     ...over,
@@ -228,6 +237,7 @@ test('every uncertainty drafts, and says why', () => {
     'complex enquiry',
   ]);
   assert.deepEqual(reasons({ verdict: { ...okVerdict, category: 'meeting_change' } }), [
+    'category not enabled',
     'meeting change',
   ]);
   assert.deepEqual(reasons({ schedule: { requested: 'outside_rules', slots: [] } }), [
@@ -243,7 +253,11 @@ test('every uncertainty drafts, and says why', () => {
 test('dry run drafts everything except listed test recipients', () => {
   const dry = { ...live, dryRun: true, testRecipients: ['tester@gmail.com'] };
   assert.deepEqual(decision({ cfg: dry }).reasons, ['dry run']);
-  assert.deepEqual(decision({ cfg: dry, sender: 'tester@gmail.com' }), { send: true, reasons: [] });
+  const tester = { ...okEmail, from: 'Tester <tester@gmail.com>' };
+  assert.deepEqual(decision({ cfg: dry, email: tester }), { send: true, reasons: [] });
+  // The allowlist is the exact address: a +tag of it is not on the list.
+  const tagged = { ...okEmail, from: 'tester+x@gmail.com' };
+  assert.deepEqual(decision({ cfg: dry, email: tagged }).reasons, ['dry run']);
 });
 
 test('machine mail is recognised from its headers', () => {
@@ -253,15 +267,6 @@ test('machine mail is recognised from its headers', () => {
   assert.equal(isAutomatedMail({ 'list-id': '<news.example>' }), true);
   assert.equal(isAutomatedMail({ 'x-autoreply': 'yes' }), true);
   assert.equal(isAutomatedMail({ from: 'ana@studio.bg', subject: 'Website' }), false);
-});
-
-test('a delivery or email seen once is ignored the second time', () => {
-  const seen = new Set();
-  assert.equal(seenBefore(seen, 'msg_1'), false);
-  assert.equal(seenBefore(seen, 'msg_1'), true);
-  const small = new Set();
-  for (const key of ['a', 'b', 'c']) seenBefore(small, key, 2);
-  assert.deepEqual([...small], ['b', 'c']);
 });
 
 test('prices must be ones the brief lists', () => {
@@ -356,11 +361,4 @@ test('the booking link goes to an agenda, never to a vague time request', () => 
   assert.ok(meetingContext(agenda, cfg, null).includes('{{BOOKING_LINK}}'));
   const moving = { category: 'meeting_change', offer_call: false, requested_time: '' };
   assert.ok(meetingContext(moving, cfg, null).includes('{{BOOKING_LINK}}'));
-});
-
-test('the rate-limit address is the hop the proxy added, not one the client wrote', () => {
-  assert.equal(clientAddress('6.6.6.6, 203.0.113.9'), '203.0.113.9');
-  assert.equal(clientAddress('203.0.113.9'), '203.0.113.9');
-  assert.equal(clientAddress(['6.6.6.6', '203.0.113.9']), '203.0.113.9');
-  assert.equal(clientAddress(undefined, '10.0.0.1'), '10.0.0.1');
 });

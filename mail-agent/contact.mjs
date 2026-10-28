@@ -3,9 +3,8 @@
 // email; nothing is stored and nothing is sent to the visitor, whose address
 // is unverified (an auto-reply would let anyone mail any address from here).
 import { formatEnquiryEmail, makeReference, validateEnquiry } from './enquiry.mjs';
+import { DAY, HOUR, openState } from './state.mjs';
 
-const HOUR = 60 * 60 * 1000;
-const DAY = 24 * HOUR;
 // Faster than a person can choose a type and type a name and a message.
 const MIN_FILL_MS = 3000;
 
@@ -14,6 +13,7 @@ const MIN_FILL_MS = 3000;
  * @param {(mail: {subject: string, text: string, replyTo: string, key: string}) => Promise<void>} options.send
  * @param {string[]} options.origins  page origins allowed to post
  * @param {(n: number) => Uint8Array} options.random
+ * @param {ReturnType<typeof openState>} [options.state]  where the limits are counted
  */
 export function createContactHandler({
   send,
@@ -23,20 +23,15 @@ export function createContactHandler({
   perIpHourly = 5,
   dailyCap = 50,
   audit = () => {},
+  state = openState({ now }),
 }) {
-  const recentByIp = new Map();
+  // Idempotency stays in memory: across a restart, Resend's Idempotency-Key
+  // (24 hours) still stops a retried key from sending a second email.
   const results = new Map(); // idempotency key → finished or in-flight result
-  let day = '';
-  let today = 0;
 
   const forget = () => {
     const cutoff = now() - DAY;
     for (const [key, entry] of results) if (entry.at < cutoff) results.delete(key);
-    for (const [ip, times] of recentByIp) {
-      const kept = times.filter((t) => t > now() - HOUR);
-      if (kept.length) recentByIp.set(ip, kept);
-      else recentByIp.delete(ip);
-    }
   };
 
   return async function handleContact({ origin, ip, body }) {
@@ -62,19 +57,20 @@ export function createContactHandler({
         audit({ contact: 'trapped', reasons: [data.website ? 'honeypot' : 'too fast'] });
         return { status: 200, body: { ok: true, reference: makeReference(random) } };
       }
-      const recent = recentByIp.get(ip) ?? [];
-      const date = new Date(now()).toISOString().slice(0, 10);
-      if (date !== day) [day, today] = [date, 0];
-      if (recent.length >= perIpHourly || today >= dailyCap) {
-        audit({ contact: 'limited', reasons: [today >= dailyCap ? 'daily cap' : 'per ip'] });
+      // The address is salted and hashed before it is counted, so none is stored.
+      const ipKey = `contact:ip:${state.key(ip)}`;
+      const full = state.count('contact:day', DAY) >= dailyCap;
+      if (full || state.count(ipKey, HOUR) >= perIpHourly) {
+        audit({ contact: 'limited', reasons: [full ? 'daily cap' : 'per ip'] });
         return { status: 429, body: { ok: false, error: 'rate' } };
       }
       const checked = validateEnquiry(data);
       if (!checked.ok) {
         return { status: 422, body: { ok: false, error: 'invalid', fields: checked.errors } };
       }
-      recentByIp.set(ip, [...recent, now()]);
-      today += 1;
+      // Checked and counted with no await between: parallel posts cannot both pass.
+      state.take(ipKey, perIpHourly, HOUR);
+      state.take('contact:day', dailyCap, DAY);
       const reference = makeReference(random);
       const mail = formatEnquiryEmail(checked.value, reference);
       try {
