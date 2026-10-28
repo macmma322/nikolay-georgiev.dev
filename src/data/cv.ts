@@ -41,33 +41,144 @@ export const cv = {
     ],
   } as Record<string, L[]>,
 
-  /** Skill groups by competency: tech.ts ids, shown in this order. */
+  /**
+   * Skill groups by competency, in the general order: tech.ts ids and
+   * skills.ts practice ids. A target role reorders them (targets below).
+   */
   skills: [
     {
+      id: 'frontend',
       label: { en: 'Frontend', bg: 'Фронтенд' },
-      ids: ['typescript', 'react', 'nextjs', 'tailwind', 'css', 'astro'],
+      ids: ['typescript', 'react', 'nextjs', 'javascript', 'tailwind', 'css', 'a11y', 'responsive'],
     },
     {
+      id: 'backend',
       label: { en: 'Backend and data', bg: 'Бекенд и данни' },
-      ids: ['nodejs', 'express', 'postgresql', 'redis', 'bullmq', 'openapi', 'zod'],
+      ids: ['nodejs', 'express', 'rest', 'postgresql', 'sql', 'redis', 'auth', 'bullmq', 'openapi'],
     },
     {
+      id: 'realtime',
       label: { en: 'Realtime', bg: 'Комуникация в реално време' },
       ids: ['socketio', 'webrtc', 'livekit', 'sse'],
     },
     {
-      label: { en: 'AI systems', bg: 'AI системи' },
-      ids: ['llamacpp', 'mcp', 'claude', 'python'],
+      id: 'ai',
+      label: { en: 'AI applications', bg: 'AI приложения' },
+      ids: ['llm', 'llamacpp', 'mcp', 'whisper', 'python'],
     },
     {
+      id: 'systems',
       label: { en: 'Systems and embedded', bg: 'Системен и вграден софтуер' },
       ids: ['cpp', 'arduino', 'rust', 'tauri', 'unity', 'csharp'],
     },
     {
+      id: 'delivery',
       label: { en: 'Delivery and tooling', bg: 'Внедряване и инструменти' },
-      ids: ['git', 'githubactions', 'docker', 'railway', 'linux', 'stripe'],
+      ids: ['git', 'githubactions', 'testing', 'docker', 'railway', 'linux', 'stripe'],
     },
-  ] satisfies { label: L; ids: string[] }[],
+  ] satisfies { id: string; label: L; ids: string[] }[],
+
+  /**
+   * Roles the CV can be aimed at. Same facts, same design: a target changes
+   * only the focus line, the summary and the order of skills and projects.
+   * The job title stays the one I hold (site.role).
+   */
+  targets: [
+    {
+      id: 'general',
+      label: { en: 'Software Engineer (general)', bg: 'Софтуерен инженер (общо)' },
+      file: '',
+      groups: ['frontend', 'backend', 'realtime', 'ai', 'systems', 'delivery'],
+      projects: ['uss-x-academy', 'zone-32-19', 'jarvis', 'caelora', 'kobait'],
+    },
+    {
+      id: 'frontend',
+      label: { en: 'Frontend / React Developer', bg: 'Фронтенд / React разработчик' },
+      file: 'Frontend',
+      focus: {
+        en: 'Frontend: React, Next.js, TypeScript and accessible interfaces',
+        bg: 'Фронтенд: React, Next.js, TypeScript и достъпни интерфейси',
+      },
+      summary: {
+        en: 'Software engineer in Varna focused on frontend work with React, Next.js and TypeScript. I built the Next.js frontends of USS X Academy, an education platform in production for a client, including a keyboard-operable map of 28 regions, and the Next.js client of Zone 32-19 behind a same-origin proxy. On my own projects I also build the APIs and data my interfaces depend on; by day I am a junior backend developer at DXC Technology.',
+        bg: 'Софтуерен инженер във Варна с фокус върху фронтенда с React, Next.js и TypeScript. Изградих фронтендите на Next.js за USS X Academy – образователна платформа за клиент, която е в експлоатация, включително карта на 28-те области, управлявана с клавиатура – както и клиента на Next.js за Zone 32-19 зад same-origin прокси. В собствените си проекти изграждам и API интерфейсите и данните, от които зависят; основната ми работа е като младши бекенд разработчик в DXC Technology.',
+      },
+      groups: ['frontend', 'backend', 'realtime', 'delivery', 'ai', 'systems'],
+      projects: ['uss-x-academy', 'zone-32-19', 'jarvis', 'caelora', 'kobait'],
+    },
+    {
+      id: 'fullstack',
+      label: { en: 'Full-Stack Developer', bg: 'Full-stack разработчик' },
+      file: 'Full-Stack',
+      focus: {
+        en: 'Full-stack: React, Next.js, Node.js, PostgreSQL and Redis',
+        bg: 'Full-stack: React, Next.js, Node.js, PostgreSQL и Redis',
+      },
+      summary: {
+        en: 'Software engineer in Varna who builds web platforms end to end: React and Next.js clients, Node.js and Express APIs, PostgreSQL schemas with versioned migrations, Redis, authentication and deployment. USS X Academy, which I built alone for a client, is in production; Zone 32-19, my own platform, runs in a development environment. By day I am a junior backend developer at DXC Technology.',
+        bg: 'Софтуерен инженер във Варна, който изгражда уеб платформи от край до край: клиенти на React и Next.js, API на Node.js и Express, схеми в PostgreSQL с версионирани миграции, Redis, автентикация и внедряване. USS X Academy, която изградих сам за клиент, е в експлоатация; Zone 32-19, моята собствена платформа, работи в среда за разработка. Основната ми работа е като младши бекенд разработчик в DXC Technology.',
+      },
+      groups: ['frontend', 'backend', 'realtime', 'delivery', 'ai', 'systems'],
+      projects: ['uss-x-academy', 'zone-32-19', 'jarvis', 'caelora', 'kobait'],
+    },
+    {
+      id: 'backend',
+      label: { en: 'Backend / Node.js Developer', bg: 'Бекенд / Node.js разработчик' },
+      file: 'Backend',
+      focus: {
+        en: 'Backend: Node.js, TypeScript, REST APIs, PostgreSQL and Redis',
+        bg: 'Бекенд: Node.js, TypeScript, REST API, PostgreSQL и Redis',
+      },
+      summary: {
+        en: 'Backend-focused software engineer in Varna. At DXC Technology I develop and maintain backend services of a large enterprise insurance platform and trace defects to their root cause. On my own I design Node.js and Express APIs (for USS X Academy from an OpenAPI 3.1 contract), PostgreSQL schemas in raw SQL with versioned migrations, Redis for sockets and rate limits, revocable sessions with two-factor sign-in, and Stripe webhooks that take effect exactly once.',
+        bg: 'Софтуерен инженер във Варна с фокус върху бекенда. В DXC Technology разработвам и поддържам бекенд услугите на голяма корпоративна застрахователна платформа и проследявам дефектите до първопричината им. Самостоятелно проектирам API на Node.js и Express (за USS X Academy по договор OpenAPI 3.1), схеми в PostgreSQL с чист SQL и версионирани миграции, Redis за сокети и ограничения на заявките, сесии, които могат да бъдат анулирани, с двуфакторно удостоверяване, и уебхукове на Stripe, обработвани точно веднъж.',
+      },
+      groups: ['backend', 'realtime', 'delivery', 'frontend', 'ai', 'systems'],
+      projects: ['zone-32-19', 'uss-x-academy', 'jarvis', 'kobait', 'caelora'],
+    },
+    {
+      id: 'software',
+      label: {
+        en: 'Software Engineer / Software Engineer I',
+        bg: 'Софтуерен инженер / Software Engineer I',
+      },
+      file: 'Software-Engineer',
+      focus: {
+        en: 'TypeScript, React, Node.js, PostgreSQL, testing and CI',
+        bg: 'TypeScript, React, Node.js, PostgreSQL, тестове и CI',
+      },
+      summary: {
+        en: 'Software engineer in Varna with a BSc in Computer Science and professional experience at DXC Technology, where I maintain backend services and ship fixes through enterprise QA and release processes. I build software across the stack in TypeScript, React and Node.js, test it with Vitest and Playwright, ship it through GitHub Actions, and write down what is finished and what is not.',
+        bg: 'Софтуерен инженер във Варна с бакалавърска степен по компютърни науки и професионален опит в DXC Technology, където поддържам бекенд услуги и пускам корекции през корпоративните процеси за QA и издаване на версии. Разработвам софтуер в целия стек с TypeScript, React и Node.js, тествам го с Vitest и Playwright, пускам го през GitHub Actions и описвам ясно кое е завършено и кое не е.',
+      },
+      groups: ['backend', 'frontend', 'delivery', 'realtime', 'systems', 'ai'],
+      projects: ['uss-x-academy', 'zone-32-19', 'jarvis', 'caelora', 'kobait'],
+    },
+    {
+      id: 'ai',
+      label: { en: 'AI Application Developer', bg: 'Разработчик на AI приложения' },
+      file: 'AI-Applications',
+      focus: {
+        en: 'AI applications: local LLMs on llama.cpp, TypeScript, Rust and Python',
+        bg: 'AI приложения: локални LLM на llama.cpp, TypeScript, Rust и Python',
+      },
+      summary: {
+        en: 'Software engineer in Varna who builds AI applications as ordinary engineering systems. J.A.R.V.I.S., my private desktop assistant, routes between a local Qwen model on llama.cpp and frontier CLIs, keeps 100 compiled operations behind fixed authority tiers, and refuses answers that claim actions the runtime never took. Much of its code is written by AI agents under my architecture and review. I am not a machine-learning researcher; my day job is backend development at DXC Technology.',
+        bg: 'Софтуерен инженер във Варна, който изгражда AI приложения като обикновени инженерни системи. J.A.R.V.I.S., моят личен настолен асистент, насочва заявките между локален модел Qwen на llama.cpp и CLI инструментите на водещи модели, пази 100 компилирани операции зад фиксирани нива на правомощия и отхвърля отговори, които твърдят, че системата е извършила действие, което не е извършила. Голяма част от кода е написана от AI агенти по моя архитектура и преглед. Не съм изследовател в областта на машинното обучение; основната ми работа е бекенд разработка в DXC Technology.',
+      },
+      groups: ['ai', 'backend', 'frontend', 'systems', 'delivery', 'realtime'],
+      projects: ['jarvis', 'uss-x-academy', 'zone-32-19', 'caelora', 'kobait'],
+    },
+  ] as {
+    id: string;
+    label: L;
+    /** Added to the file name; empty for the general CV. */
+    file: string;
+    focus?: L;
+    summary?: L;
+    groups: string[];
+    projects: string[];
+  }[],
 
   /** Selected projects, in this order. */
   projects: [
@@ -79,8 +190,8 @@ export const cv = {
       },
       points: [
         {
-          en: 'Designed contract-first: an OpenAPI 3.1 specification with 216 operations generates the typed client, and contract tests hold the API to it.',
-          bg: 'Изградена по подхода contract-first: спецификация OpenAPI 3.1 с 216 операции генерира типизирания клиент, а тестове на договора проверяват API-то спрямо нея.',
+          en: 'Designed contract-first: an OpenAPI 3.1 specification with 216 operations generates the typed client.',
+          bg: 'Изградена по подхода contract-first: спецификация OpenAPI 3.1 с 216 операции генерира типизирания клиент.',
         },
         0,
         3,
@@ -138,6 +249,17 @@ export const cv = {
   labels: {
     summary: { en: 'Profile', bg: 'Профил' },
     experience: { en: 'Experience', bg: 'Професионален опит' },
+    /** The application (ATS) version uses the conventional section titles. */
+    atsSummary: { en: 'Professional Summary', bg: 'Професионален профил' },
+    atsSkills: { en: 'Technical Skills', bg: 'Технически умения' },
+    atsExperience: { en: 'Professional Experience', bg: 'Професионален опит' },
+    atsProjects: { en: 'Projects', bg: 'Проекти' },
+    atsCertificates: { en: 'Certifications', bg: 'Сертификати' },
+    /** Independent work is not employment: said where an employer would stand. */
+    independent: {
+      en: 'Self-employed: own products and client work',
+      bg: 'Самостоятелна дейност, собствени и клиентски проекти',
+    },
     projects: { en: 'Selected projects', bg: 'Избрани проекти' },
     education: { en: 'Education', bg: 'Образование' },
     contact: { en: 'Contact', bg: 'Контакти' },

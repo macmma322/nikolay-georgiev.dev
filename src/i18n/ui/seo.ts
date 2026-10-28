@@ -3,7 +3,7 @@ import type { L } from '@/i18n';
 /**
  * Page titles, meta descriptions, breadcrumb names and Open Graph alt texts,
  * read by SEO.astro for every route. A page title renders as
- * "<title> · <name>" and the home page as "<name> · <role>". Titles stay
+ * "<title> · <name>" and the home page as "<name> · <home.title>". Titles stay
  * within about 60 characters with the suffix, descriptions within 120–160,
  * and every line states only facts that are on the site.
  */
@@ -11,9 +11,14 @@ export const seo = {
   /** The person in running text; og:site_name stays 'Nikolay Georgiev' in both. */
   name: { en: 'Nikolay Georgiev', bg: 'Николай Георгиев' },
   home: {
+    /** After the name: the role and main stack recruiters search for. */
+    title: {
+      en: 'Software Engineer, React and Node.js',
+      bg: 'Софтуерен инженер, React и Node.js',
+    },
     description: {
-      en: 'Nikolay Georgiev, software engineer in Varna, Bulgaria: production web platforms, a voxel sandbox game, a local-first AI assistant, hardware and a Rust OS.',
-      bg: 'Николай Георгиев, софтуерен инженер от Варна: работещи уеб платформи, воксел игра, локален AI асистент, вградени системи и операционна система на Rust.',
+      en: 'Software engineer in Varna, Bulgaria: React, Next.js, TypeScript, Node.js and PostgreSQL in production platforms, plus local AI, embedded and systems work.',
+      bg: 'Софтуерен инженер от Варна: React, Next.js, TypeScript, Node.js и PostgreSQL в работещи платформи, както и локален AI, вградени системи и системен софтуер.',
     },
   },
   work: {
@@ -42,8 +47,8 @@ export const seo = {
       bg: 'За мен: софтуерен инженер от Варна',
     },
     description: {
-      en: 'Nikolay Georgiev is a software engineer in Varna, Bulgaria, and a backend developer at DXC Technology. He also builds platforms, AI systems, hardware and an OS.',
-      bg: 'Николай Георгиев е софтуерен инженер от Варна и бекенд разработчик в DXC Technology. Изгражда уеб платформи, AI системи, вградени системи и операционна система.',
+      en: 'Nikolay Georgiev, software engineer in Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
+      bg: 'Николай Георгиев, софтуерен инженер от Варна и младши бекенд разработчик в DXC, изгражда full-stack платформи с React, Next.js, Node.js и PostgreSQL.',
     },
   },
   contact: {
@@ -136,18 +141,30 @@ export const seo = {
   /** Person.knowsAbout in JSON-LD: areas the case studies back up. */
   knowsAbout: {
     en: [
+      'Frontend development',
+      'Full-stack web development',
       'Backend development',
+      'React',
+      'Next.js',
       'TypeScript',
+      'Node.js',
       'PostgreSQL',
+      'REST APIs',
       'Realtime web applications',
       'Local-first AI systems',
       'Embedded systems',
       'Rust',
     ],
     bg: [
+      'Фронтенд разработка',
+      'Full-stack уеб разработка',
       'Бекенд разработка',
+      'React',
+      'Next.js',
       'TypeScript',
+      'Node.js',
       'PostgreSQL',
+      'REST API',
       'Уеб приложения в реално време',
       'Локални AI системи',
       'Вградени системи',

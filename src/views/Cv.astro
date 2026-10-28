@@ -1,33 +1,52 @@
 ---
 /**
- * The CV page: a preview of the CV in both languages, drawn at build time
- * from the same layout as the PDF, and a Generate button that writes the PDF
- * in the browser (src/scripts/cv.ts). The ready-made PDFs are always linked,
- * so the page works without JavaScript and when generation fails.
+ * The CV page. Previews of the general CV (both languages, both versions) are
+ * drawn at build time from the same layout as the PDF; the Generate button
+ * writes the PDF in the browser (src/scripts/cv.ts), and Tailor CV to a job
+ * matches a pasted job description against the site's evidence, locally.
+ * The ready-made PDFs are always linked, so the page works without
+ * JavaScript and when generation fails.
  */
 import regular from '@expo-google-fonts/tiktok-sans/400Regular/TikTokSans_400Regular.ttf?url';
 import semibold from '@expo-google-fonts/tiktok-sans/600SemiBold/TikTokSans_600SemiBold.ttf?url';
 import bold from '@expo-google-fonts/tiktok-sans/700Bold/TikTokSans_700Bold.ttf?url';
 import BaseLayout from '@/layouts/BaseLayout.astro';
-import CvSheet from '@/components/cv/CvSheet.astro';
+import { cv } from '@/data/cv';
 import { LOCALES, LOCALE_META, useI18n } from '@/i18n';
 import { plural } from '@/i18n/format';
 import { cvPage } from '@/i18n/ui/cv';
 import { fontBytes } from '@/lib/cv/assets';
+import { cvFile, type Mode } from '@/lib/cv/doc';
 import { layout } from '@/lib/cv/layout';
-import { cvDocs } from '@/lib/cv/load';
+import { cvDocs, cvTerms } from '@/lib/cv/load';
 import { measurer } from '@/lib/cv/pdf';
+import { sheetSvg } from '@/lib/cv/svg';
 import { styleHash } from '@/lib/csp';
 
-const { locale, t } = useI18n(Astro);
+const { locale, l, t } = useI18n(Astro);
 const u = t(cvPage);
 const docs = await cvDocs();
+const terms = await cvTerms();
 const measure = measurer(await fontBytes());
 const photo = '/cv-portrait.jpg';
 const fonts = { regular, semibold, bold };
 // Reading order: this page's language first.
-const order = [locale, ...LOCALES.filter((l) => l !== locale)];
-const previews = order.map((l) => ({ locale: l, doc: docs[l], pages: layout(docs[l], measure) }));
+const order = [locale, ...LOCALES.filter((x) => x !== locale)];
+const modes: Mode[] = ['portfolio', 'ats'];
+const previews = order.flatMap((lang) =>
+  modes.map((mode) => {
+    const pages = layout(docs[lang]['general']!, measure, mode);
+    const label = (i: number) =>
+      u.page.replace('{n}', String(i + 1)).replace('{total}', String(pages.length));
+    return {
+      lang,
+      mode,
+      file: cvFile(lang, 'general', mode),
+      pages: pages.length,
+      svg: pages.map((page, i) => sheetSvg(page, photo, label(i))).join(''),
+    };
+  }),
+);
 
 const fontCss = Object.entries({ 400: regular, 600: semibold, 700: bold })
   .map(
@@ -36,7 +55,21 @@ const fontCss = Object.entries({ 400: regular, 600: semibold, 700: bold })
   )
   .join('');
 Astro.csp?.insertStyleHash(styleHash(fontCss));
-const json = JSON.stringify(docs).replace(/</g, '\\u003c');
+const json = JSON.stringify({ docs, terms }).replace(/</g, '\\u003c');
+const strings = {
+  busy: u.busy,
+  done: u.done,
+  updating: u.updating,
+  page: u.page,
+  empty: u.tailor.empty,
+  suggest: u.tailor.suggest,
+  use: u.tailor.use,
+  applied: u.tailor.applied,
+  quote: u.tailor.quote,
+  groups: u.tailor.groups,
+  targets: Object.fromEntries(cv.targets.map((x) => [x.id, l(x.label)])),
+  files: Object.fromEntries(cv.targets.map((x) => [x.id, x.file])),
+};
 ---
 
 <BaseLayout>
@@ -62,20 +95,48 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
     data-cv
     data-fonts={JSON.stringify(fonts)}
     data-photo={photo}
-    data-busy={u.busy}
-    data-done={u.done}
+    data-strings={JSON.stringify(strings)}
     aria-label={u.label}
   >
     <div class="panel">
-      <fieldset class="langs">
+      <fieldset class="choice">
         <legend>{u.language}</legend>
-        {order.map((l) => (
+        {order.map((x) => (
           <label>
-            <input type="radio" name="cv-lang" value={l} checked={l === locale} />
-            <span lang={LOCALE_META[l].lang}>{LOCALE_META[l].name}</span>
+            <input type="radio" name="cv-lang" value={x} checked={x === locale} />
+            <span lang={LOCALE_META[x].lang}>{LOCALE_META[x].name}</span>
           </label>
         ))}
       </fieldset>
+
+      <fieldset class="choice versions">
+        <legend>{u.version.legend}</legend>
+        <label>
+          <input type="radio" name="cv-mode" value="portfolio" checked />
+          <span>
+            {u.version.portfolio}
+            <small>{u.version.portfolioNote}</small>
+          </span>
+        </label>
+        <label>
+          <input type="radio" name="cv-mode" value="ats" />
+          <span>
+            {u.version.ats}
+            <small>{u.version.atsNote}</small>
+          </span>
+        </label>
+      </fieldset>
+
+      <div class="js-only" data-cv-js hidden>
+        <label class="field" for="cv-target">
+          {u.target}
+        </label>
+        <select id="cv-target" class="select" name="cv-target">
+          {cv.targets.map((x) => (
+            <option value={x.id}>{l(x.label)}</option>
+          ))}
+        </select>
+      </div>
 
       <button class="generate" type="button" data-cv-generate hidden>
         {u.generate}
@@ -95,14 +156,42 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
 
       <p class="ready">
         {previews.map((p) => (
-          <a class="ready-link" data-lang={p.locale} href={`/${p.doc.file}`} download={p.doc.file}>
-            {u.ready} · {LOCALE_META[p.locale].short}
+          <a
+            class="ready-link"
+            data-lang={p.lang}
+            data-mode={p.mode}
+            href={`/${p.file}`}
+            download={p.file}
+          >
+            {u.ready} · {LOCALE_META[p.lang].short} ·{' '}
+            {p.mode === 'ats' ? u.version.ats : u.version.portfolio}
             <span class="ready-meta">
-              {u.meta.replace('{pages}', plural(p.pages.length, locale, u.pages))}
+              {u.meta.replace('{pages}', plural(p.pages, locale, u.pages))}
             </span>
           </a>
         ))}
       </p>
+
+      <section class="tailor js-only" data-cv-js hidden aria-labelledby="tailor-h">
+        <h2 class="h" id="tailor-h">
+          {u.tailor.title}
+        </h2>
+        <p class="note">{u.tailor.intro}</p>
+        <label class="field" for="cv-job">
+          {u.tailor.field}
+        </label>
+        <textarea id="cv-job" class="job" rows="6" spellcheck="false"></textarea>
+        <div class="row">
+          <button class="small" type="button" data-cv-analyse>
+            {u.tailor.analyse}
+          </button>
+          <button class="small ghost" type="button" data-cv-clear>
+            {u.tailor.clear}
+          </button>
+        </div>
+        <div class="results" data-cv-results aria-live="polite"></div>
+        <p class="note">{u.tailor.noScore}</p>
+      </section>
 
       <h2 class="h">{u.contains.title}</h2>
       <ul class="contains" role="list">
@@ -118,22 +207,15 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
       {previews.map((p) => (
         <div
           class="preview"
-          data-lang={p.locale}
-          lang={LOCALE_META[p.locale].lang}
+          data-lang={p.lang}
+          data-mode={p.mode}
+          lang={LOCALE_META[p.lang].lang}
           role="region"
-          aria-label={u.preview.replace('{lang}', u.langName[p.locale])}
-        >
-          {p.pages.map((page, i) => (
-            <CvSheet
-              page={page}
-              photo={photo}
-              label={u.page
-                .replace('{n}', String(i + 1))
-                .replace('{total}', String(p.pages.length))}
-            />
-          ))}
-        </div>
+          aria-label={u.preview.replace('{lang}', u.langName[p.lang])}
+          set:html={p.svg}
+        />
       ))}
+      <div class="preview live" data-cv-live role="region" aria-live="polite"></div>
     </div>
   </section>
 
@@ -175,13 +257,11 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
       grid-template-columns: minmax(16rem, 22rem) 1fr;
       align-items: start;
     }
-    .panel {
-      position: sticky;
-      top: calc(var(--header-h, 4.5rem) + var(--space-s));
-    }
   }
+  /* Not sticky: with the job tailoring the panel is taller than a screen, and
+     a sticky element taller than the viewport hides its own lower part. */
 
-  .langs {
+  .choice {
     display: flex;
     flex-wrap: wrap;
     gap: var(--space-2xs);
@@ -190,7 +270,7 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
     border: 0;
   }
 
-  .langs legend {
+  .choice legend {
     margin-bottom: var(--space-2xs);
     font-family: var(--ff-mono);
     font-size: var(--text-label);
@@ -199,7 +279,7 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
     color: var(--fg-3);
   }
 
-  .langs label {
+  .choice label {
     position: relative;
     display: inline-flex;
     align-items: center;
@@ -213,7 +293,7 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
       border-color var(--dur-fast) var(--ease-out);
   }
 
-  .langs input {
+  .choice input {
     position: absolute;
     inset: 0;
     opacity: 0;
@@ -221,12 +301,12 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
     cursor: pointer;
   }
 
-  .langs label:has(:checked) {
+  .choice label:has(:checked) {
     border-color: var(--fg);
     background: color-mix(in oklch, var(--fg) 10%, transparent);
   }
 
-  .langs label:has(:checked) span::before {
+  .choice label:has(:checked) span::before {
     content: '';
     display: inline-block;
     width: 0.45em;
@@ -236,9 +316,167 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
     vertical-align: 0.12em;
   }
 
-  .langs label:has(:focus-visible) {
+  .choice label:has(:focus-visible) {
     outline: 2px solid var(--fg);
     outline-offset: 2px;
+  }
+
+  .choice + .choice {
+    margin-top: var(--space-s);
+  }
+
+  .versions label {
+    flex: 1 1 10rem;
+    padding-block: 0.55rem;
+  }
+
+  .versions small {
+    display: block;
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  .field {
+    display: block;
+    margin-top: var(--space-s);
+    margin-bottom: var(--space-3xs);
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-3);
+  }
+
+  .select,
+  .job {
+    inline-size: 100%;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+    color: var(--fg);
+    font: inherit;
+    font-size: var(--text-caption);
+  }
+
+  .select {
+    min-height: 44px;
+  }
+
+  .job {
+    resize: vertical;
+    min-height: 8rem;
+  }
+
+  .select:focus-visible,
+  .job:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .row {
+    display: flex;
+    gap: var(--space-2xs);
+    margin-top: var(--space-2xs);
+  }
+
+  .small {
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--fg);
+    border-radius: var(--radius-s);
+    background: var(--fg);
+    color: var(--ink-0);
+    font-weight: var(--w-semibold);
+    cursor: pointer;
+  }
+
+  .small.ghost {
+    border-color: var(--line-strong);
+    background: transparent;
+    color: var(--fg);
+  }
+
+  .small:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 2px;
+  }
+
+  .note {
+    margin-top: var(--space-2xs);
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .results :global(.note) {
+    margin-top: var(--space-2xs);
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .results :global(h3) {
+    margin-top: var(--space-s);
+    font-size: var(--text-caption);
+    font-weight: var(--w-semibold);
+  }
+
+  .results :global(ul) {
+    margin-top: var(--space-3xs);
+    padding: 0;
+    list-style: none;
+  }
+
+  .results :global(li) {
+    margin-top: var(--space-2xs);
+    font-size: var(--text-caption);
+    color: var(--fg-2);
+  }
+
+  .results :global(li b) {
+    color: var(--fg);
+  }
+
+  .results :global(.q) {
+    display: block;
+    font-size: var(--text-label);
+    color: var(--fg-3);
+  }
+
+  .results :global(.suggest) {
+    margin-top: var(--space-s);
+    font-size: var(--text-caption);
+  }
+
+  .results :global(.suggest button) {
+    margin-left: 0.5rem;
+    padding: 0.2rem 0.6rem;
+    min-height: 36px;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+  }
+
+  .tailor {
+    margin-top: var(--space-l);
+  }
+
+  .preview :global(.sheet) {
+    display: block;
+    inline-size: 100%;
+    block-size: auto;
+    background: #fff;
+    font-family: 'CV Sans', sans-serif;
+    font-kerning: none;
+    font-variant-ligatures: none;
+    font-feature-settings:
+      'kern' 0,
+      'liga' 0,
+      'clig' 0,
+      'calt' 0,
+      'locl' 0;
+    white-space: pre;
   }
 
   .generate {
@@ -370,15 +608,31 @@ const json = JSON.stringify(docs).replace(/</g, '\\u003c');
       0 18px 48px -18px oklch(0 0 0 / 0.7);
   }
 
-  /* The chosen language's preview and ready-made link; without :has() both show. */
-  .cv:has(input[value='en']:checked) [data-lang='bg'],
-  .cv:has(input[value='bg']:checked) [data-lang='en'] {
+  /* The chosen language and version; without :has() every preview shows. */
+  .cv:has(input[name='cv-lang'][value='en']:checked) [data-lang='bg'],
+  .cv:has(input[name='cv-lang'][value='bg']:checked) [data-lang='en'],
+  .cv:has(input[name='cv-mode'][value='portfolio']:checked) [data-mode='ats'],
+  .cv:has(input[name='cv-mode'][value='ats']:checked) [data-mode='portfolio'] {
+    display: none;
+  }
+
+  /* A tailored CV is drawn in the browser; it replaces the built previews. */
+  .preview.live,
+  .cv[data-custom] .preview:not(.live) {
+    display: none;
+  }
+
+  .cv[data-custom] .preview.live {
+    display: grid;
+  }
+
+  .js-only[hidden] {
     display: none;
   }
 
   @media (prefers-reduced-motion: reduce) {
     .generate,
-    .langs label {
+    .choice label {
       transition: none;
     }
   }

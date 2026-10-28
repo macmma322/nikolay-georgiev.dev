@@ -1,10 +1,14 @@
-import type { CvDoc } from './doc';
+import type { CvDoc, Mode } from './doc';
 
 /**
  * The CV's one design, as a pure function: CvDoc in, positioned pages out.
- * The preview (SVG, at build time) and the PDF (pdf-lib, in the browser and
- * at build time) both draw these pages, so what you see is what you get.
- * Units are PDF points, origin top left; the page is A4.
+ * The preview (SVG) and the PDF (pdf-lib, in the browser and at build time)
+ * both draw these pages, so what you see is what you get. Units are PDF
+ * points, origin top left; the page is A4.
+ *
+ * Two exports of the same design: `portfolio` (photo, dark sidebar) for
+ * people, `ats` (one column, no photo, conventional section titles, contact
+ * as plain text) for applications that pass through a parser first.
  */
 
 export const PAGE = { w: 595.28, h: 841.89 } as const;
@@ -45,7 +49,10 @@ const C = {
 };
 
 const SIDE = { w: 186, x: 22 } as const;
-const MAIN = { x: 212, right: PAGE.w - 34 } as const;
+const COLUMN = {
+  portfolio: { x: 212, right: PAGE.w - 34 },
+  ats: { x: 50, right: PAGE.w - 50 },
+} as const;
 const TOP = 38;
 const BOTTOM = PAGE.h - 46;
 const PHOTO = { w: 104, h: 130 } as const;
@@ -72,7 +79,9 @@ interface Block {
 
 const shift = (items: Item[], dy: number): Item[] => items.map((i) => ({ ...i, y: i.y + dy }));
 
-export function layout(doc: CvDoc, measure: Measure): Page[] {
+export function layout(doc: CvDoc, measure: Measure, mode: Mode = 'portfolio'): Page[] {
+  const MAIN = COLUMN[mode];
+  const ats = mode === 'ats';
   /** Wraps runs into lines of `width`, greedy at ordinary spaces (never at a no-break space). */
   function para(runs: Run[], x: number, width: number, lh: number, top = 0): Block {
     type Seg = { run: Run; text: string };
@@ -171,7 +180,7 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
       1.5,
     );
 
-  const entry = (e: CvDoc['experience'][number] & { stack?: string }): Block => {
+  const entry = (e: CvDoc['experience'][number] & { stack?: { name: string }[] }): Block => {
     const metaSize = 7.8;
     const metaW = measure('regular', metaSize, e.meta);
     const title = para(
@@ -196,13 +205,18 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
     ];
     if (e.lead) parts.push(body(e.lead), space(1.5));
     if (e.points.length) parts.push(bullets(e.points));
-    if (e.stack) {
+    if (e.stack?.length) {
       parts.push(
         space(2),
         para(
           [
             { text: `${doc.labels.stack}: `, font: 'semibold', size: 7.9, color: C.muted },
-            { text: e.stack, font: 'regular', size: 7.9, color: C.muted },
+            {
+              text: e.stack.map((x) => x.name).join(', '),
+              font: 'regular',
+              size: 7.9,
+              color: C.muted,
+            },
           ],
           MAIN.x,
           mw,
@@ -213,39 +227,98 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
     return { ...join([...parts, space(9)]), tail: 9 };
   };
 
+  const muted = (text: string, size = 8.6, lh = 11.5): Block =>
+    para([{ text, font: 'regular', size, color: C.muted }], MAIN.x, mw, lh);
+  const sep: Run = { text: ' · ', font: 'regular', size: 8.4, color: C.muted };
+
   const header = join([
     para([{ text: doc.name, font: 'bold', size: 25, color: C.ink }], MAIN.x, mw, 28),
     space(3),
     para([{ text: doc.role, font: 'semibold', size: 11.5, color: C.accent }], MAIN.x, mw, 15),
     space(2),
-    para([{ text: doc.headline, font: 'regular', size: 8.6, color: C.muted }], MAIN.x, mw, 11.5),
+    muted(doc.headline),
+    // The application version carries contact details in the text flow,
+    // as words a parser can read, not in a sidebar.
+    ...(ats
+      ? [
+          space(4),
+          para(
+            [
+              { text: doc.location, font: 'regular', size: 8.4, color: C.body },
+              ...doc.contact.flatMap((c): Run[] => [
+                sep,
+                { text: c.text, font: 'regular', size: 8.4, color: C.body, url: c.url },
+              ]),
+            ],
+            MAIN.x,
+            mw,
+            11.5,
+          ),
+          muted(doc.availability, 8.4),
+        ]
+      : []),
     space(4),
   ]);
 
-  const main: Block[] = [
-    header,
-    heading(doc.labels.summary),
-    join([body(doc.summary), space(6)]),
-    heading(doc.labels.experience),
-    ...doc.experience.map(entry),
-    // Education is short: before the projects it closes page one instead of trailing page two.
-    heading(doc.labels.education),
-    ...doc.education.map((e) =>
-      join([
-        para([{ text: e.title, font: 'semibold', size: 9.4, color: C.ink }], MAIN.x, mw, 12.5),
-        para(
-          [{ text: `${e.org} · ${e.period}`, font: 'regular', size: 8.4, color: C.muted }],
-          MAIN.x,
-          mw,
-          11.5,
+  const education = doc.education.map((e) =>
+    join([
+      para([{ text: e.title, font: 'semibold', size: 9.4, color: C.ink }], MAIN.x, mw, 12.5),
+      muted(`${e.org} · ${e.period}`, 8.4),
+      space(6),
+    ]),
+  );
+
+  const main: Block[] = ats
+    ? [
+        header,
+        heading(doc.labels.atsSummary),
+        join([body(doc.summary), space(6)]),
+        heading(doc.labels.atsSkills),
+        ...doc.skills.map((g) =>
+          join([
+            para(
+              [
+                { text: `${g.label}: `, font: 'semibold', size: 8.7, color: C.ink },
+                {
+                  text: g.items.map((i) => i.name).join(', '),
+                  font: 'regular',
+                  size: 8.7,
+                  color: C.body,
+                },
+              ],
+              MAIN.x,
+              mw,
+              12,
+            ),
+            space(2),
+          ]),
         ),
         space(6),
-      ]),
-    ),
-    space(4),
-    heading(doc.labels.projects),
-    ...doc.projects.map(entry),
-  ];
+        heading(doc.labels.atsExperience),
+        ...doc.experience.map(entry),
+        heading(doc.labels.atsProjects),
+        ...doc.projects.map(entry),
+        heading(doc.labels.education),
+        ...education,
+        space(2),
+        heading(doc.labels.atsCertificates),
+        join([...doc.certificates.map((c) => body(`${c.title}, ${c.org}`)), space(6)]),
+        heading(doc.labels.languages),
+        body(doc.languages.map((x) => `${x.name} (${x.level})`).join(', ')),
+      ]
+    : [
+        header,
+        heading(doc.labels.summary),
+        join([body(doc.summary), space(6)]),
+        heading(doc.labels.experience),
+        ...doc.experience.map(entry),
+        // Education is short: before the projects it closes page one instead of trailing page two.
+        heading(doc.labels.education),
+        ...education,
+        space(4),
+        heading(doc.labels.projects),
+        ...doc.projects.map(entry),
+      ];
 
   // ---------- sidebar ----------
   const sw = SIDE.w - SIDE.x * 2;
@@ -273,13 +346,21 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
       ],
     },
     sideHeading(doc.labels.contact),
+    sideText([
+      {
+        text: `${doc.location}. ${doc.availability}`,
+        font: 'regular',
+        size: 8,
+        color: C.sideSoft,
+      },
+    ]),
     ...doc.contact.map((c) =>
       sideText([
         {
           text: c.text,
           font: 'regular',
           size: 8,
-          color: c.url ? C.sideText : C.sideSoft,
+          color: C.sideText,
           url: c.url,
         },
       ]),
@@ -289,7 +370,17 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
     ...doc.skills.map((g) =>
       join([
         para([{ text: g.label, font: 'semibold', size: 8, color: C.sideText }], SIDE.x, sw, 11.2),
-        sideText([{ text: g.items, font: 'regular', size: 7.9, color: C.sideSoft }], 5),
+        sideText(
+          [
+            {
+              text: g.items.map((i) => i.name).join(', '),
+              font: 'regular',
+              size: 7.9,
+              color: C.sideSoft,
+            },
+          ],
+          5,
+        ),
       ]),
     ),
     space(4),
@@ -330,10 +421,12 @@ export function layout(doc: CvDoc, measure: Measure): Page[] {
   };
 
   const mainPages = flow(main);
-  const sidePages = flow(side);
+  const sidePages = ats ? [] : flow(side);
   const count = Math.max(mainPages.length, sidePages.length);
   return Array.from({ length: count }, (_, p) => {
-    const items: Item[] = [{ t: 'rect', x: 0, y: 0, w: SIDE.w, h: PAGE.h, color: C.side }];
+    const items: Item[] = ats
+      ? []
+      : [{ t: 'rect', x: 0, y: 0, w: SIDE.w, h: PAGE.h, color: C.side }];
     const sideItems = sidePages[p] ?? [];
     // The photo first: it is an image, not text, so it does not affect reading order.
     items.push(...sideItems.filter((i) => i.t !== 'text' && i.t !== 'link'));

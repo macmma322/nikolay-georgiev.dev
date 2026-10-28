@@ -136,16 +136,32 @@ test.describe('3D views', () => {
     const errors: string[] = [];
     page.on('pageerror', (error) => errors.push(error.message));
     const explorer = await liveDesk(page);
+    // Record every move rather than poll for one: on a loaded runner a move
+    // can start and end between two polls.
+    await explorer.evaluate((el) => {
+      const seen: string[] = [];
+      (window as unknown as { seen: string[] }).seen = seen;
+      new MutationObserver(() => {
+        const move = (el as HTMLElement).dataset['transition'];
+        if (move) seen.push(move);
+      }).observe(el, { attributes: true, attributeFilter: ['data-transition'] });
+    });
     await explorer.locator('label:has(input[data-view][value="inside"])').click();
-    // The desk stays on screen while the camera flies to the tower.
-    await expect(explorer).toHaveAttribute('data-transition', 'desk-inside');
     await settled(explorer);
+    // The camera flew from the desk into the case (the desk stays on screen meanwhile).
+    expect(await page.evaluate(() => (window as unknown as { seen: string[] }).seen)).toContain(
+      'desk-inside',
+    );
     const inside = explorer.locator('[data-view-pane="inside"]');
     await expect(inside).toHaveAttribute('data-live', '');
     // Looking inside opens the case, and the stage comes to rest.
     await expect(explorer.locator('input[data-stage-mode][value="cutaway"]')).toBeChecked();
     await expect(inside.locator('.stage-canvas')).toHaveAttribute('data-mode', 'cutaway');
-    await expect(inside.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle');
+    // Motion is timed by the clock, but on a loaded runner's software WebGL a
+    // single frame can take seconds, so the last frame may land late.
+    await expect(inside.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle', {
+      timeout: 30_000,
+    });
     await expect(explorer.locator('.stage-handoff')).toHaveCount(0);
     await expect(explorer.locator('canvas.stage-gl')).toHaveCount(1);
     await expect(inside.locator('.stage-tag[data-tag="cpu"]')).toHaveClass(/is-on/);
@@ -208,7 +224,9 @@ test.describe('3D views', () => {
     // The drawing covers the gap, then a fresh stage takes over.
     await expect(pane).toHaveAttribute('data-live', '', { timeout: 30_000 });
     await expect(pane.locator('canvas.stage-gl')).toHaveCount(1);
-    await expect(pane.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle');
+    await expect(pane.locator('.stage-canvas')).toHaveAttribute('data-motion', 'idle', {
+      timeout: 30_000,
+    });
   });
 
   test('one finger scrolls the page over the model', async ({ page }) => {

@@ -30,6 +30,14 @@ export function personSchema(locale: Locale = DEFAULT_LOCALE, image?: string | u
     url: absolute('/'),
     ...(image ? { image } : {}),
     jobTitle: site.role[locale],
+    description: seo.home.description[locale],
+    // The occupation as practised, with the skills the case studies back up.
+    hasOccupation: {
+      '@type': 'Occupation',
+      name: site.role[locale],
+      occupationLocation: { '@type': 'City', name: seo.city[locale] },
+      skills: seo.knowsAbout[locale].join(', '),
+    },
     // Published in the footer of every page; the site's main contact channel.
     email: site.email,
     worksFor: { '@type': 'Organization', name: 'DXC Technology' },

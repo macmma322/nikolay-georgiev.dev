@@ -120,6 +120,29 @@ stays the English one for old links).
 - Section titles are plain words, not letter-spaced capitals, so text
   extraction reads them as words.
 - No phone number or address (the build refuses one), as on the rest of the site.
+- Two exports of the one design: **Portfolio** (photo, sidebar) for people and
+  **Job applications** (one column, no photo, conventional section titles,
+  contact as plain text) for applicant tracking systems. Both are ready-made
+  at build time (`…-EN-ATS.pdf`, `…-BG-ATS.pdf`).
+- Target roles (Frontend/React, Full-Stack, Backend/Node.js, Software
+  Engineer, AI Application Developer) change only the focus line, the summary
+  and the order of skills and projects. The job title stays Software Engineer.
+- Tailor CV to a job matches a pasted job description in the browser
+  (`src/lib/cv/match.ts`, terms in `src/data/skills.ts`): shown in my work,
+  related, learning, not demonstrated, each with its evidence. It reorders the
+  CV and may add a verified skill the ad names; it never adds anything else
+  and shows no percentage score. The text is not sent anywhere.
+- Independent work reads "Self-employed", never as an employer.
+
+## Search
+
+Recruiters search for the role, the stack and the place: "React developer
+Bulgaria", "Node.js developer Varna", "full stack TypeScript". The home title,
+description, hero focus line and `Person` JSON-LD (`knowsAbout`,
+`hasOccupation` with Varna) say "Software Engineer" with React, Next.js,
+TypeScript, Node.js and PostgreSQL, once each, from `site.focus` and
+`seo.ts`. No seniority the experience does not support, no salary, no
+`JobPosting` markup (that is for vacancies).
 
 ## Privacy
 

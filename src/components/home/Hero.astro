@@ -42,6 +42,7 @@ const statement = l(site.statement);
           ),
         )}
       </p>
+      <p class="hero-focus">{s.hero.focus.replace('{stack}', l(site.focus))}</p>
 
       <div class="hero-actions">
         <Button class="hero-cta" href="#work" variant="primary" icon="scroll">
@@ -150,6 +151,12 @@ const statement = l(site.statement);
 
   .word {
     display: inline-block;
+  }
+
+  .hero-focus {
+    margin-top: var(--space-s);
+    max-width: 48ch;
+    color: var(--fg-2);
   }
 
   .hero-statement {

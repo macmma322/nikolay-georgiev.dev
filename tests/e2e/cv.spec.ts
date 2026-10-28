@@ -99,19 +99,21 @@ for (const site of ['en', 'bg'] as const) {
     await page.goto(path);
     await expect(page.locator('h1')).toHaveCount(1);
     await expect(page.locator(`input[name="cv-lang"][value="${site}"]`)).toBeChecked();
-    const shown = page.locator(`.preview[data-lang="${site}"]`);
+    const shown = page.locator(`.preview[data-lang="${site}"][data-mode="portfolio"]`);
     await expect(shown).toBeVisible();
-    await expect(page.locator(`.preview[data-lang="${site === 'en' ? 'bg' : 'en'}"]`)).toBeHidden();
+    await expect(
+      page.locator(`.preview[data-lang="${site === 'en' ? 'bg' : 'en'}"]`).first(),
+    ).toBeHidden();
+    await expect(page.locator(`.preview[data-lang="${site}"][data-mode="ats"]`)).toBeHidden();
     expect(await shown.locator('svg.sheet').count()).toBeGreaterThanOrEqual(1);
     await expect(shown).toContainText(
       site === 'en' ? 'Junior Backend Developer' : 'Младши бекенд разработчик',
     );
     await expect(page.locator('[data-cv-generate]')).toBeVisible();
     // The ready-made copy of the chosen language is linked.
-    await expect(page.locator(`a.ready-link[data-lang="${site}"]`)).toHaveAttribute(
-      'href',
-      `/${files[site]}`,
-    );
+    await expect(
+      page.locator(`a.ready-link[data-lang="${site}"][data-mode="portfolio"]`),
+    ).toHaveAttribute('href', `/${files[site]}`);
   });
 }
 
@@ -126,7 +128,11 @@ for (const locale of ['en', 'bg'] as const) {
 
     const pdf = await inspect(bytes);
     // Same number of pages as the preview shows.
-    expect(pdf.count).toBe(await page.locator(`.preview[data-lang="${locale}"] svg.sheet`).count());
+    expect(pdf.count).toBe(
+      await page
+        .locator(`.preview[data-lang="${locale}"][data-mode="portfolio"] svg.sheet`)
+        .count(),
+    );
     for (const s of pdf.sizes) {
       expect(s.width).toBeCloseTo(595.28, 1);
       expect(s.height).toBeCloseTo(841.89, 1);
@@ -161,18 +167,22 @@ test('a failed generation says so and points to the ready-made PDF', async ({ pa
   await page.locator('[data-cv-generate]').click();
   await expect(page.locator('[data-cv-failed]')).toBeVisible();
   await expect(page.locator('[data-cv-status]')).toHaveText('');
-  await expect(page.locator('a.ready-link[data-lang="en"]')).toBeVisible();
+  await expect(page.locator('a.ready-link[data-lang="en"][data-mode="portfolio"]')).toBeVisible();
   // The preview stays.
-  await expect(page.locator('.preview[data-lang="en"] svg.sheet').first()).toBeVisible();
+  await expect(
+    page.locator('.preview[data-lang="en"][data-mode="portfolio"] svg.sheet').first(),
+  ).toBeVisible();
 });
 
 test.describe('without JavaScript', () => {
   test.use({ javaScriptEnabled: false });
   test('the preview and the ready-made PDFs are there; no dead button', async ({ page }) => {
     await page.goto('/cv');
-    await expect(page.locator('.preview[data-lang="en"] svg.sheet').first()).toBeVisible();
+    await expect(
+      page.locator('.preview[data-lang="en"][data-mode="portfolio"] svg.sheet').first(),
+    ).toBeVisible();
     await expect(page.locator('[data-cv-generate]')).toBeHidden();
-    await expect(page.locator('a.ready-link[data-lang="en"]')).toBeVisible();
+    await expect(page.locator('a.ready-link[data-lang="en"][data-mode="portfolio"]')).toBeVisible();
   });
 });
 
@@ -190,4 +200,147 @@ test('the old CV address still serves the English PDF', async ({ request }) => {
   const res = await request.get('/Nikolay-Georgiev-CV.pdf');
   expect(res.status()).toBe(200);
   expect(res.headers()['content-type']).toContain('pdf');
+});
+
+// ---------- the application (ATS) version ----------
+
+test('the application version is one column of text in the conventional order', async ({
+  request,
+}) => {
+  for (const [locale, heads] of [
+    [
+      'en',
+      [
+        'Professional Summary',
+        'Technical Skills',
+        'Professional Experience',
+        'Projects',
+        'Education',
+        'Certifications',
+        'Languages',
+      ],
+    ],
+    [
+      'bg',
+      [
+        'Професионален профил',
+        'Технически умения',
+        'Професионален опит',
+        'Проекти',
+        'Образование',
+        'Сертификати',
+        'Езици',
+      ],
+    ],
+  ] as const) {
+    const res = await request.get(`/Nikolay-Georgiev-CV-${locale.toUpperCase()}-ATS.pdf`);
+    expect(res.status()).toBe(200);
+    const bytes = new Uint8Array(await res.body());
+    const pdf = await inspect(bytes);
+    // Sections come out of text extraction in reading order.
+    const at = heads.map((h) => pdf.text.indexOf(h));
+    expect(
+      at.every((i) => i >= 0),
+      `${locale}: ${at.join(',')}`,
+    ).toBe(true);
+    expect([...at].sort((a, b) => a - b)).toEqual(at);
+    // Employers and dates as words, contact details as text and links.
+    expect(pdf.text).toContain('DXC Technology');
+    expect(pdf.text).toContain('Genpact');
+    expect(pdf.text).toContain('nikolay.georgiev00@outlook.com');
+    expect(pdf.text).toContain('github.com/macmma322');
+    expect(pdf.links).toContain('https://github.com/macmma322');
+    // No photo: the document holds no image at all.
+    const doc = await PDFDocument.load(bytes);
+    const images = [...doc.context.enumerateIndirectObjects()].filter(
+      ([, o]) =>
+        o instanceof PDFStream && o.dict.get(PDFName.of('Subtype'))?.toString() === '/Image',
+    );
+    expect(images).toHaveLength(0);
+  }
+});
+
+test('the independent role is not presented as employment', async ({ request }) => {
+  const pdf = await inspect(
+    new Uint8Array(await (await request.get('/Nikolay-Georgiev-CV-EN-ATS.pdf')).body()),
+  );
+  expect(pdf.text).toContain('Self-employed');
+  expect(pdf.text).not.toMatch(/Zone 32-19 and client work · Varna/);
+});
+
+// ---------- Tailor CV to a job ----------
+
+const ad = `Frontend Developer. React and TypeScript are our core. You will build our customer portal with React and
+Next.js in TypeScript, consume REST APIs and care about accessibility (WCAG). Nice to have:
+GraphQL, Kubernetes, MySQL and .NET Core. Fluent English.`;
+
+test('a job description is matched with evidence, and gaps are named', async ({ page }) => {
+  await page.goto('/cv');
+  await page.locator('#cv-job').fill(ad);
+  await page.getByRole('button', { name: 'Analyse' }).click();
+  const results = page.locator('[data-cv-results]');
+  const group = (status: string) => results.locator(`h3[data-status="${status}"] + ul`);
+  await expect(group('verified')).toContainText('React');
+  await expect(group('verified')).toContainText('Next.js');
+  await expect(group('verified')).toContainText('REST APIs');
+  await expect(group('verified')).toContainText('Accessibility');
+  await expect(group('verified')).toContainText('USS X Academy');
+  await expect(group('related')).toContainText('MySQL');
+  // C# in a Unity game is not .NET server work.
+  await expect(group('related')).toContainText('.NET');
+  await expect(group('missing')).toContainText('GraphQL');
+  await expect(group('missing')).toContainText('Kubernetes');
+  await expect(results).toContainText('Frontend / React Developer');
+  // No invented score.
+  await expect(results).not.toContainText('%');
+  // The tailored CV is drawn in the browser.
+  await expect(page.locator('[data-cv]')).toHaveAttribute('data-custom', '');
+  await expect(page.locator('[data-cv-live] svg.sheet').first()).toBeVisible();
+});
+
+test('ordinary words are not mistaken for technologies', async ({ page }) => {
+  await page.goto('/cv');
+  await page
+    .locator('#cv-job')
+    .fill(
+      'We react quickly to change. Express your ideas freely. Go beyond the brief. Each graph node matters. Resend the form if needed. Job security, end-to-end ownership and being responsive to feedback matter. Report to our Solutions Architect on Go-to-market plans.',
+    );
+  await page.getByRole('button', { name: 'Analyse' }).click();
+  await expect(page.locator('[data-cv-results]')).toContainText('No technologies or practices');
+  await expect(page.locator('[data-cv]')).not.toHaveAttribute('data-custom', '');
+});
+
+test('a role-aimed CV downloads as its own PDF and states only verified skills', async ({
+  page,
+}) => {
+  test.slow();
+  await page.goto('/cv');
+  await page.locator('#cv-target').selectOption('backend');
+  await page.locator('label:has(input[name="cv-mode"][value="ats"])').click();
+  await expect(page.locator('[data-cv-live]')).toContainText('Backend: Node.js');
+  const download = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Generate CV' }).click();
+  const file = await download;
+  expect(file.suggestedFilename()).toBe('Nikolay-Georgiev-CV-EN-Backend-ATS.pdf');
+  const pdf = await inspect(new Uint8Array(await readFile((await file.path())!)));
+  expect(pdf.text).toContain('Backend: Node.js, TypeScript, REST APIs, PostgreSQL and Redis');
+  // Planned or undemonstrated technologies never enter the CV.
+  for (const absent of ['Spring Boot', 'Kubernetes', 'GraphQL', 'MongoDB'])
+    expect(pdf.text).not.toContain(absent);
+  // The backend projects lead.
+  expect(pdf.text.indexOf('Zone 32-19 ')).toBeLessThan(pdf.text.indexOf('Caelora'));
+});
+
+// ---------- recruiter search ----------
+
+test('the home page names the role, stack and place for search', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveTitle(/Software Engineer, React and Node\.js/);
+  await expect(page.locator('.hero-focus')).toContainText('React, Next.js, TypeScript, Node.js');
+  const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
+  const person = ld['@graph'].find((n: { '@type': string }) => n['@type'] === 'Person');
+  expect(person.knowsAbout).toEqual(expect.arrayContaining(['React', 'Next.js', 'Node.js']));
+  expect(person.hasOccupation.occupationLocation.name).toBe('Varna');
+  expect(person.address.addressCountry).toBe('BG');
+  expect(JSON.stringify(ld)).not.toMatch(/JobPosting|salary|€/);
 });

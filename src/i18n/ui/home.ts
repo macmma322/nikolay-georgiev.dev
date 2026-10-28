@@ -7,6 +7,11 @@ export const home = {
   hero: {
     cta: { en: 'View selected work', bg: 'Вижте проектите' },
     cv: { en: 'Download CV', bg: 'Изтеглете CV' },
+    /** Under the statement; {stack} is site.focus. */
+    focus: {
+      en: 'Frontend and full-stack engineering with {stack}. Junior Backend Developer at DXC Technology.',
+      bg: 'Фронтенд и full-stack разработка с {stack}. Младши бекенд разработчик в DXC Technology.',
+    },
     fig: { en: 'Fig. 01 · Layers', bg: 'Фиг. 01 · Слоеве' },
     stack: { en: 'The layers I build across', bg: 'Слоевете, в които работя' },
   },

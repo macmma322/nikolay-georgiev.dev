@@ -1,6 +1,6 @@
 import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, PDFName, PDFString, rgb, type PDFFont } from 'pdf-lib';
-import type { CvDoc } from './doc';
+import type { CvDoc, Mode } from './doc';
 import { layout, PAGE, type FontKey, type Measure } from './layout';
 
 /**
@@ -43,17 +43,19 @@ const color = (hex: string) =>
 
 export async function cvPdf(
   doc: CvDoc,
-  assets: { fonts: FontBytes; photo: Uint8Array },
+  assets: { fonts: FontBytes; photo?: Uint8Array | undefined },
+  mode: Mode = 'portfolio',
   date = new Date(),
 ): Promise<Uint8Array> {
-  const pages = layout(doc, measurer(assets.fonts));
+  const pages = layout(doc, measurer(assets.fonts), mode);
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   const fonts = {} as Record<FontKey, PDFFont>;
   for (const key of Object.keys(assets.fonts) as FontKey[]) {
     fonts[key] = await pdf.embedFont(assets.fonts[key], { subset: true, features: FEATURES });
   }
-  const photo = await pdf.embedJpg(assets.photo);
+  // The application version has no photo.
+  const photo = assets.photo && mode === 'portfolio' ? await pdf.embedJpg(assets.photo) : undefined;
 
   for (const p of pages) {
     const page = pdf.addPage([PAGE.w, PAGE.h]);
@@ -68,6 +70,7 @@ export async function cvPdf(
           color: color(it.color),
         });
       } else if (it.t === 'image') {
+        if (!photo) continue;
         page.drawImage(photo, { x: it.x, y: y(it.y + it.h), width: it.w, height: it.h });
       } else if (it.t === 'text') {
         page.drawText(it.text, {
@@ -94,7 +97,7 @@ export async function cvPdf(
   pdf.setTitle(`${doc.name} · CV`, { showInWindowTitleBar: true });
   pdf.setAuthor(doc.name);
   pdf.setSubject(`${doc.role}. ${doc.headline}`);
-  pdf.setKeywords(doc.skills.flatMap((g) => g.items.split(', ')));
+  pdf.setKeywords(doc.skills.flatMap((g) => g.items.map((i) => i.name)));
   pdf.setLanguage(doc.lang);
   pdf.setCreator('nikolay-georgiev.dev');
   pdf.setProducer('pdf-lib');
