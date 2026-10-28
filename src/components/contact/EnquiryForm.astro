@@ -1,0 +1,952 @@
+---
+/**
+ * The enquiry form on /contact. Four kinds of enquiry; a project enquiry is
+ * checked as it is written (mail-agent/enquiry.mjs, the same rules the server
+ * applies) and, once it has an agenda, is offered a free consultation next to
+ * the written enquiry, never instead of it. Sending posts to the mail agent's
+ * /contact; the booking itself happens on Google Calendar, which alone
+ * confirms an appointment.
+ *
+ * Without JavaScript the form stays hidden and a note points to the email above.
+ */
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { enquiry } from '@/i18n/ui/enquiry';
+import { booking, contactEndpoint } from '@/lib/contact';
+import { FOLLOW_UP, HELP, LIMITS, STAGES } from '../../../mail-agent/enquiry.mjs';
+
+const { locale, t } = useI18n(Astro);
+const s = t(enquiry);
+const c = t(common);
+const types = ['general', 'project', 'opportunity', 'other'] as const;
+const helpIds = HELP as readonly (keyof typeof s.help)[];
+const stageIds = STAGES as readonly (keyof typeof s.stage)[];
+const followUpIds = FOLLOW_UP as readonly (keyof typeof s.followUp)[];
+// The script is bundled once for both languages: its words ride on data-messages.
+const messages = JSON.stringify({
+  errors: s.errors,
+  summary: s.summary,
+  failure: s.failure,
+  missing: s.qualify.missing,
+  sending: s.actions.sending,
+  sent: s.sent.text,
+  booked: s.booking.text,
+});
+const err = (field: string) => `enq-${field}-error`;
+---
+
+<section class="container enquiry" aria-labelledby="enquiry-title">
+  <div class="enquiry-head">
+    <p class="label">{s.label}</p>
+    <h2 id="enquiry-title" class="enquiry-title">
+      {s.title}
+    </h2>
+    <p class="enquiry-support">{s.support}</p>
+  </div>
+
+  <noscript>
+    <p class="enquiry-note">{s.noscript}</p>
+  </noscript>
+
+  <form
+    id="enquiry-form"
+    class="enquiry-form"
+    novalidate
+    hidden
+    data-endpoint={contactEndpoint}
+    data-locale={locale}
+    data-messages={messages}
+  >
+    <fieldset class="types">
+      <legend class="legend">{s.typeLegend}</legend>
+      <div class="type-grid">
+        {types.map((type) => (
+          <label class="type">
+            <input type="radio" name="category" value={type} />
+            <span class="type-text">
+              <span class="type-title">{s.types[type].title}</span>
+              <span class="type-hint">{s.types[type].hint}</span>
+            </span>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+
+    <div class="details" data-details hidden>
+      <div class="group" data-for="general other">
+        <div class="field" data-field="message">
+          <label for="enq-message">{s.fields.message}</label>
+          <textarea
+            id="enq-message"
+            name="message"
+            rows="6"
+            maxlength={LIMITS.message}
+            aria-describedby={err('message')}
+          ></textarea>
+          <p class="field-error" id={err('message')} hidden></p>
+        </div>
+      </div>
+
+      <div class="group" data-for="opportunity">
+        <div class="pair">
+          <div class="field" data-field="company">
+            <label for="enq-company">{s.fields.company}</label>
+            <input
+              id="enq-company"
+              name="company"
+              autocomplete="organization"
+              maxlength={LIMITS.company}
+              aria-describedby={err('company')}
+            />
+            <p class="field-error" id={err('company')} hidden></p>
+          </div>
+          <div class="field" data-field="role">
+            <label for="enq-role">{s.fields.role}</label>
+            <input
+              id="enq-role"
+              name="role"
+              maxlength={LIMITS.role}
+              aria-describedby={err('role')}
+            />
+            <p class="field-error" id={err('role')} hidden></p>
+          </div>
+        </div>
+        <div class="field" data-field="message">
+          <label for="enq-opportunity">{s.fields.opportunity}</label>
+          <textarea
+            id="enq-opportunity"
+            name="message"
+            rows="6"
+            maxlength={LIMITS.message}
+            aria-describedby={err('opportunity')}
+          ></textarea>
+          <p class="field-error" id={err('opportunity')} hidden></p>
+        </div>
+        <div class="field" data-field="url">
+          <label for="enq-url">{s.fields.url}</label>
+          <input
+            id="enq-url"
+            name="url"
+            type="url"
+            inputmode="url"
+            maxlength={LIMITS.url}
+            aria-describedby={err('url')}
+          />
+          <p class="field-error" id={err('url')} hidden></p>
+        </div>
+        <fieldset class="field choices" data-field="followUp">
+          <legend>{s.fields.followUp}</legend>
+          <div class="choice-row">
+            {followUpIds.map((id) => (
+              <label class="choice">
+                <input type="radio" name="followUp" value={id} />
+                {s.followUp[id]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      </div>
+
+      <div class="group" data-for="project">
+        <div class="field" data-field="objective">
+          <label for="enq-objective">{s.fields.objective}</label>
+          <p class="hint" id="enq-objective-hint">
+            {s.fields.objectiveHint}
+          </p>
+          <textarea
+            id="enq-objective"
+            name="objective"
+            rows="4"
+            maxlength={LIMITS.objective}
+            aria-describedby={`enq-objective-hint ${err('objective')}`}
+            data-qualify-input
+          ></textarea>
+          <p class="field-error" id={err('objective')} hidden></p>
+        </div>
+        <fieldset class="field choices" data-field="help" aria-describedby={err('help')}>
+          <legend>{s.fields.help}</legend>
+          <div class="choice-grid">
+            {helpIds.map((id) => (
+              <label class="choice">
+                <input type="checkbox" name="help" value={id} data-qualify-input />
+                {s.help[id]}
+              </label>
+            ))}
+          </div>
+          <label class="sub-label" for="enq-help-note">
+            {s.fields.helpNote}
+          </label>
+          <input
+            id="enq-help-note"
+            name="helpNote"
+            maxlength={LIMITS.helpNote}
+            data-qualify-input
+          />
+          <p class="field-error" id={err('help')} hidden></p>
+        </fieldset>
+        <fieldset class="field choices" data-field="stage" aria-describedby={err('stage')}>
+          <legend>{s.fields.stage}</legend>
+          <div class="choice-grid">
+            {stageIds.map((id) => (
+              <label class="choice">
+                <input type="radio" name="stage" value={id} data-qualify-input />
+                {s.stage[id]}
+              </label>
+            ))}
+          </div>
+          <p class="field-error" id={err('stage')} hidden></p>
+        </fieldset>
+        <div class="field" data-field="meeting">
+          <label for="enq-meeting">{s.fields.meeting}</label>
+          <p class="hint" id="enq-meeting-hint">
+            {s.fields.meetingHint}
+          </p>
+          <textarea
+            id="enq-meeting"
+            name="meeting"
+            rows="3"
+            maxlength={LIMITS.meeting}
+            aria-describedby={`enq-meeting-hint ${err('meeting')}`}
+            data-qualify-input
+          ></textarea>
+          <p class="field-error" id={err('meeting')} hidden></p>
+        </div>
+      </div>
+
+      <div class="pair">
+        <div class="field" data-field="name">
+          <label for="enq-name">{s.fields.name}</label>
+          <input
+            id="enq-name"
+            name="name"
+            autocomplete="name"
+            maxlength={LIMITS.name}
+            aria-describedby={err('name')}
+          />
+          <p class="field-error" id={err('name')} hidden></p>
+        </div>
+        <div class="field" data-field="email">
+          <label for="enq-email">{s.fields.email}</label>
+          <input
+            id="enq-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            inputmode="email"
+            maxlength={LIMITS.email}
+            aria-describedby={`enq-email-hint ${err('email')}`}
+          />
+          <p class="hint" id="enq-email-hint">
+            {s.fields.emailHint}
+          </p>
+          <p class="field-error" id={err('email')} hidden></p>
+        </div>
+      </div>
+
+      {/* A field people never see; bots fill it in. */}
+      <div class="trap" aria-hidden="true">
+        <label for="enq-website">Website</label>
+        <input id="enq-website" name="website" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <div class="qualify group" data-for="project" data-qualify>
+        <div class="qualify-ready" data-state="ready" hidden>
+          <p class="qualify-title">{s.qualify.readyTitle}</p>
+          <p>{s.qualify.readyText}</p>
+          <p class="qualify-title second">{s.qualify.messageTitle}</p>
+          <p>{s.qualify.messageText}</p>
+        </div>
+        <div class="qualify-guidance" data-state="guidance">
+          <p class="qualify-title">{s.qualify.guidanceTitle}</p>
+          <p>{s.qualify.guidanceText}</p>
+          <ul data-missing></ul>
+          <p>{s.qualify.guidanceAfter}</p>
+        </div>
+      </div>
+
+      <p class="alert" data-alert role="alert" hidden></p>
+
+      <div class="actions">
+        <button
+          class="button primary"
+          type="submit"
+          name="intent"
+          value="consultation"
+          data-book
+          hidden
+        >
+          {s.actions.schedule}
+        </button>
+        <button
+          class="button primary"
+          type="submit"
+          name="intent"
+          value="message"
+          data-send
+          data-general={s.actions.send}
+          data-other={s.actions.send}
+          data-opportunity={s.actions.sendOpportunity}
+          data-project={s.actions.sendProject}
+          data-instead={s.actions.sendInstead}
+        >
+          {s.actions.send}
+        </button>
+      </div>
+
+      <p class="privacy">{s.privacy}</p>
+    </div>
+  </form>
+
+  <div class="outcome" data-outcome hidden>
+    <div data-result="sent" hidden>
+      <h3 class="outcome-title" tabindex="-1">
+        {s.sent.title}
+      </h3>
+      <p data-result-text></p>
+      <button class="button" type="button" data-again>
+        {s.sent.another}
+      </button>
+    </div>
+    <div data-result="booking" hidden>
+      <h3 class="outcome-title" tabindex="-1">
+        {s.booking.title}
+      </h3>
+      <p data-result-text></p>
+      <ul class="facts-inline" role="list">
+        <li>{s.booking.free}</li>
+        <li>{s.booking.duration}</li>
+        <li>Google Meet</li>
+      </ul>
+      <p>{s.booking.times}</p>
+      <p class="truth">{s.booking.truth}</p>
+      <div class="actions">
+        <a
+          class="button primary"
+          href={booking.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          data-booking-link
+        >
+          {s.booking.open}
+          <span class="glyph" aria-hidden="true">
+            ↗
+          </span>
+          <span class="visually-hidden">{c.newTab}</span>
+        </a>
+        <button
+          class="button"
+          type="button"
+          data-show-times
+          data-embed={booking.embedUrl}
+          data-frame-title={s.booking.frameTitle}
+        >
+          {s.booking.show}
+        </button>
+      </div>
+      <p class="hint">{s.booking.showNote}</p>
+      <div class="frame-slot" data-frame-slot></div>
+    </div>
+  </div>
+</section>
+
+<script>
+  import { qualify, validateEnquiry } from '../../../mail-agent/enquiry.mjs';
+
+  type Messages = {
+    errors: Record<string, string>;
+    summary: string;
+    failure: { rate: string; network: string };
+    missing: Record<string, string>;
+    sending: string;
+    sent: string;
+    booked: string;
+  };
+
+  const form = document.querySelector<HTMLFormElement>('#enquiry-form');
+  const outcome = document.querySelector<HTMLElement>('[data-outcome]');
+  if (form && outcome) setup(form, outcome);
+
+  function setup(form: HTMLFormElement, outcome: HTMLElement) {
+    form.hidden = false;
+    const msgs = JSON.parse(form.dataset['messages'] ?? '{}') as Messages;
+    const endpoint = form.dataset['endpoint'] ?? '';
+    const locale = form.dataset['locale'] ?? 'en';
+    const details = form.querySelector<HTMLElement>('[data-details]')!;
+    const groups = [...form.querySelectorAll<HTMLElement>('[data-for]')];
+    const ready = form.querySelector<HTMLElement>('[data-state="ready"]')!;
+    const guidance = form.querySelector<HTMLElement>('[data-state="guidance"]')!;
+    const missingList = form.querySelector<HTMLElement>('[data-missing]')!;
+    const sendButton = form.querySelector<HTMLButtonElement>('[data-send]')!;
+    const bookButton = form.querySelector<HTMLButtonElement>('[data-book]')!;
+    const alert = form.querySelector<HTMLElement>('[data-alert]')!;
+    const fields = () => new FormData(form);
+    let startedAt = 0;
+    let key = '';
+    let busy = false;
+
+    const category = () => String(fields().get('category') ?? '');
+
+    function collect(intent: string) {
+      const data = fields();
+      const get = (name: string) => String(data.get(name) ?? '');
+      return {
+        category: category(),
+        locale,
+        name: get('name'),
+        email: get('email'),
+        message: get('message'),
+        company: get('company'),
+        role: get('role'),
+        url: get('url'),
+        followUp: get('followUp') || undefined,
+        objective: get('objective'),
+        help: data.getAll('help').map(String),
+        helpNote: get('helpNote'),
+        stage: get('stage'),
+        meeting: get('meeting'),
+        intent,
+        website: get('website'),
+        startedAt,
+      };
+    }
+
+    // Show the chosen kind's fields. Hidden fields are disabled, so they are
+    // not sent, but keep their text if the visitor switches back.
+    function showCategory() {
+      const current = category();
+      if (!current) return;
+      startedAt ||= Date.now();
+      details.hidden = false;
+      for (const group of groups) {
+        const on = (group.dataset['for'] ?? '').split(' ').includes(current);
+        group.hidden = !on;
+        group
+          .querySelectorAll<HTMLInputElement>('input, textarea, select')
+          .forEach((input) => (input.disabled = !on));
+      }
+      clearErrors();
+      updateQualification();
+    }
+
+    // The project check runs as the visitor writes; the written enquiry is
+    // always available, the consultation only once the agenda is complete.
+    let qualified = false;
+    function updateQualification() {
+      const current = category();
+      const isProject = current === 'project';
+      const result = isProject ? qualify(collect('message')) : { qualified: false, missing: [] };
+      qualified = result.qualified;
+      ready.hidden = !qualified;
+      guidance.hidden = qualified;
+      missingList.replaceChildren(
+        ...result.missing.map((part: string) => {
+          const item = document.createElement('li');
+          item.textContent = msgs.missing[part] ?? part;
+          return item;
+        }),
+      );
+      bookButton.hidden = !qualified;
+      sendButton.classList.toggle('primary', !qualified);
+      const label = isProject && qualified ? 'instead' : current;
+      sendButton.textContent = sendButton.dataset[label] ?? sendButton.textContent;
+    }
+
+    function clearErrors() {
+      alert.hidden = true;
+      alert.textContent = '';
+      form.querySelectorAll<HTMLElement>('.field-error').forEach((node) => {
+        node.hidden = true;
+        node.textContent = '';
+      });
+      form
+        .querySelectorAll('[aria-invalid]')
+        .forEach((node) => node.removeAttribute('aria-invalid'));
+    }
+
+    function showErrors(errors: Record<string, string>) {
+      for (const [name, code] of Object.entries(errors)) {
+        const field = [...form.querySelectorAll<HTMLElement>(`[data-field="${name}"]`)].find(
+          (node) => !node.closest<HTMLElement>('[data-for]')?.hidden,
+        );
+        if (!field) continue;
+        const error = field.querySelector<HTMLElement>('.field-error');
+        if (error) {
+          error.textContent = msgs.errors[code] ?? msgs.errors['required'] ?? '';
+          error.hidden = false;
+        }
+        const control = field.querySelector<HTMLElement>('input, textarea');
+        (field.matches('fieldset') ? field : control)?.setAttribute('aria-invalid', 'true');
+      }
+      alert.textContent = msgs.summary;
+      alert.hidden = false;
+      // Focus the first problem in reading order, not in validation order.
+      const first = form.querySelector<HTMLElement>('[aria-invalid="true"]');
+      (first?.matches('fieldset') ? first.querySelector<HTMLElement>('input') : first)?.focus();
+    }
+
+    function setBusy(on: boolean) {
+      busy = on;
+      form.setAttribute('aria-busy', String(on));
+      for (const button of [sendButton, bookButton]) {
+        button.disabled = on;
+        if (on) {
+          button.dataset['label'] = button.textContent ?? '';
+          button.textContent = msgs.sending;
+        } else if (button.dataset['label']) {
+          button.textContent = button.dataset['label'];
+        }
+      }
+    }
+
+    function showResult(kind: 'sent' | 'booking', reference: string) {
+      form.hidden = true;
+      outcome.hidden = false;
+      for (const panel of outcome.querySelectorAll<HTMLElement>('[data-result]')) {
+        const on = panel.dataset['result'] === kind;
+        panel.hidden = !on;
+        if (!on) continue;
+        const text = panel.querySelector<HTMLElement>('[data-result-text]');
+        if (text)
+          text.textContent = (kind === 'sent' ? msgs.sent : msgs.booked).replace(
+            '{ref}',
+            reference,
+          );
+        panel.querySelector<HTMLElement>('.outcome-title')?.focus();
+      }
+    }
+
+    form.addEventListener('change', (event) => {
+      if ((event.target as HTMLInputElement).name === 'category') showCategory();
+      else updateQualification();
+    });
+    form.addEventListener('input', updateQualification);
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      if (busy) return;
+      const submitter = (event as SubmitEvent).submitter as HTMLButtonElement | null;
+      // The consultation path only exists for a complete agenda.
+      const intent = submitter?.value === 'consultation' && qualified ? 'consultation' : 'message';
+      const data = collect(intent);
+      clearErrors();
+      const check = validateEnquiry(data);
+      if (!check.ok) return showErrors((check.errors ?? {}) as Record<string, string>);
+      // One key per enquiry: a retry after a failure can never send it twice.
+      key ||= crypto.randomUUID();
+      setBusy(true);
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ ...data, idempotencyKey: key }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (response.ok && body.ok) {
+          key = '';
+          showResult(
+            data.category === 'project' && intent === 'consultation' ? 'booking' : 'sent',
+            body.reference,
+          );
+          return;
+        }
+        if (response.status === 422 && body.fields) return showErrors(body.fields);
+        alert.textContent = response.status === 429 ? msgs.failure.rate : msgs.failure.network;
+        alert.hidden = false;
+      } catch {
+        alert.textContent = msgs.failure.network;
+        alert.hidden = false;
+      } finally {
+        setBusy(false);
+      }
+    });
+
+    outcome.querySelector('[data-again]')?.addEventListener('click', () => {
+      form.reset();
+      startedAt = 0;
+      details.hidden = true;
+      outcome.hidden = true;
+      form.hidden = false;
+      form.querySelector<HTMLInputElement>('input[name="category"]')?.focus();
+    });
+
+    // Google's page loads only when asked: nothing third-party runs before.
+    const show = outcome.querySelector<HTMLButtonElement>('[data-show-times]');
+    show?.addEventListener('click', () => {
+      const frame = document.createElement('iframe');
+      frame.src = show.dataset['embed'] ?? '';
+      frame.title = show.dataset['frameTitle'] ?? '';
+      frame.className = 'booking-frame';
+      outcome.querySelector('[data-frame-slot]')?.replaceChildren(frame);
+      show.hidden = true;
+    });
+  }
+</script>
+
+<style>
+  .enquiry {
+    padding-block: var(--space-xl) var(--space-2xl);
+    border-top: 1px solid var(--line-soft);
+    display: grid;
+    gap: var(--space-l);
+  }
+
+  .enquiry-head {
+    display: grid;
+    gap: var(--space-s);
+    max-width: 44rem;
+  }
+
+  .enquiry-title {
+    font-family: var(--ff-display);
+    font-size: var(--step-2);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--track-heading);
+    line-height: 1.1;
+    text-wrap: balance;
+  }
+
+  .enquiry-support,
+  .enquiry-note {
+    color: var(--fg-3);
+    max-width: 60ch;
+  }
+
+  .enquiry-form,
+  .details,
+  .group {
+    display: grid;
+    gap: var(--space-m);
+    max-width: 52rem;
+  }
+
+  /* Layout rules below set display; the hidden attribute must still win. */
+  .enquiry [hidden] {
+    display: none !important;
+  }
+
+  fieldset {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+  }
+
+  .legend,
+  legend,
+  label {
+    font-weight: var(--w-medium);
+  }
+
+  .legend {
+    margin-bottom: var(--space-s);
+  }
+
+  /* ---------- The four kinds of enquiry ---------- */
+  .type-grid {
+    display: grid;
+    gap: var(--space-s);
+  }
+
+  @media (min-width: 700px) {
+    .type-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .type {
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out);
+  }
+
+  .type:hover,
+  .type:focus-within {
+    border-color: var(--line-strong);
+  }
+
+  .type:has(input:checked) {
+    border-color: var(--fg-2);
+    background: var(--ink-1);
+  }
+
+  .type input,
+  .choice input {
+    flex: none;
+    width: 1.1rem;
+    height: 1.1rem;
+    margin-top: 0.15rem;
+    accent-color: var(--fg);
+  }
+
+  .type-text {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .type-title {
+    font-weight: var(--w-semibold);
+  }
+
+  .type-hint,
+  .hint,
+  .privacy {
+    font-size: var(--step--1);
+    color: var(--fg-3);
+  }
+
+  /* ---------- Fields ---------- */
+  .pair {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  @media (min-width: 700px) {
+    .pair {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .field {
+    display: grid;
+    gap: 0.4rem;
+    align-content: start;
+  }
+
+  input:not([type='radio'], [type='checkbox']),
+  textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+    color: var(--fg);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  textarea {
+    resize: vertical;
+    line-height: 1.5;
+  }
+
+  input:not([type='radio'], [type='checkbox']):hover,
+  textarea:hover {
+    border-color: var(--fg-3);
+  }
+
+  [aria-invalid='true'],
+  fieldset[aria-invalid='true'] .choice-grid {
+    border-color: var(--signal);
+  }
+
+  .field-error {
+    font-size: var(--step--1);
+    color: var(--fg);
+  }
+
+  /* The text says what is wrong; the mark only points at it. */
+  .field-error::before {
+    content: '';
+    display: inline-block;
+    width: 0.5em;
+    height: 0.5em;
+    margin-inline-end: 0.5em;
+    background: var(--signal);
+    vertical-align: 0.1em;
+  }
+
+  .choice-grid {
+    display: grid;
+    gap: 0.25rem 1rem;
+    margin-top: 0.5rem;
+  }
+
+  @media (min-width: 700px) {
+    .choice-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .choice-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.5rem;
+    margin-top: 0.5rem;
+  }
+
+  .choice {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    min-height: 44px;
+    padding-block: 0.6rem;
+    font-weight: var(--w-text);
+    cursor: pointer;
+  }
+
+  .sub-label {
+    display: block;
+    margin-top: var(--space-s);
+    margin-bottom: 0.4rem;
+    font-weight: var(--w-text);
+    color: var(--fg-2);
+  }
+
+  .trap {
+    position: absolute;
+    left: -9999px;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  /* ---------- Consultation check ---------- */
+  .qualify {
+    padding: var(--space-m);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    gap: 0;
+  }
+
+  .qualify > div {
+    display: grid;
+    gap: 0.5rem;
+    color: var(--fg-2);
+  }
+
+  .qualify-title {
+    font-weight: var(--w-semibold);
+    color: var(--fg);
+  }
+
+  .qualify-title.second {
+    margin-top: var(--space-s);
+  }
+
+  .qualify ul {
+    padding-inline-start: 1.2rem;
+    list-style: disc;
+  }
+
+  .alert {
+    padding: 0.75rem 1rem;
+    border-inline-start: 3px solid var(--signal);
+    background: var(--ink-1);
+  }
+
+  /* ---------- Buttons ---------- */
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-s);
+  }
+
+  .button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1.2rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    font-weight: var(--w-medium);
+    color: var(--fg);
+    text-decoration: none;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .button:is(:hover, :focus-visible) {
+    border-color: var(--fg-2);
+  }
+
+  .button.primary {
+    background: var(--fg);
+    border-color: var(--fg);
+    color: var(--ink-0);
+  }
+
+  .button.primary:is(:hover, :focus-visible) {
+    background: var(--fg-2);
+  }
+
+  .button:active {
+    scale: 0.97;
+  }
+
+  .button:disabled {
+    cursor: progress;
+    opacity: 0.7;
+  }
+
+  .glyph {
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  .button:is(:hover, :focus-visible) .glyph {
+    translate: 2px -2px;
+  }
+
+  /* ---------- Outcome ---------- */
+  .outcome > div {
+    display: grid;
+    gap: var(--space-s);
+    max-width: 44rem;
+  }
+
+  .outcome-title {
+    font-family: var(--ff-display);
+    font-size: var(--step-1);
+    font-weight: var(--w-semibold);
+  }
+
+  .facts-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.2rem;
+    font-family: var(--ff-mono);
+    font-size: var(--text-label);
+    letter-spacing: var(--track-label);
+    text-transform: uppercase;
+    color: var(--fg-2);
+  }
+
+  .truth {
+    padding-inline-start: 0.9rem;
+    border-inline-start: 2px solid var(--line-strong);
+    color: var(--fg-2);
+  }
+
+  .frame-slot:empty {
+    display: none;
+  }
+
+  .frame-slot :global(.booking-frame) {
+    width: 100%;
+    height: 42rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-s);
+    background: #fff;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .type,
+    .button,
+    .glyph,
+    input,
+    textarea {
+      transition: none;
+    }
+  }
+</style>

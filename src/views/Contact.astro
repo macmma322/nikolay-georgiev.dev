@@ -1,13 +1,16 @@
 ---
 /**
  * Contact page: the finale in its page variant (h1, email, phone, rail,
- * facts). The only page that renders the phone number; its footer keeps only
- * the baseline (SiteFooter). Metadata comes from the route (SEO.astro).
+ * facts), then the enquiry form. The only page that renders the phone number;
+ * its footer keeps only the baseline (SiteFooter). Metadata comes from the
+ * route (SEO.astro).
  */
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import ContactFinale from '@/components/layout/ContactFinale.astro';
+import EnquiryForm from '@/components/contact/EnquiryForm.astro';
 ---
 
 <BaseLayout>
   <ContactFinale variant="page" />
+  <EnquiryForm />
 </BaseLayout>
