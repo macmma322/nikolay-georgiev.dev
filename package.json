@@ -18,6 +18,7 @@
     "format:check": "prettier --check .",
     "audit:dist": "node scripts/audit-dist.mjs",
     "test:e2e": "playwright test",
+    "test:agent": "node --test mail-agent/*.test.mjs",
     "og": "astro build && node scripts/og.mjs && npm run build",
     "cv:inspect": "node scripts/cv-inspect.mjs"
   },

@@ -30,6 +30,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - run: npm run format:check
       - run: npm run typecheck
+      # The mail agent's unit, security and webhook-pipeline tests (no network).
+      - run: npm run test:agent
       # Builds and audits dist/ for leaks, SEO and accessibility basics, links.
       - run: npm run build
       - uses: actions/cache@v4
