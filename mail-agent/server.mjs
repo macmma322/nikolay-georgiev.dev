@@ -81,7 +81,9 @@ export function isAnswerable(email, thread) {
  * phone number, an email address, or a link that is neither his site nor an
  * allowed URL. An injected or spoofed email must not get those sent from his domain.
  */
-export function needsReview(text, allowedUrls = []) {
+export function needsReview(raw, allowedUrls = []) {
+  // Full-width and ideographic look-alikes become plain ASCII first, as URL parsers would read them.
+  const text = raw.normalize('NFKC').replace(/[。．｡]/g, '.');
   if (
     /\[[^\]]+\]/.test(text) ||
     /\+?\d[\d ()-]{8,}\d/.test(text) ||
@@ -103,7 +105,7 @@ export function needsReview(text, allowedUrls = []) {
 
 // A "scheme://" link up to the first character that is not valid in a URL.
 const SCHEMED = /[a-z][a-z0-9+.-]*:\/\/[^\s<>"'{}|\\^`[\]()]+/gi;
-const DOMAIN = /(?:[\p{L}\p{N}-]+\.)+\p{L}{2,}/gu;
+const DOMAIN = /(?:[\p{L}\p{M}\p{N}-]+\.)+[\p{L}\p{M}]{2,}/gu;
 const SITE_HOST = new URL(SITE).hostname;
 const normalHost = (host) => host.toLowerCase().replace(/\.$/, '');
 const trimLink = (link) => link.replace(/[.,;:!?]+$/, '');

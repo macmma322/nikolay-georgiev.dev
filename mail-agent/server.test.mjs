@@ -159,3 +159,11 @@ test('nothing link-like survives outside a checked link', () => {
     false,
   );
 });
+
+test('look-alike dots and combining marks cannot hide a domain', () => {
+  assert.equal(needsReview('Visit evil。example'), true);
+  assert.equal(needsReview('Visit evil．example'), true);
+  assert.equal(needsReview('Visit ｅｖｉｌ.ｅｘａｍｐｌｅ'), true);
+  assert.equal(needsReview('Visit evil.exámple'), true);
+  assert.equal(needsReview('Visit nikolay-georgiev。dev/work'), false);
+});
