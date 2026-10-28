@@ -82,8 +82,13 @@ export function isAnswerable(email, thread) {
  * allowed URL. An injected or spoofed email must not get those sent from his domain.
  */
 export function needsReview(raw, allowedUrls = []) {
-  // Full-width and ideographic look-alikes become plain ASCII first, as URL parsers would read them.
-  const text = raw.normalize('NFKC').replace(/[。．｡]/g, '.');
+  // Checked as written and as URL parsers would read it (full-width and ideographic
+  // look-alikes made ASCII): normalising may only make the check stricter.
+  const read = raw.normalize('NFKC').replace(/[。．｡]/g, '.');
+  return flagged(raw, allowedUrls) || flagged(read, allowedUrls);
+}
+
+function flagged(text, allowedUrls) {
   if (
     /\[[^\]]+\]/.test(text) ||
     /\+?\d[\d ()-]{8,}\d/.test(text) ||
