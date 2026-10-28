@@ -18,6 +18,7 @@ import {
   seenBefore,
   pricesFromBrief,
   isFollowUp,
+  headerMap,
 } from './server.mjs';
 import { scheduleConfig } from './schedule.mjs';
 
@@ -184,6 +185,7 @@ const okEmail = {
   from: 'Ana <ana@studio.bg>',
   reply_to: [],
   authentication: { spf: 'pass', dkim: 'pass', dmarc: 'pass' },
+  headers: { from: 'Ana <ana@studio.bg>', subject: 'Website' },
 };
 const okReply = {
   text: 'A landing page starts from €550. https://nikolay-georgiev.dev/work',
@@ -288,4 +290,32 @@ test('replies and follow-ups never get an automatic answer', () => {
   assert.deepEqual(reasons('Отг: Сайт'), ['subject looks like a reply']);
   assert.deepEqual(reasons('Fwd: quote'), ['subject looks like a reply']);
   assert.deepEqual(reasons('Website for my bakery'), []);
+});
+
+test('reply subjects are caught with spacing and tags', () => {
+  const reasons = (subject) => decision({ email: { ...okEmail, subject } }).reasons;
+  assert.deepEqual(reasons('Re : Landing page'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('[EXT] RE: quote'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('  отг: сайт'), ['subject looks like a reply']);
+  assert.deepEqual(reasons('Recipe website'), []);
+});
+
+test('headers in any known shape, and missing headers draft', () => {
+  assert.deepEqual(headerMap([{ name: 'In-Reply-To', value: '<a@b>' }]), {
+    'in-reply-to': '<a@b>',
+  });
+  assert.equal(isFollowUp([{ name: 'References', value: '<a@b>' }]), true);
+  assert.equal(isAutomatedMail([{ name: 'Precedence', value: 'bulk' }]), true);
+  assert.equal(headerMap('From: x'), null);
+  assert.deepEqual(decision({ email: { ...okEmail, headers: undefined } }).reasons, [
+    'headers unavailable',
+  ]);
+});
+
+test('money in any currency, or a bare big number, must be a brief euro price', () => {
+  assert.equal(pricesFromBrief('From €550, see https://nikolay-georgiev.dev/work/2026'), true);
+  assert.equal(pricesFromBrief('That would be 550 лв.'), false);
+  assert.equal(pricesFromBrief('Only $550 today.'), false);
+  assert.equal(pricesFromBrief('Price: 1 200 for everything.'), false);
+  assert.equal(pricesFromBrief('Calls Mon–Fri 13:00–13:30 and 18:30–20:30.'), true);
 });

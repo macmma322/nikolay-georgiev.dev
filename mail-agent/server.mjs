@@ -56,27 +56,67 @@ const TEST_RECIPIENTS = (env.SEND_TEST_RECIPIENTS ?? '')
   .filter(Boolean);
 const BOOKING_TOKEN = '{{BOOKING_LINK}}';
 
-/** Euro amounts in a text: "€1,500", "€5 000", "1500 EUR", "550 евро". */
-export const euroAmounts = (text) =>
-  [
-    ...text.matchAll(/€\s?(\d{1,3}(?:[ ,. ]\d{3})+|\d+)/g),
-    ...text.matchAll(/(\d{1,3}(?:[ ,. ]\d{3})+|\d+)\s?(?:€|eur\b|euro|евро)/giu),
-  ].map((match) => Number(match[1].replace(/\D/g, '')));
-const BRIEF_PRICES = new Set(euroAmounts(BRIEF));
-/** Every price in the reply is one the brief lists: no totals, discounts or echoed budgets. */
-export const pricesFromBrief = (text) => euroAmounts(text).every((n) => BRIEF_PRICES.has(n));
+const NUMBER = String.raw`\d{1,3}(?:[ ,. ]\d{3})+|\d+`;
+const CURRENCY = String.raw`€|\$|£|eur\b|euro|евро|лв\.?|лева|bgn\b|usd\b|gbp\b`;
+const EURO = /^(€|eur|euro|евро)$/iu;
+const toNumber = (digits) => Number(digits.replace(/\D/g, ''));
 
-/** Subjects of replies and forwards, in English, German and Bulgarian clients. */
-const REPLY_SUBJECT = /^s*(re|fwd?|aw|wg|отг|отн|пр)s*:/i;
+const PREFIXED = new RegExp(String.raw`(${CURRENCY})\s?(${NUMBER})`, 'giu');
+const SUFFIXED = new RegExp(String.raw`(${NUMBER})\s?(${CURRENCY})`, 'giu');
+
+/** Money in a text, with its currency: "€1,500", "€5 000", "1500 EUR", "550 лв", "$200". */
+export const amounts = (text) =>
+  [
+    ...[...text.matchAll(PREFIXED)].map((m) => [m[1], m[2]]),
+    ...[...text.matchAll(SUFFIXED)].map((m) => [m[2], m[1]]),
+  ].map(([currency, digits]) => ({ currency: currency.trim(), value: toNumber(digits) }));
+const BRIEF_PRICES = new Set(amounts(BRIEF).map((a) => a.value));
+
+/**
+ * Every price in the reply is a euro price the brief lists: no totals, discounts,
+ * echoed budgets or other currencies. Any other number of 3+ digits outside a
+ * link must be a brief price too, so an amount without a currency can't slip by.
+ */
+export function pricesFromBrief(text) {
+  if (!amounts(text).every((a) => EURO.test(a.currency) && BRIEF_PRICES.has(a.value))) return false;
+  const words = text.replace(SCHEMED, ' ');
+  const bigNumbers = words.match(new RegExp(String.raw`\d{1,3}(?:[ ,. ]\d{3})+|\d{3,}`, 'g'));
+  return (bigNumbers ?? []).every((digits) => BRIEF_PRICES.has(toNumber(digits)));
+}
+
+/** Subjects of replies and forwards, also behind tags such as "[EXT]". */
+const REPLY_SUBJECT = /^\s*(?:\[[^\]]*\]\s*)*(re|fwd?|aw|wg|отг|отн|пр)\s*:/iu;
+
+/** Headers as a lowercase map from an object or a list of {name, value}; null for anything else. */
+export function headerMap(headers) {
+  if (Array.isArray(headers)) {
+    return Object.fromEntries(
+      headers
+        .filter((header) => header && header.name)
+        .map((header) => [String(header.name).toLowerCase(), String(header.value ?? '')]),
+    );
+  }
+  if (headers && typeof headers === 'object') {
+    return Object.fromEntries(
+      Object.entries(headers).map(([key, value]) => [
+        key.toLowerCase(),
+        Array.isArray(value) ? value.join(' ') : String(value ?? ''),
+      ]),
+    );
+  }
+  return null;
+}
 
 /** Part of an earlier conversation: only a fresh enquiry gets an automatic answer. */
-export const isFollowUp = (headers = {}) =>
-  Object.keys(headers).some((key) => ['in-reply-to', 'references'].includes(key.toLowerCase()));
+export function isFollowUp(headers) {
+  const h = headerMap(headers);
+  return Boolean(h && ('in-reply-to' in h || 'references' in h));
+}
 
 /** Mail a machine sent: auto-replies, lists and bulk mail never get an answer. */
-export function isAutomatedMail(headers = {}) {
+export function isAutomatedMail(headers) {
   const h = Object.fromEntries(
-    Object.entries(headers).map(([key, value]) => [key.toLowerCase(), String(value).toLowerCase()]),
+    Object.entries(headerMap(headers) ?? {}).map(([key, value]) => [key, value.toLowerCase()]),
   );
   return (
     (h['auto-submitted'] !== undefined && h['auto-submitted'].trim() !== 'no') ||
@@ -99,6 +139,8 @@ export function decide({ verdict, schedule, reply, email, sender, sentToday, cfg
   if (verdict.confidence !== 'high') reasons.push('low confidence');
   if (verdict.complexity !== 'simple') reasons.push('complex enquiry');
   if (REPLY_SUBJECT.test(email.subject ?? '')) reasons.push('subject looks like a reply');
+  // Without readable headers the follow-up and machine-mail checks can't run.
+  if (headerMap(email.headers) === null) reasons.push('headers unavailable');
   // Missing counts as unusual: the flag has to say "ordinary" for a reply to go out.
   if (verdict.unusual !== false) reasons.push('unusual request');
   if (!reply.complete) reasons.push('cut off');
