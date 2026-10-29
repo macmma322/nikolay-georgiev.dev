@@ -75,7 +75,7 @@ export const kobaitSystem: Diagram = {
       emphasis: true,
     },
     {
-      id: 'tft',
+      id: 'screen',
       label: { en: 'Display', bg: 'Дисплей' },
       sub: {
         en: 'custom UI framework,\ndirty-region repaint',
@@ -207,7 +207,7 @@ export const kobaitSystem: Diagram = {
     { from: 'buttons', to: 'rfw', fromSide: 'bottom', toSide: 'top', toOffset: 100 },
     {
       from: 'rfw',
-      to: 'tft',
+      to: 'screen',
       fromSide: 'bottom',
       toSide: 'top',
       fromOffset: -100,
@@ -287,7 +287,7 @@ export const kobaitSystem: Diagram = {
   tiers: [
     {
       label: { en: 'Handheld remote', bg: 'Ръчно дистанционно' },
-      nodes: ['joystick', 'buttons', 'rfw', 'tft', 'rradio'],
+      nodes: ['joystick', 'buttons', 'rfw', 'screen', 'rradio'],
     },
     { label: { en: 'Radio link', bg: 'Радиовръзка' }, nodes: ['link'] },
     {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { localize, locales } from './routes';
 
@@ -266,8 +267,25 @@ for (const locale of locales) {
         locale === 'en' ? 'not sponsored' : 'не е спонсорирана',
       );
       const text = await page.locator('main').innerText();
-      // Word boundaries: "Caelora" must not count as a radio module.
-      expect(text).not.toMatch(/withheld part names/i);
+      // KObait's exact parts, as SHA-256 prefixes of whole lowercase words, so
+      // this public file does not list what the page withholds. Whole words:
+      // "Caelora" must not count as a radio module.
+      const withheld = new Set([
+        'd15eff82084cddbc',
+        '12801089b2936da7',
+        'd339f720de1fd92a',
+        'ba9e6f5936935452',
+        'c9ccf4594410d294',
+        'b32b49bc896b7705',
+        'ae95d0a28506280e',
+      ]);
+      const named = text
+        .toLowerCase()
+        .split(/[^\p{L}\p{N}]+/u)
+        .filter((word) =>
+          withheld.has(createHash('sha256').update(word).digest('hex').slice(0, 16)),
+        );
+      expect(named).toEqual([]);
     });
 
     test('a maker page in both languages links the reader’s one', async ({ page }) => {
