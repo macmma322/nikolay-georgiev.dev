@@ -17,7 +17,8 @@ software. It has to work for three readers:
 
 ## Positioning
 
-- Name and role: Nikolay Georgiev, Software Engineer, Varna, Bulgaria.
+- Name and role: Nikolay Georgiev, Software Engineer, near Varna, Bulgaria,
+  open to remote work. Never "based in Varna" or "in Varna" about where he lives.
 - Core line: "I build production platforms, intelligent systems, embedded
   hardware and low-level technology."
 - The day job (Junior Backend Developer at DXC Technology) is stated plainly,

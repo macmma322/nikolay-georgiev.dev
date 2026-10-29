@@ -17,8 +17,8 @@ export const seo = {
       bg: 'Софтуерен инженер, React и Node.js',
     },
     description: {
-      en: 'Software engineer in Varna, Bulgaria: React, Next.js, TypeScript, Node.js and PostgreSQL in production platforms, plus local AI, embedded and systems work.',
-      bg: 'Софтуерен инженер от Варна: React, Next.js, TypeScript, Node.js и PostgreSQL в работещи платформи, както и локален AI, вградени системи и системен софтуер.',
+      en: 'Software engineer near Varna, Bulgaria: React, Next.js, TypeScript, Node.js and PostgreSQL in production platforms, plus local AI, embedded and systems work.',
+      bg: 'Софтуерен инженер край Варна: React, Next.js, TypeScript, Node.js и PostgreSQL в работещи платформи, както и локален AI, вградени системи и системен софтуер.',
     },
   },
   work: {
@@ -43,12 +43,12 @@ export const seo = {
   },
   about: {
     title: {
-      en: 'About: software engineer based in Varna',
-      bg: 'За мен: софтуерен инженер от Варна',
+      en: 'About: software engineer near Varna',
+      bg: 'За мен: софтуерен инженер край Варна',
     },
     description: {
-      en: 'Nikolay Georgiev, software engineer in Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
-      bg: 'Николай Георгиев, софтуерен инженер от Варна и младши бекенд разработчик в DXC, изгражда full-stack платформи с React, Next.js, Node.js и PostgreSQL.',
+      en: 'Nikolay Georgiev, software engineer near Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
+      bg: 'Николай Георгиев, софтуерен инженер край Варна и младши бекенд разработчик в DXC, изгражда full-stack платформи с React, Next.js, Node.js и PostgreSQL.',
     },
   },
   contact: {
@@ -57,8 +57,8 @@ export const seo = {
       bg: 'Контакт: имейл, телефон, GitHub, LinkedIn',
     },
     description: {
-      en: 'Contact Nikolay Georgiev, software engineer in Varna, Bulgaria, about remote or Varna-based roles: email, phone, GitHub, LinkedIn and a PDF CV.',
-      bg: 'Свържете се с Николай Георгиев, софтуерен инженер от Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
+      en: 'Contact Nikolay Georgiev, software engineer near Varna, Bulgaria, about remote or Varna-based roles: email, phone, GitHub, LinkedIn and a PDF CV.',
+      bg: 'Свържете се с Николай Георгиев, софтуерен инженер край Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
     },
   },
   cv: {
@@ -67,8 +67,8 @@ export const seo = {
       bg: 'CV: PDF на български или английски',
     },
     description: {
-      en: 'The CV of Nikolay Georgiev, software engineer in Varna: experience, selected projects and skills, written as a PDF in your browser, free and without an account.',
-      bg: 'CV на Николай Георгиев, софтуерен инженер от Варна: опит, избрани проекти и умения, записани като PDF в браузъра ви, безплатно и без акаунт.',
+      en: 'The CV of Nikolay Georgiev, software engineer near Varna: experience, selected projects and skills, written as a PDF in your browser, free and without an account.',
+      bg: 'CV на Николай Георгиев, софтуерен инженер край Варна: опит, избрани проекти и умения, записани като PDF в браузъра ви, безплатно и без акаунт.',
     },
   },
   setup: {
@@ -122,8 +122,8 @@ export const seo = {
   imageAlt: {
     /** The home card, also used by About, Lab, Contact and the 404s. */
     site: {
-      en: 'Nikolay Georgiev, software engineer in Varna, Bulgaria',
-      bg: 'Николай Георгиев, софтуерен инженер във Варна, България',
+      en: 'Nikolay Georgiev, software engineer near Varna, Bulgaria',
+      bg: 'Николай Георгиев, софтуерен инженер край Варна, България',
     },
     /** The Work index card: its title and the six case-study plates. */
     work: {
@@ -176,7 +176,10 @@ export const seo = {
     en: 'University of Ruse "Angel Kanchev"',
     bg: 'Русенски университет „Ангел Кънчев“',
   },
+  /** Where the work is: Occupation.occupationLocation (remote or on-site in Varna). */
   city: { en: 'Varna', bg: 'Варна' },
+  /** Person.address: home is near Varna, not in it, so only the province. */
+  region: { en: 'Varna Province', bg: 'Област Варна' },
 } as const satisfies Record<
   string,
   L | L<readonly string[]> | Record<string, L | L<(name: string, kicker?: string) => string>>

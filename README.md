@@ -1,7 +1,7 @@
 # nikolay-georgiev.dev
 
-Portfolio of Nikolay Georgiev, software engineer in Varna, Bulgaria. A static
-Astro + TypeScript site: seven case studies, a lab of tooling and planned
+Portfolio of Nikolay Georgiev, software engineer near Varna, Bulgaria, open
+to remote work. A static Astro + TypeScript site: seven case studies, a lab of tooling and planned
 systems, an open-source page (the MIT-licensed CLAUDE.md blueprint and
 upstream credits), a setup page (hardware, environment, decisions and
 roadmap), an about page and a generated one-page CV.

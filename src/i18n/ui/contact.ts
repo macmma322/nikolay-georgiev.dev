@@ -27,8 +27,8 @@ export const contact = {
   /** Muted after "CV" in the channel rail. */
   cvMeta: { en: 'PDF', bg: 'PDF' },
   facts: {
-    // "във": the value is "Варна, България", and the pair reads as one phrase.
-    based: { en: 'Based in', bg: 'Живея във' },
+    // The value is site.location ("Near Varna, Bulgaria"): a label, not a phrase.
+    based: { en: 'Location', bg: 'Местоположение' },
     time: { en: 'Local time', bg: 'Местно време' },
     availability: { en: 'Availability', bg: 'На разположение' },
     languages: { en: 'Languages', bg: 'Езици' },

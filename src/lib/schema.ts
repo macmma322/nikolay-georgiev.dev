@@ -50,7 +50,7 @@ export function personSchema(locale: Locale = DEFAULT_LOCALE, image?: string | u
     knowsLanguage: ['bg', 'en'],
     address: {
       '@type': 'PostalAddress',
-      addressLocality: seo.city[locale],
+      addressRegion: seo.region[locale],
       addressCountry: 'BG',
     },
     sameAs: [site.links.github, site.links.linkedin, site.elsewhere[0].href],

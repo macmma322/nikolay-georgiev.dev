@@ -14,8 +14,8 @@ export const about = {
       before: { en: 'I am ', bg: 'Аз съм ' },
       name: { en: 'Nikolay Georgiev', bg: 'Николай Георгиев' },
       after: {
-        en: ', a software engineer based in Varna, Bulgaria, with a Computer Science degree from the University of Ruse. By day I work as a backend developer at DXC Technology on an enterprise insurance platform, where the work is about reading large legacy systems carefully and shipping fixes through a real release process.',
-        bg: ', софтуерен инженер от Варна с бакалавърска степен по компютърни науки от Русенския университет. През деня съм бекенд разработчик в DXC Technology и работя по корпоративна застрахователна платформа. Там работата ми е да чета внимателно големи наследени системи и да пускам корекции през реален процес по издаване на версии.',
+        en: ', a software engineer living near Varna, Bulgaria, with a Computer Science degree from the University of Ruse. By day I work as a backend developer at DXC Technology on an enterprise insurance platform, where the work is about reading large legacy systems carefully and shipping fixes through a real release process.',
+        bg: ', софтуерен инженер от района на Варна с бакалавърска степен по компютърни науки от Русенския университет. През деня съм бекенд разработчик в DXC Technology и работя по корпоративна застрахователна платформа. Там работата ми е да чета внимателно големи наследени системи и да пускам корекции през реален процес по издаване на версии.',
       },
     },
     own: {

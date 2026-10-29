@@ -18,6 +18,8 @@ export interface Role {
 }
 
 const varna: L = { en: 'Varna, Bulgaria', bg: 'Варна, България' };
+/** Independent work is done from home, which is near Varna, not in it. */
+const remote: L = { en: 'Remote, Bulgaria', bg: 'Дистанционно, България' };
 
 export const roles: Role[] = [
   {
@@ -45,7 +47,7 @@ export const roles: Role[] = [
     org: { en: 'Zone 32-19 and client work', bg: 'Zone 32-19 и клиентски проекти' },
     title: { en: 'Independent engineer', bg: 'Инженер на свободна практика' },
     start: '2025-02',
-    place: varna,
+    place: remote,
     kind: 'independent',
     points: [
       {

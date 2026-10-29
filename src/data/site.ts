@@ -45,7 +45,7 @@ export const site = {
     en: 'React, Next.js, TypeScript, Node.js and PostgreSQL',
     bg: 'React, Next.js, TypeScript, Node.js и PostgreSQL',
   } satisfies L,
-  location: { en: 'Varna, Bulgaria', bg: 'Варна, България' } satisfies L,
+  location: { en: 'Near Varna, Bulgaria', bg: 'Край Варна, България' } satisfies L,
   timeZone: 'Europe/Sofia',
   availability: {
     en: 'Open to remote and Varna-based engineering roles',

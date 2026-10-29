@@ -55,14 +55,14 @@ const LOCALES = {
     prefix: '',
     text: 'src/content/projects',
     caseStudy: 'Case study',
-    home: { eyebrow: 'Varna, Bulgaria', title: 'Nikolay Georgiev', sub: 'Software Engineer' },
+    home: { eyebrow: 'Near Varna, Bulgaria', title: 'Nikolay Georgiev', sub: 'Software Engineer' },
     work: { eyebrow: 'Case studies', title: 'Work', sub: 'From web platforms to bare metal' },
   },
   bg: {
     prefix: '/bg',
     text: 'src/content/projects/bg',
     caseStudy: 'Проект',
-    home: { eyebrow: 'Варна, България', title: 'Николай Георгиев', sub: 'Софтуерен инженер' },
+    home: { eyebrow: 'Край Варна, България', title: 'Николай Георгиев', sub: 'Софтуерен инженер' },
     work: { eyebrow: 'Проекти', title: 'Проекти', sub: 'От уеб платформи до хардуера' },
   },
 };
