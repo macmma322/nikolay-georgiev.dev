@@ -17,7 +17,11 @@ export interface Role {
   points: L[];
 }
 
-const varna: L = { en: 'Varna, Bulgaria', bg: 'Варна, България' };
+/** DXC's office is in Varna, but the work is done mostly from home. */
+const hybrid: L = {
+  en: 'Varna (hybrid, mostly remote)',
+  bg: 'Варна (хибридно, предимно дистанционно)',
+};
 /** Independent work is done from home, which is near Varna, not in it. */
 const remote: L = { en: 'Remote, Bulgaria', bg: 'Дистанционно, България' };
 
@@ -26,7 +30,7 @@ export const roles: Role[] = [
     org: { en: 'DXC Technology', bg: 'DXC Technology' },
     title: { en: 'Junior Backend Developer', bg: 'Младши бекенд разработчик' },
     start: '2025-09',
-    place: varna,
+    place: hybrid,
     kind: 'employment',
     points: [
       {
