@@ -29,6 +29,10 @@ if (items.length > 0 && !reduce && 'IntersectionObserver' in window) {
   }
   document.documentElement.dataset.motion = '';
 
+  // The observed area reaches far above the viewport, so a block the reader
+  // jumped past (End, a scrollbar drag, a contents link) still counts as
+  // arrived: one that ends above the screen is shown at once, never left
+  // hidden. Only blocks entering from below play.
   const observer = new IntersectionObserver(
     (entries) => {
       let batch = 0;
@@ -36,11 +40,15 @@ if (items.length > 0 && !reduce && 'IntersectionObserver' in window) {
         if (!entry.isIntersecting) continue;
         const el = entry.target as HTMLElement;
         observer.unobserve(el);
+        if (entry.boundingClientRect.bottom <= 0) {
+          el.dataset.shown = 'instant';
+          continue;
+        }
         const delay = Math.min(batch++, 4) * 40;
         window.setTimeout(() => (el.dataset.shown = 'play'), delay);
       }
     },
-    { rootMargin: '0px 0px -8% 0px' },
+    { rootMargin: '100000px 0px -8% 0px' },
   );
 
   for (const el of items) {
