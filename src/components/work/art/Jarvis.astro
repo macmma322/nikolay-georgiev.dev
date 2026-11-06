@@ -11,8 +11,9 @@ import { plates, fit } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // Lane names (FAST, SMART, DEEP), model names and "TOOLS" stay as drawn: "0
 // TOOLS" has no room for a longer word before the approval column.
@@ -45,7 +46,7 @@ const leaderX = 476;
 const brokenRail = (y: number) => `M440 ${y}H${leaderX - 6}M${leaderX + 6} ${y}H596`;
 ---
 
-<PlateFrame slug="jarvis" compact={compact} legend={legend}>
+<PlateFrame slug="jarvis" compact={compact} legend={legend} build={build}>
   <!-- "A deterministic cognitive router that scans for hazards first, matches 37 intents" -->
   <g class="part" data-part="router">
     <circle cx="28" cy={lane.smart} r="3.5" class="wire" />

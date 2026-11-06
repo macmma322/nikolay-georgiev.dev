@@ -33,9 +33,11 @@ interface Props {
   slug: PlateSlug;
   legend?: boolean | undefined;
   compact?: boolean | undefined;
+  /** Build the drawing once as it arrives inside a `.reveal` block (see the end). */
+  build?: boolean | undefined;
 }
 
-const { slug, legend = false, compact = false } = Astro.props;
+const { slug, legend = false, compact = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 const { fig, strip, parts } = t(plates[slug]);
 // A strip that wraps breaks between its items, never inside one.
@@ -46,7 +48,11 @@ const stripItems = strip
 const showLegend = legend && !compact;
 ---
 
-<figure class:list={['project-plate', { compact }]} data-plate={slug} aria-hidden="true">
+<figure
+  class:list={['project-plate', { compact, builds: build && !compact }]}
+  data-plate={slug}
+  aria-hidden="true"
+>
   <div class="plate-canvas">
     <svg class="plate-svg" viewBox="0 0 640 480" focusable="false">
       <path class="plate-frame" d="M1 1H611L639 29V479H1Z"></path>
@@ -322,5 +328,206 @@ const showLegend = legend && !compact;
 
   .project-plate.compact :is(path, line, polyline, polygon, rect, circle, ellipse) {
     vector-effect: non-scaling-stroke;
+  }
+
+  /*
+   * Blueprint build (`build`, homepage chapters): once the chapter arrives
+   * (scripts/reveal.ts), the frame and the strip rule are drawn, the figure
+   * labels come up, then the parts arrive one by one in drawing order and
+   * their lines are drawn along their paths. Each plate has its own way in
+   * (below); timings sit in the content tier and the plate is whole by about
+   * 1.1s. Armed holds frame 0 with static styles; a plate already on screen,
+   * reduced motion, print and no script show the finished drawing.
+   */
+  .project-plate.builds {
+    --b0: 300ms; /* first part */
+    --b-step: 90ms; /* between parts */
+    --b-lag: 120ms; /* a part's lines after the part */
+    --b-draw: 600ms; /* one line */
+  }
+
+  .builds :is(.plate-frame, .plate-rule) {
+    /* Non-scaling strokes measure in screen pixels: longer than any frame. */
+    --dash: 6000;
+  }
+
+  .builds .plate-svg > g:nth-of-type(2) {
+    --i: 1;
+  }
+  .builds .plate-svg > g:nth-of-type(3) {
+    --i: 2;
+  }
+  .builds .plate-svg > g:nth-of-type(4) {
+    --i: 3;
+  }
+  .builds .plate-svg > g:nth-of-type(5) {
+    --i: 4;
+  }
+  .builds .plate-svg > g:nth-of-type(6) {
+    --i: 5;
+  }
+  .builds .plate-svg > g:nth-of-type(7) {
+    --i: 6;
+  }
+  .builds .plate-svg > g:nth-of-type(n + 8) {
+    --i: 7;
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :root[data-motion] .reveal:not([data-shown]) .builds :is(.plate-frame, .plate-rule) {
+      stroke-dasharray: var(--dash);
+      stroke-dashoffset: var(--dash);
+    }
+    :root[data-motion] .reveal:not([data-shown]) .builds :is(.plate-fig, .plate-strip),
+    :root[data-motion] .reveal:not([data-shown]) .builds .plate-svg > g:not(.assembles),
+    :root[data-motion] .reveal:not([data-shown]) .builds .assembles > :is(g, text) {
+      opacity: 0;
+    }
+
+    .reveal[data-shown='play'] .builds .plate-frame {
+      animation: m-dash 900ms var(--ease-in-out) backwards;
+    }
+    .reveal[data-shown='play'] .builds .plate-rule {
+      animation: m-dash 700ms var(--ease-in-out) 200ms backwards;
+    }
+    .reveal[data-shown='play'] .builds .plate-fig {
+      animation: m-wipe var(--dur-content) var(--ease-out-expo) 240ms backwards;
+    }
+    .reveal[data-shown='play'] .builds .plate-strip {
+      animation: m-fade var(--dur-content) var(--ease-out) 520ms backwards;
+    }
+
+    .reveal[data-shown='play'] .builds .plate-svg > g:not(.assembles) {
+      animation-name: plate-part;
+      animation-duration: 460ms;
+      animation-timing-function: var(--ease-out-expo);
+      animation-delay: calc(var(--b0) + var(--i, 0) * var(--b-step));
+      animation-fill-mode: backwards;
+    }
+
+    /* Lines draw along their paths once their part is there; planned
+       (dashed) lines keep their dashes and arrive with the part. */
+    .reveal[data-shown='play']
+      .builds
+      .plate-svg
+      > g
+      :is(path, line, polyline):is(.wire, .faint, .accent):not(.planned) {
+      animation: m-dash var(--b-draw) var(--ease-in-out)
+        calc(var(--b0) + var(--i, 0) * var(--b-step) + var(--b-lag)) backwards;
+    }
+
+    /* ---------- Signatures ---------- */
+
+    /* Caelora: the voxel section assembles back to front, one diagonal at a
+       time; the tree's skeleton is drawn, then its leaf voxels land. */
+    .reveal[data-shown='play'] .builds .assembles > g {
+      animation: plate-voxel 520ms var(--ease-out-expo) calc(220ms + var(--k, 0) * 55ms) backwards;
+    }
+    .reveal[data-shown='play'] .builds .assembles > text {
+      animation: m-fade var(--dur-content) var(--ease-out) 640ms backwards;
+    }
+    .reveal[data-shown='play'] .builds[data-plate='caelora'] :is(.leaf, .knot) {
+      animation: m-fade var(--dur-ui) var(--ease-out)
+        calc(var(--b0) + var(--i, 0) * var(--b-step) + 520ms) backwards;
+    }
+
+    /* J.A.R.V.I.S.: the parts stand by dimly, then light in routing order
+       while the connections are drawn between them. */
+    .builds[data-plate='jarvis'] {
+      --b-step: 110ms;
+      --b-lag: 60ms;
+    }
+    :root[data-motion] .reveal:not([data-shown]) .builds[data-plate='jarvis'] .plate-svg > g {
+      opacity: 0.12;
+    }
+    .reveal[data-shown='play'] .builds[data-plate='jarvis'] .plate-svg > g {
+      animation-name: plate-illuminate;
+      animation-duration: 560ms;
+      animation-timing-function: var(--ease-out);
+    }
+
+    /* USS X Academy: interface panels open top to bottom, like screens. */
+    .reveal[data-shown='play'] .builds[data-plate='uss-x-academy'] .plate-svg > g {
+      animation-name: plate-panel;
+      animation-duration: 520ms;
+    }
+
+    /* Zone 32-19: the platform modules seat into place, then the service
+       connections are drawn. */
+    .builds[data-plate='zone-32-19'] {
+      --b-lag: 300ms;
+    }
+    .builds[data-plate='zone-32-19'] .plate-svg > g {
+      transform-box: fill-box;
+      transform-origin: 50% 50%;
+    }
+    .reveal[data-shown='play'] .builds[data-plate='zone-32-19'] .plate-svg > g {
+      animation-name: plate-seat;
+    }
+
+    /* KObait: generic stations appear, the communication lines between them
+       are drawn slowly, end to end. */
+    .builds[data-plate='kobait'] {
+      --b-lag: 200ms;
+      --b-draw: 900ms;
+    }
+    .reveal[data-shown='play'] .builds[data-plate='kobait'] .plate-svg > g {
+      animation-name: m-fade;
+    }
+
+    /* Malrynth: a boot sequence. Stages come up one at a time in hard steps,
+       each fully on before the next; nothing is drawn, it powers on. */
+    .builds[data-plate='malrynth'] {
+      --b0: 360ms;
+      --b-step: 130ms;
+    }
+    .reveal[data-shown='play'] .builds[data-plate='malrynth'] .plate-svg > g {
+      animation-name: m-fade;
+      animation-duration: 210ms;
+      animation-timing-function: steps(3, jump-none);
+    }
+    .reveal[data-shown='play']
+      .builds[data-plate='malrynth']
+      .plate-svg
+      > g
+      :is(path, line, polyline):is(.wire, .faint, .accent) {
+      animation: none;
+    }
+  }
+
+  @keyframes plate-part {
+    from {
+      opacity: 0;
+      translate: 0 6px;
+    }
+  }
+
+  @keyframes plate-voxel {
+    from {
+      opacity: 0;
+      translate: 0 16px;
+    }
+  }
+
+  @keyframes plate-illuminate {
+    from {
+      opacity: 0.12;
+    }
+  }
+
+  @keyframes plate-panel {
+    from {
+      clip-path: inset(0 0 100% 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes plate-seat {
+    from {
+      opacity: 0;
+      scale: 0.94;
+    }
   }
 </style>

@@ -126,10 +126,13 @@ const background = [
   </section>
 
   <section id="capabilities" class="container section section-far" aria-labelledby="caps-title">
-    <SectionHeader label={a.capabilities.label} id="caps-title" title={a.capabilities.title} />
-    <div class="reveal">
-      <Capabilities />
-    </div>
+    <SectionHeader
+      label={a.capabilities.label}
+      id="caps-title"
+      title={a.capabilities.title}
+      class="reveal"
+    />
+    <Capabilities />
   </section>
 </BaseLayout>
 
@@ -341,6 +344,43 @@ const background = [
   @media (min-width: 700px) {
     .facts {
       grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  /* The portrait opens inside its mat on load and settles from a slight zoom. */
+  .grade {
+    overflow: clip;
+  }
+
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .grade {
+      animation: portrait-open 1000ms var(--ease-in-out) 160ms backwards;
+    }
+    .grade :global(img) {
+      animation: portrait-zoom 1600ms var(--ease-out-expo) 160ms backwards;
+    }
+    .portrait figcaption {
+      animation: m-up var(--dur-content) var(--ease-out-expo) 620ms backwards;
+    }
+  }
+
+  :global(:root[data-lang-switch]) :is(.grade, .portrait figcaption),
+  :global(:root[data-lang-switch]) .grade :global(img) {
+    animation: none;
+  }
+
+  @keyframes portrait-open {
+    from {
+      clip-path: inset(100% 0 0 0);
+    }
+    to {
+      clip-path: inset(0 0 0 0);
+    }
+  }
+
+  @keyframes portrait-zoom {
+    from {
+      scale: 1.08;
     }
   }
 </style>

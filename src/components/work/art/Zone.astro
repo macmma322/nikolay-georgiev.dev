@@ -12,8 +12,9 @@ import { plates } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // "SAME ORIGIN" stays as drawn (the web term; its Bulgarian would run into the
 // BFF box), as do system names, the schema names and UNIQUE.
@@ -30,7 +31,7 @@ const portal = +(sheet.x + 38 * slice).toFixed(2);
 const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
 ---
 
-<PlateFrame slug="zone-32-19" compact={compact} legend={legend}>
+<PlateFrame slug="zone-32-19" compact={compact} legend={legend} build={build}>
   <path d="M2 2H610.6L638 29.4V433H2Z" class="ground" />
 
   <!-- "a same-origin BFF proxy"; "The browser only ever talks to its own origin" -->

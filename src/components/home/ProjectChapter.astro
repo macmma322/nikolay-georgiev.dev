@@ -38,7 +38,7 @@ const headingId = `chapter-${entry.id}`;
 ---
 
 <article
-  class:list={['chapter', `is-${layout}`, 'reveal']}
+  class:list={['chapter', `is-${layout}`, 'reveal', 'reveal-parts']}
   data-accent={p.accent}
   aria-labelledby={headingId}
   data-vt-scope
@@ -72,7 +72,7 @@ const headingId = `chapter-${entry.id}`;
   </div>
 
   <div class="visual" data-vt-art={entry.id}>
-    <ProjectArt slug={entry.id} />
+    <ProjectArt slug={entry.id} build />
   </div>
 </article>
 
@@ -350,6 +350,101 @@ const headingId = `chapter-${entry.id}`;
       font-size: var(--step-2);
       line-height: 1.24;
       letter-spacing: -0.015em;
+    }
+  }
+
+  /*
+   * Arrival, once (scripts/reveal.ts): the chapter rule draws, the number and
+   * layer glyph are drawn on, the name rises out of its baseline, the rest of
+   * the copy settles in reading order, and the plate builds itself beside it
+   * (PlateFrame, `build`). Chapters already on screen, reduced motion and no
+   * script show the finished spread.
+   */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :global(:root[data-motion]) .chapter:not([data-shown='instant']) {
+      border-top-color: transparent;
+    }
+
+    :global(:root[data-motion]) .chapter:not([data-shown='instant'])::before {
+      content: '';
+      position: absolute;
+      inset: -1px 0 auto;
+      height: 1px;
+      background: var(--line-soft);
+      transform-origin: 0 50%;
+    }
+
+    :global(:root[data-motion]) .chapter:not([data-shown])::before {
+      scale: 0 1;
+    }
+    :global(:root[data-motion]) .chapter:not([data-shown]) .meta {
+      clip-path: inset(-0.3em 100% -0.3em -0.2em);
+    }
+    :global(:root[data-motion]) .chapter:not([data-shown]) .name {
+      translate: 0 105%;
+      clip-path: inset(-0.3em -0.2em 105% -0.2em);
+    }
+    :global(:root[data-motion]) .chapter:not([data-shown]) :is(.kicker, .body, .read),
+    :global(:root[data-motion]) .chapter:not([data-shown]) .head > :global(.status) {
+      opacity: 0;
+      translate: 0 var(--move-m);
+    }
+
+    .chapter[data-shown='play']::before {
+      animation: m-draw 720ms var(--ease-in-out) backwards;
+    }
+    .chapter[data-shown='play'] .meta {
+      animation: m-wipe var(--dur-content) var(--ease-out-expo) 80ms backwards;
+    }
+    .chapter[data-shown='play'] .name {
+      animation: m-rise 720ms var(--ease-out-expo) 120ms backwards;
+    }
+    .chapter[data-shown='play'] :is(.kicker, .body, .read),
+    .chapter[data-shown='play'] .head > :global(.status) {
+      animation: m-up var(--dur-content) var(--ease-out-expo) backwards;
+    }
+    .chapter[data-shown='play'] .kicker {
+      animation-delay: 220ms;
+    }
+    .chapter[data-shown='play'] .head > :global(.status) {
+      animation-delay: 260ms;
+    }
+    .chapter[data-shown='play'] .body {
+      animation-delay: 320ms;
+    }
+    .chapter[data-shown='play'] .read {
+      animation-delay: 380ms;
+    }
+  }
+
+  /*
+   * Depth, scroll-linked: on wide screens the plate drifts 12px against the
+   * copy while the chapter crosses the viewport (the chapter is the timeline,
+   * so a sticky plate drifts too). Phones and tablets keep it still.
+   * Longhands only: the minifier would fold a timeline into the shorthand.
+   */
+  @media screen and (min-width: 1000px) and (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .chapter {
+        view-timeline-name: --chapter;
+        view-timeline-axis: block;
+      }
+      .visual {
+        animation-name: plate-drift;
+        animation-timing-function: linear;
+        animation-fill-mode: both;
+        animation-timeline: --chapter;
+        animation-range: cover 0% cover 100%;
+      }
+    }
+  }
+
+  @keyframes plate-drift {
+    from {
+      translate: 0 var(--move-m);
+    }
+    to {
+      translate: 0 calc(-1 * var(--move-m));
     }
   }
 </style>

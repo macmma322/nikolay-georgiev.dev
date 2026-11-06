@@ -16,8 +16,9 @@ import { plates } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 const a = t(plates.caelora.art);
 
@@ -43,6 +44,8 @@ const columns = heights
     const y = O.y + (i + j) * B + B - h * LV;
     const H = h * LV;
     return {
+      // Diagonal from the back corner: the build assembles in this order.
+      d: i + j,
       top: pts([
         [x, y - B],
         [x + A, y],
@@ -109,10 +112,10 @@ const arrow = (x1: number, y1: number, x2: number, y2: number) => {
 };
 ---
 
-<PlateFrame slug="caelora" compact={compact} legend={legend}>
-  <g class="part" data-part="sections">
+<PlateFrame slug="caelora" compact={compact} legend={legend} build={build}>
+  <g class="part assembles" data-part="sections">
     {columns.map((c) => (
-      <g>
+      <g class={`vx d${c.d}`}>
         <polygon points={c.left} class="ink side" />
         <polygon points={c.right} class="ink side dark" />
         <polygon points={c.top} class="ink" />
@@ -182,6 +185,34 @@ const arrow = (x1: number, y1: number, x2: number, y2: number) => {
     ></path>
   </g>
 </PlateFrame>
+
+<style>
+  /* Build order of the voxel columns (PlateFrame, `build`). */
+  .d1 {
+    --k: 1;
+  }
+  .d2 {
+    --k: 2;
+  }
+  .d3 {
+    --k: 3;
+  }
+  .d4 {
+    --k: 4;
+  }
+  .d5 {
+    --k: 5;
+  }
+  .d6 {
+    --k: 6;
+  }
+  .d7 {
+    --k: 7;
+  }
+  .d8 {
+    --k: 8;
+  }
+</style>
 
 <style>
   .side {

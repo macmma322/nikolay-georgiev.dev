@@ -141,17 +141,19 @@ a {
   animation: none;
 }
 
+/* The page lifts a little as it leaves and rises into place as the next one
+   arrives, so a navigation reads as one sheet replacing another. */
 ::view-transition-old(root) {
-  animation: vt-out var(--dur-fast) var(--ease-out) both;
+  animation: vt-page-out var(--dur-fast) var(--ease-out) both;
 }
 
 ::view-transition-new(root) {
-  animation: vt-in var(--dur-panel) var(--ease-out) 60ms both;
+  animation: vt-page-in var(--dur-content) var(--ease-out-expo) 60ms both;
 }
 
 ::view-transition-group(*.title),
 ::view-transition-group(*.art) {
-  animation-duration: 340ms;
+  animation-duration: 380ms;
   animation-timing-function: var(--ease-in-out);
 }
 
@@ -175,6 +177,20 @@ a {
 @keyframes vt-in {
   from {
     opacity: 0;
+  }
+}
+
+@keyframes vt-page-out {
+  to {
+    opacity: 0;
+    translate: 0 calc(-0.5 * var(--move-m));
+  }
+}
+
+@keyframes vt-page-in {
+  from {
+    opacity: 0;
+    translate: 0 var(--move-m);
   }
 }
 
@@ -349,13 +365,17 @@ html:active-view-transition-type(lang)::view-transition-new(*.art) {
     .word,
     .hero-meta,
     .hero-statement,
-    .hero-actions,
-    .now,
+    .hero-focus,
+    .hero-actions > *,
+    .visual-caption,
+    .now-item,
     .plate-body,
     .lead,
     .lead-dot,
     .stack-label
-  ) {
+  ),
+:root[data-lang-switch] .hero :is(.line, .now)::after,
+:root[data-lang-switch] .hero :is(.line, .now)::before {
   animation: none;
 }
 
@@ -504,20 +524,187 @@ html:active-view-transition-type(lang)::view-transition-new(*.art) {
  * `translate` property so components keep ownership of `transform`.
  */
 @media (prefers-reduced-motion: no-preference) {
-  :root[data-motion] .reveal:not([data-shown]) {
+  :root[data-motion] .reveal:not(.reveal-parts, .stagger, .photo, [data-shown]) {
     opacity: 0;
     translate: 0 var(--move-m);
   }
 
-  :root[data-motion] .reveal[data-shown='play'] {
+  :root[data-motion] .reveal:not(.reveal-parts, .stagger, .photo)[data-shown='play'] {
     transition:
       opacity var(--dur-content) var(--ease-out-expo),
       translate var(--dur-content) var(--ease-out-expo);
   }
+
+  /* A list that arrives item by item: cards, rows. An animation, not a
+     transition, so each item keeps its own hover transitions. */
+  :root[data-motion] .reveal.stagger:not([data-shown]) > * {
+    opacity: 0;
+    translate: 0 var(--move-m);
+  }
+
+  .reveal.stagger[data-shown='play'] > * {
+    animation: m-up var(--dur-content) var(--ease-out-expo) backwards;
+  }
+
+  .reveal.stagger[data-shown='play'] > :nth-child(2) {
+    animation-delay: calc(2 * var(--stagger));
+  }
+  .reveal.stagger[data-shown='play'] > :nth-child(3) {
+    animation-delay: calc(4 * var(--stagger));
+  }
+  .reveal.stagger[data-shown='play'] > :nth-child(4) {
+    animation-delay: calc(6 * var(--stagger));
+  }
+  .reveal.stagger[data-shown='play'] > :nth-child(n + 5) {
+    animation-delay: calc(8 * var(--stagger));
+  }
+}
+
+/*
+ * Shared entrance vocabulary for blocks that animate their parts
+ * (.reveal-parts) and for the on-load entrances. Components hold frame 0 with
+ * static styles while armed and play these once.
+ *   m-rise   text rises out of a slot at its own baseline (a mask, no wrapper)
+ *   m-wipe   a label is drawn on from its start edge
+ *   m-draw   a rule is drawn from its start edge (on `scale`)
+ *   m-dash   a stroke is drawn along its path (stroke-dashoffset)
+ *   m-up     a block settles from below while it fades in
+ *   m-fade   opacity only
+ * The clips overhang the box so accents and descenders are never cut.
+ */
+@keyframes m-rise {
+  from {
+    translate: 0 105%;
+    clip-path: inset(-0.3em -0.2em 105% -0.2em);
+  }
+  to {
+    translate: 0 0;
+    clip-path: inset(-0.3em -0.2em -0.3em -0.2em);
+  }
+}
+
+@keyframes m-wipe {
+  from {
+    clip-path: inset(-0.3em 100% -0.3em -0.2em);
+  }
+  to {
+    clip-path: inset(-0.3em -0.2em -0.3em -0.2em);
+  }
+}
+
+@keyframes m-draw {
+  from {
+    scale: 0 1;
+  }
+}
+
+@keyframes m-dash {
+  from {
+    stroke-dasharray: var(--dash, 2000);
+    stroke-dashoffset: var(--dash, 2000);
+  }
+  to {
+    stroke-dasharray: var(--dash, 2000);
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes m-up {
+  from {
+    opacity: 0;
+    translate: 0 var(--move-m);
+  }
+}
+
+@keyframes m-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+/*
+ * Typewriter for short mono labels (eyebrows, the hero's role line, the
+ * contact label). The text is in the HTML from the first byte; a stepped clip
+ * reveals it one character width at a time. --chars is the label's length
+ * (scripts/reveal.ts measures it), so every label types at the same pace.
+ * Usage: class `type`, then animation: m-wipe var(--type-dur) var(--type-ease).
+ */
+.type,
+:is(.intro, .intro-copy, .nf) > .label {
+  --type-dur: clamp(280ms, calc(var(--chars, 20) * 26ms), 900ms);
+  --type-ease: steps(var(--chars, 20), jump-none);
+  width: fit-content;
+  max-width: 100%;
+}
+
+/*
+ * Photographs (.reveal.photo, a figure): the frame opens upward while the
+ * picture rises 24px inside it, then the caption settles. The clip carries
+ * the image's own corner radius (--photo-r).
+ */
+@media (prefers-reduced-motion: no-preference) {
+  :root[data-motion] .reveal.photo:not([data-shown]) img {
+    clip-path: inset(100% 0 0 0 round var(--photo-r, 0px));
+  }
+  :root[data-motion] .reveal.photo:not([data-shown]) figcaption {
+    opacity: 0;
+  }
+  .reveal.photo[data-shown='play'] img {
+    animation: m-curtain 900ms var(--ease-in-out) backwards;
+  }
+  .reveal.photo[data-shown='play'] figcaption {
+    animation: m-up var(--dur-content) var(--ease-out-expo) 420ms backwards;
+  }
+}
+
+@keyframes m-curtain {
+  from {
+    translate: 0 24px;
+    clip-path: inset(100% 0 24px 0 round var(--photo-r, 0px));
+  }
+  to {
+    translate: 0 0;
+    clip-path: inset(0 0 0 0 round var(--photo-r, 0px));
+  }
+}
+
+@keyframes m-settle {
+  from {
+    translate: 0 10px;
+  }
+}
+
+/*
+ * Page entrance, once per load, for every page that opens with an intro
+ * (About, Work, Lab, Open Source, Setup, CV, 404): the label types on, the
+ * title rises out of its baseline, the lede settles. The lede is never
+ * transparent (it is often the LCP); nothing waits longer than 400ms.
+ * A language switch keeps everything where it was.
+ */
+@media screen and (prefers-reduced-motion: no-preference) {
+  :is(.intro, .intro-copy, .nf) > .label {
+    animation: m-wipe var(--type-dur) var(--type-ease) backwards;
+  }
+  :is(.intro, .intro-copy, .nf) > .title {
+    animation: m-rise 680ms var(--ease-out-expo) 100ms backwards;
+  }
+  :is(.intro, .nf) > .lede,
+  .intro-copy > .bio {
+    animation: m-settle var(--dur-content) var(--ease-out-expo) 220ms backwards;
+  }
+  :is(.intro, .nf) > :is(.disclosure, .actions),
+  .intro > :not(.intro-copy, .label, .title, .lede, .disclosure, .actions) {
+    animation: m-up var(--dur-content) var(--ease-out-expo) 300ms backwards;
+  }
+}
+
+:root[data-lang-switch] :is(.intro, .intro-copy, .nf) > * {
+  animation: none;
 }
 
 @media print {
-  .reveal {
+  .reveal,
+  .reveal.stagger > * {
     opacity: 1 !important;
     translate: none !important;
   }

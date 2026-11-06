@@ -164,7 +164,7 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
 
   <section id="repositories" class="container group" aria-labelledby="g-repos">
     <SectionHeader label={u.repos.label} id="g-repos" title={u.repos.title} lede={u.repos.lede} />
-    <div class="repo-groups reveal">
+    <div class="repo-groups reveal stagger">
       {repoGroups.map((g) => (
         <div class="repo-group">
           <h3 class="label">{g.label}</h3>
@@ -205,7 +205,7 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
       title={u.credits.title}
       lede={u.credits.lede}
     />
-    <div class="credit-groups reveal">
+    <div class="credit-groups reveal stagger">
       {groups.map((group) => (
         <div class="credit-group">
           <h3 class="credit-project">
@@ -223,7 +223,7 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
 
   <section id="contributing" class="container group" aria-labelledby="g-contrib">
     <SectionHeader label={u.contributing.label} id="g-contrib" title={u.contributing.title} />
-    <ul role="list" class="contrib reveal">
+    <ul role="list" class="contrib reveal stagger">
       {u.contributing.points.map((point) => (
         <li>{point}</li>
       ))}

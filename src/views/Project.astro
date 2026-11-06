@@ -75,7 +75,7 @@ const media = p.media.map((m, i) => {
     <header class="case-hero">
       <div class="container hero-grid">
         <div class="hero-copy">
-          <nav class="crumbs label" aria-label={w.breadcrumb}>
+          <nav class="crumbs label type" aria-label={w.breadcrumb}>
             <ol role="list">
               <li>
                 <a href={href('/work')}>{w.work}</a>
@@ -191,12 +191,12 @@ const media = p.media.map((m, i) => {
 
       <div class="sections" data-case-sections>
         <section id="overview" class="block" aria-labelledby="h-overview">
-          <h2 id="h-overview" class="block-title">
-            <span class="block-n">{sectionNo('overview')}</span>{' '}
+          <h2 id="h-overview" class="block-title reveal reveal-parts">
+            <span class="block-n type">{sectionNo('overview')}</span>{' '}
             <span class="block-name">{names.overview}</span>
           </h2>
           <div class="overview-grid">
-            <div class="prose">
+            <div class="prose reveal-each">
               <Content />
             </div>
             <div class="spec">
@@ -215,7 +215,7 @@ const media = p.media.map((m, i) => {
           </div>
           <ul
             role="list"
-            class:list={['highlights reveal', { 'is-three': p.highlights.length === 3 }]}
+            class:list={['highlights reveal stagger', { 'is-three': p.highlights.length === 3 }]}
           >
             {p.highlights.map((h) => (
               <li>{h}</li>
@@ -225,8 +225,8 @@ const media = p.media.map((m, i) => {
 
         {(p.diagrams.length > 0 || p.architecture) && (
           <section id="architecture" class="block" aria-labelledby="h-architecture">
-            <h2 id="h-architecture" class="block-title">
-              <span class="block-n">{sectionNo('architecture')}</span>{' '}
+            <h2 id="h-architecture" class="block-title reveal reveal-parts">
+              <span class="block-n type">{sectionNo('architecture')}</span>{' '}
               <span class="block-name">{names.architecture}</span>
             </h2>
             <p class="lede arch-lede">{p.architecture}</p>
@@ -248,13 +248,13 @@ const media = p.media.map((m, i) => {
 
         {media.length > 0 && (
           <section id="media" class="block" aria-labelledby="h-media">
-            <h2 id="h-media" class="block-title">
-              <span class="block-n">{sectionNo('media')}</span>{' '}
+            <h2 id="h-media" class="block-title reveal reveal-parts">
+              <span class="block-n type">{sectionNo('media')}</span>{' '}
               <span class="block-name">{names.media}</span>
             </h2>
             <div class="media-grid">
               {media.map((m) => (
-                <figure class:list={['media reveal', { wide: m.wide, solo: m.solo }]}>
+                <figure class:list={['media reveal photo', { wide: m.wide, solo: m.solo }]}>
                   <Image
                     src={m.src}
                     alt={m.alt}
@@ -274,8 +274,8 @@ const media = p.media.map((m, i) => {
 
         {p.hard.length > 0 && (
           <section id="hard" class="block" aria-labelledby="h-hard">
-            <h2 id="h-hard" class="block-title">
-              <span class="block-n">{sectionNo('hard')}</span>{' '}
+            <h2 id="h-hard" class="block-title reveal reveal-parts">
+              <span class="block-n type">{sectionNo('hard')}</span>{' '}
               <span class="block-name">{names.hard}</span>
             </h2>
             <ul role="list" class="hard">
@@ -306,8 +306,8 @@ const media = p.media.map((m, i) => {
 
         {p.decisions.length > 0 && (
           <section id="decisions" class="block" aria-labelledby="h-decisions">
-            <h2 id="h-decisions" class="block-title">
-              <span class="block-n">{sectionNo('decisions')}</span>{' '}
+            <h2 id="h-decisions" class="block-title reveal reveal-parts">
+              <span class="block-n type">{sectionNo('decisions')}</span>{' '}
               <span class="block-name">{names.decisions}</span>
             </h2>
             <dl class="decisions">
@@ -322,8 +322,8 @@ const media = p.media.map((m, i) => {
         )}
 
         <section id="built" class="block" aria-labelledby="h-built">
-          <h2 id="h-built" class="block-title">
-            <span class="block-n">{sectionNo('built')}</span>{' '}
+          <h2 id="h-built" class="block-title reveal reveal-parts">
+            <span class="block-n type">{sectionNo('built')}</span>{' '}
             <span class="block-name">{names.built}</span>
           </h2>
           <div class="built">
@@ -341,8 +341,8 @@ const media = p.media.map((m, i) => {
         </section>
 
         <section id="status" class="block" aria-labelledby="h-status">
-          <h2 id="h-status" class="block-title">
-            <span class="block-n">{sectionNo('status')}</span>{' '}
+          <h2 id="h-status" class="block-title reveal reveal-parts">
+            <span class="block-n type">{sectionNo('status')}</span>{' '}
             <span class="block-name">{names.status}</span>
           </h2>
           <div class="status-grid">
@@ -377,8 +377,8 @@ const media = p.media.map((m, i) => {
 
         {p.learned.length > 0 && (
           <section id="learned" class="block" aria-labelledby="h-learned">
-            <h2 id="h-learned" class="block-title">
-              <span class="block-n">{sectionNo('learned')}</span>{' '}
+            <h2 id="h-learned" class="block-title reveal reveal-parts">
+              <span class="block-n type">{sectionNo('learned')}</span>{' '}
               <span class="block-name">{names.learned}</span>
             </h2>
             <ul role="list" class="learned">
@@ -390,11 +390,11 @@ const media = p.media.map((m, i) => {
         )}
 
         <section id="stack" class="block" aria-labelledby="h-stack">
-          <h2 id="h-stack" class="block-title">
-            <span class="block-n">{sectionNo('stack')}</span>{' '}
+          <h2 id="h-stack" class="block-title reveal reveal-parts">
+            <span class="block-n type">{sectionNo('stack')}</span>{' '}
             <span class="block-name">{names.stack}</span>
           </h2>
-          <ul role="list" class="stack-list reveal">
+          <ul role="list" class="stack-list reveal stagger">
             {p.stack.map((id) => (
               <li>
                 <TechIcon id={id} size="m" />
@@ -1092,6 +1092,10 @@ const media = p.media.map((m, i) => {
     gap: var(--space-l);
   }
 
+  .media {
+    --photo-r: var(--radius-m);
+  }
+
   .media img {
     width: 100%;
     height: auto;
@@ -1533,5 +1537,79 @@ const media = p.media.map((m, i) => {
     .next-label {
       padding-bottom: 0.2rem;
     }
+  }
+  /*
+   * Entrance. The title and the plate are the view transition's travellers
+   * (they fly in from the homepage or the index), so they hold still; around
+   * them the breadcrumb types on, the index is drawn on, the summary settles
+   * and the meta strip arrives fact by fact. Section titles arrive as they
+   * are reached: the rule is drawn, the number types on, the name rises.
+   */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .crumbs {
+      animation: m-wipe var(--type-dur) var(--type-ease) backwards;
+    }
+    .case-index {
+      animation: m-wipe var(--dur-content) var(--ease-out-expo) 120ms backwards;
+    }
+    .case-summary {
+      animation: m-settle var(--dur-content) var(--ease-out-expo) 200ms backwards;
+    }
+    .case-status {
+      animation: m-up var(--dur-content) var(--ease-out-expo) 260ms backwards;
+    }
+    .meta > div {
+      animation: m-up var(--dur-content) var(--ease-out-expo) 320ms backwards;
+    }
+    .meta > div:nth-child(2) {
+      animation-delay: 360ms;
+    }
+    .meta > div:nth-child(3) {
+      animation-delay: 400ms;
+    }
+    .meta > div:nth-child(4) {
+      animation-delay: 440ms;
+    }
+    .meta > div:nth-child(5) {
+      animation-delay: 480ms;
+    }
+
+    :global(:root[data-motion]) .block-title:not([data-shown='instant']) {
+      position: relative;
+      border-top-color: transparent;
+    }
+    :global(:root[data-motion]) .block-title:not([data-shown='instant'])::before {
+      content: '';
+      position: absolute;
+      inset: -1px 0 auto;
+      height: 1px;
+      background: var(--line-soft);
+      transform-origin: 0 50%;
+    }
+    :global(:root[data-motion]) .block-title:not([data-shown])::before {
+      scale: 0 1;
+    }
+    :global(:root[data-motion]) .block-title:not([data-shown]) .block-n {
+      clip-path: inset(-0.3em 100% -0.3em -0.2em);
+    }
+    :global(:root[data-motion]) .block-title:not([data-shown]) .block-name {
+      translate: 0 105%;
+      clip-path: inset(-0.3em -0.2em 105% -0.2em);
+    }
+    .block-title[data-shown='play']::before {
+      animation: m-draw 640ms var(--ease-in-out) backwards;
+    }
+    .block-title[data-shown='play'] .block-n {
+      animation: m-wipe var(--type-dur) var(--type-ease) 80ms backwards;
+    }
+    .block-title[data-shown='play'] .block-name {
+      display: inline-block;
+      animation: m-rise 640ms var(--ease-out-expo) 120ms backwards;
+    }
+  }
+
+  :global(:root[data-lang-switch])
+    :is(.crumbs, .case-index, .case-summary, .case-status, .meta > div) {
+    animation: none;
   }
 </style>

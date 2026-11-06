@@ -16,8 +16,9 @@ import { plates } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // TAB (the key's own legend) and the locale codes stay as drawn.
 const a = t(plates['uss-x-academy'].art);
@@ -81,7 +82,7 @@ const locales = ['BG', 'EN', 'RU'].map((code, i) => ({
 const defaultMark = `M${LOCALE.x - 2 * LOCALE.step - 11} ${LOCALE.y + 7}h22`;
 ---
 
-<PlateFrame slug="uss-x-academy" compact={compact} legend={legend}>
+<PlateFrame slug="uss-x-academy" compact={compact} legend={legend} build={build}>
   {/* "a keyboard-operable SVG map of Bulgaria's 28 regions" (uss-x-academy.md, built) */}
   <g class="part" data-part="map">
     <g transform={`translate(${MAP.x} ${MAP.y}) scale(${MAP.s})`}>

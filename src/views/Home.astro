@@ -47,9 +47,9 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
     ))}
 
     {more.length > 0 && (
-      <div class="also reveal">
-        <p class="label">{s.work.also}</p>
-        <ul role="list">
+      <div class="also">
+        <p class="label reveal">{s.work.also}</p>
+        <ul role="list" class="reveal stagger">
           {more.map((entry, i) => (
             <li class="also-row" data-accent={entry.data.accent} data-vt-scope>
               <div class="also-art" data-vt-art={entry.id}>
@@ -120,7 +120,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
       link={{ href: href('/lab'), label: s.lab.link }}
       class="reveal"
     />
-    <div class="lab-list reveal">
+    <div class="lab-list reveal stagger">
       {lab.map((entry) => (
         <LabCard entry={entry} />
       ))}

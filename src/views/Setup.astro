@@ -94,7 +94,7 @@ const ecoViews = [
       ]}
       parts={partsIn('secondary')}
     />
-    <div class="two-lists reveal">
+    <div class="two-lists reveal stagger">
       <div>
         <h3 class="label">{u.secondary.roles}</h3>
         <ul role="list" class="dashed-list">
@@ -155,7 +155,7 @@ const ecoViews = [
 
   <section id="journey" class="container group" aria-labelledby="g-journey">
     <SectionHeader label={u.journey.label} id="g-journey" title={u.journey.title} />
-    <div class="areas reveal">
+    <div class="areas reveal stagger">
       {u.journey.areas.map((area) => {
         const target = area.slug ? project(area.slug) : undefined;
         return (
@@ -220,7 +220,7 @@ const ecoViews = [
 
   <section id="environment" class="container group" aria-labelledby="g-tools">
     <SectionHeader label={u.tools.label} id="g-tools" title={u.tools.title} lede={u.tools.lede} />
-    <ul role="list" class="tools reveal">
+    <ul role="list" class="tools reveal stagger">
       {tools.map((tool) => (
         <li class:list={['tool', `usage-${tool.usage}`]}>
           <span class="tool-name">{tool.name}</span>
@@ -244,7 +244,7 @@ const ecoViews = [
       title={u.roadmap.title}
       lede={u.roadmap.lede}
     />
-    <div class="stages reveal">
+    <div class="stages reveal stagger">
       {stages.map((stage) => (
         <section class:list={['stage', `stage-${stage}`]} aria-labelledby={`s-${stage}`}>
           <h3 id={`s-${stage}`} class="label">

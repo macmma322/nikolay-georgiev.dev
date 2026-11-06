@@ -7,6 +7,18 @@
  * The rest plays once as it arrives, with a short stagger inside one batch,
  * and never replays or scrubs backwards.
  */
+// Typed labels (base.css, .type) step once per character: give each its length.
+for (const el of document.querySelectorAll<HTMLElement>(
+  '.type, :is(.intro, .intro-copy, .nf) > .label',
+)) {
+  el.style.setProperty('--chars', String(Math.max(4, el.textContent?.trim().length ?? 0)));
+}
+
+// A .reveal-each container (long text) reveals its children one by one.
+for (const el of document.querySelectorAll<HTMLElement>('.reveal-each > *')) {
+  el.classList.add('reveal');
+}
+
 const items = Array.from(document.querySelectorAll<HTMLElement>('.reveal'));
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 

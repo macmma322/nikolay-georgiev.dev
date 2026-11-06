@@ -16,10 +16,13 @@ interface Props {
   class?: string;
 }
 const { label, title, id, tier = 'secondary', lede, link, class: className } = Astro.props;
+// A revealed header animates its parts (rule, eyebrow, title, lede) rather
+// than fading in as one block; see the motion rules at the end.
+const parts = className?.split(/\s+/).includes('reveal');
 ---
 
-<header class:list={['section-header', tier, className]}>
-  <p class="label eyebrow">{label}</p>
+<header class:list={['section-header', tier, className, { 'reveal-parts': parts }]}>
+  <p class="label eyebrow type">{label}</p>
   <h2 id={id} class="title">
     {title}
   </h2>
@@ -138,5 +141,58 @@ const { label, title, id, tier = 'secondary', lede, link, class: className } = A
 
   .more:focus-visible .arrow {
     translate: 3px 0;
+  }
+
+  /*
+   * Arrival (scripts/reveal.ts decides when): the rule draws from the start
+   * edge, the eyebrow is drawn on behind it, the title rises out of its
+   * baseline, then the lede and the link settle. Headers already on screen
+   * (data-shown="instant"), reduced motion and no script show the finished
+   * header. The drawn rule stands in for the border for as long as it plays.
+   */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :global(:root[data-motion]) .reveal-parts:not([data-shown='instant']) {
+      position: relative;
+      border-top-color: transparent;
+    }
+
+    :global(:root[data-motion]) .reveal-parts:not([data-shown='instant'])::before {
+      content: '';
+      position: absolute;
+      inset: -1px 0 auto;
+      height: 1px;
+      background: var(--line-soft);
+      transform-origin: 0 50%;
+    }
+
+    :global(:root[data-motion]) .reveal-parts:not([data-shown])::before {
+      scale: 0 1;
+    }
+    :global(:root[data-motion]) .reveal-parts:not([data-shown]) .eyebrow {
+      clip-path: inset(-0.3em 100% -0.3em -0.2em);
+    }
+    :global(:root[data-motion]) .reveal-parts:not([data-shown]) .title {
+      translate: 0 105%;
+      clip-path: inset(-0.3em -0.2em 105% -0.2em);
+    }
+    :global(:root[data-motion]) .reveal-parts:not([data-shown]) :is(.lede, .more) {
+      opacity: 0;
+    }
+
+    .reveal-parts[data-shown='play']::before {
+      animation: m-draw 640ms var(--ease-in-out) backwards;
+    }
+    .reveal-parts[data-shown='play'] .eyebrow {
+      animation: m-wipe var(--type-dur) var(--type-ease) 80ms backwards;
+    }
+    .reveal-parts[data-shown='play'] .title {
+      animation: m-rise 680ms var(--ease-out-expo) 120ms backwards;
+    }
+    .reveal-parts[data-shown='play'] .lede {
+      animation: m-up var(--dur-content) var(--ease-out-expo) 260ms backwards;
+    }
+    .reveal-parts[data-shown='play'] .more {
+      animation: m-fade var(--dur-content) var(--ease-out) 320ms backwards;
+    }
   }
 </style>

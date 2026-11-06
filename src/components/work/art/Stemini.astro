@@ -15,8 +15,9 @@ import { plates } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // ORCASLICER stays as drawn. RESERVE and CHARGE OR RELEASE share one line.
 const a = t(plates.stemini.art);
@@ -98,7 +99,7 @@ const LEDGER = { y: 356, x0: 44, x1: 350 };
 const bracket = `M${LEDGER.x0} ${LEDGER.y - 8}V${LEDGER.y}H${LEDGER.x1}V${LEDGER.y - 8}`;
 ---
 
-<PlateFrame slug="stemini" compact={compact} legend={legend}>
+<PlateFrame slug="stemini" compact={compact} legend={legend} build={build}>
   <g class="part" data-part="prompt">
     <rect class="hit no-lit" x="36" y="166" width="82" height="104" />
     <path class="wire words" d={`M44 ${FLOW - 14}H104M44 ${FLOW}H92M44 ${FLOW + 14}H74`}></path>

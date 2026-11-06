@@ -15,7 +15,7 @@ const u = t(openSource);
 <BaseLayout>
   <div class="container reader">
     <nav class="top" aria-label={u.reader.eyebrow}>
-      <a class="back label" href={href('/open-source')}>
+      <a class="back label type" href={href('/open-source')}>
         <span aria-hidden="true">←</span>
         {u.reader.back}
       </a>
@@ -174,5 +174,23 @@ const u = t(openSource);
 
   .doc :global(em) {
     color: var(--fg-3);
+  }
+
+  /* Entrance: the way back types on, the actions and the document settle. */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    .back {
+      animation: m-wipe var(--type-dur) var(--type-ease) backwards;
+    }
+    .note,
+    .actions {
+      animation: m-up var(--dur-content) var(--ease-out-expo) 160ms backwards;
+    }
+    .doc {
+      animation: m-settle var(--dur-content) var(--ease-out-expo) 240ms backwards;
+    }
+  }
+
+  :global(:root[data-lang-switch]) :is(.back, .note, .actions, .doc) {
+    animation: none;
   }
 </style>

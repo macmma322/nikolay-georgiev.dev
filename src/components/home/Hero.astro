@@ -18,7 +18,7 @@ const statement = l(site.statement);
 <section class="hero" aria-labelledby="hero-title">
   <div class="container hero-grid">
     <div class="hero-copy">
-      <p class="hero-meta label" data-vt-lang="lede">
+      <p class="hero-meta label type" data-vt-lang="lede">
         <span class="nowrap">{l(site.role)} ·</span> <span class="nowrap">{l(site.location)}</span>
       </p>
 
@@ -332,41 +332,121 @@ const statement = l(site.statement);
     }
   }
 
-  /* Entrance, once per load: the name rises, the rest follows within 900ms. */
+  /*
+   * Entrance, once per load, one sequence (about 900ms to readable):
+   *   0ms     the role line is drawn on, the name's first line rises out of
+   *           its slot while a drafting rule is drawn under it; the second
+   *           line follows 70ms later
+   *   200ms   the statement settles (never transparent: it is the LCP)
+   *   280ms   the focus line, then the actions one by one
+   *   140ms+  FIG. 01 assembles beside it (LayerStack)
+   *   420ms   the "now" strip's rule is drawn and its four facts arrive
+   * The drafting rules are construction lines: drawn, then gone.
+   */
+  .line {
+    position: relative;
+  }
+
+  .line::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 0.02em;
+    height: 1px;
+    background: var(--line-strong);
+    transform-origin: 0 50%;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .now {
+    position: relative;
+  }
+
   @media (prefers-reduced-motion: no-preference) {
     .word {
-      animation: rise 720ms var(--ease-out-expo) backwards;
+      animation: rise 760ms var(--ease-out-expo) backwards;
     }
     .line:nth-child(2) .word {
-      animation-delay: 60ms;
+      animation-delay: 70ms;
     }
-    .hero-meta,
-    .hero-actions,
-    .now {
-      animation: fade-up var(--dur-content) var(--ease-out-expo) backwards;
+    .line::after {
+      animation: drafting 900ms var(--ease-in-out) backwards;
+    }
+    .line:nth-child(2)::after {
+      animation-delay: 70ms;
+    }
+    .hero-meta {
+      animation: m-wipe var(--type-dur) var(--type-ease) backwards;
     }
     /* The statement is the LCP element: it settles into place but is never
        transparent, so it paints (and counts) at first paint. */
     .hero-statement {
-      animation: settle var(--dur-content) var(--ease-out-expo) backwards;
+      animation: settle var(--dur-content) var(--ease-out-expo) 200ms backwards;
     }
-    .hero-meta {
-      animation-delay: 120ms;
+    .hero-focus,
+    .hero-actions > * {
+      animation: fade-up var(--dur-content) var(--ease-out-expo) backwards;
     }
-    .hero-statement {
-      animation-delay: 180ms;
+    .hero-focus {
+      animation-delay: 280ms;
     }
-    .hero-actions {
-      animation-delay: 240ms;
+    .hero-actions > :nth-child(1) {
+      animation-delay: 320ms;
+    }
+    .hero-actions > :nth-child(2) {
+      animation-delay: 360ms;
+    }
+    .hero-actions > :nth-child(3) {
+      animation-delay: 400ms;
+    }
+    .visual-caption {
+      animation: m-wipe var(--dur-content) var(--ease-out-expo) 240ms backwards;
     }
     .now {
-      animation-delay: 300ms;
+      border-top-color: transparent;
+    }
+    .now::before {
+      content: '';
+      position: absolute;
+      inset: -1px 0 auto;
+      height: 1px;
+      background: var(--line-soft);
+      transform-origin: 0 50%;
+      animation: m-draw 720ms var(--ease-in-out) 420ms backwards;
+    }
+    .now-item {
+      animation: fade-up var(--dur-content) var(--ease-out-expo) 480ms backwards;
+    }
+    .now-item:nth-child(2) {
+      animation-delay: 520ms;
+    }
+    .now-item:nth-child(3) {
+      animation-delay: 560ms;
+    }
+    .now-item:nth-child(4) {
+      animation-delay: 600ms;
     }
   }
 
   @keyframes rise {
     from {
       transform: translateY(105%);
+    }
+  }
+
+  /* Drawn under the rising line, held for a beat, then lifted off. */
+  @keyframes drafting {
+    0% {
+      opacity: 1;
+      scale: 0 1;
+    }
+    55% {
+      opacity: 1;
+      scale: 1 1;
+    }
+    100% {
+      opacity: 0;
+      scale: 1 1;
     }
   }
 

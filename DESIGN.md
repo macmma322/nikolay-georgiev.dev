@@ -107,8 +107,47 @@ moves things between two resting states (view transitions, line draws), and
 - `.reveal` plays once as a block arrives (`scripts/reveal.ts`); diagrams run
   their own build (core, neighbours, edges, labels, packets) once, and skip to
   the end on interaction, deep links and back/forward.
+- `.reveal-parts` blocks animate their parts instead of fading as one, from a
+  shared vocabulary in `base.css` (`m-rise` text out of its baseline, `m-wipe`
+  labels drawn on, `m-draw` rules, `m-dash` strokes, `m-up`, `m-fade`):
+  section headers, home chapters and the footer finale. `.reveal.stagger`
+  brings a list in item by item (an animation, so items keep their hovers).
+- **Blueprint build:** a homepage chapter's plate (`ProjectArt build`) draws
+  its frame and rule, then its parts arrive in drawing order with their lines
+  drawn along their paths. Each project has its own way in: Caelora assembles
+  its voxels, J.A.R.V.I.S. lights from standby, USS X Academy opens its
+  panels, Zone seats its modules before the connections, KObait draws its
+  link, Malrynth boots in steps. Case-study and listing plates never build.
+- The hero is one sequence: the name rises from its line mask over a drafting
+  rule that is drawn and lifted off, FIG. 01 assembles 140ms behind it, and
+  the page is readable by 900ms. The statement (LCP) is never transparent.
+- Every page opens with the same entrance: its label types on, its title
+  rises out of its baseline, its lede settles (never transparent). Case
+  studies keep their title and plate still (they travel in the view
+  transition) and bring the breadcrumb, summary and meta strip in around
+  them; their section titles draw their rule, type their number and rise.
+- **Photographs** (`.reveal.photo`): the frame opens upward while the image
+  rises 24px inside it, then the caption settles; the clip keeps the image's
+  radius (`--photo-r`). The About portrait opens inside its mat on load and
+  settles from a slight zoom.
+- **Long text** (`.reveal-each`): a case study's prose arrives paragraph by
+  paragraph as it is reached; whatever is on screen at load is simply there.
+- **The stack:** each Capabilities group lifts in, then its technologies
+  arrive one after another and the projects that prove them follow. Lists on
+  Setup, Lab, Open Source and the case studies use `.reveal.stagger`.
+- **Typed labels** (`.type`): short mono labels only (eyebrows, the hero's
+  role line, the contact label, case section numbers). The text is in the
+  HTML; a stepped clip reveals one character width at a time, at one pace
+  everywhere (`--chars` from `scripts/reveal.ts`). Never sentences, never a
+  caret, never a fake terminal.
+- On wide screens a chapter's plate drifts 12px against its copy while the
+  chapter crosses the viewport (scroll-linked, native timelines only).
 - Cross-document view transitions carry a project's title and plate between
-  the index, the homepage and its case study (`data-vt-title`, `data-vt-art`).
+  the index, the homepage and its case study (`data-vt-title`, `data-vt-art`);
+  the page itself lifts 6px as it leaves and rises 12px as the next arrives.
+- The contact finale has one soft, static signal-red light; it breathes in
+  once with the statement. Particles and looping light were considered and
+  left out: they never stop, and nothing here is decoration.
 - `prefers-reduced-motion: reduce` removes all movement and keeps short colour
   and opacity changes. Diagram packets and view transitions are off.
 - There is no loader, no fake terminal, no scroll hijacking, and no animation

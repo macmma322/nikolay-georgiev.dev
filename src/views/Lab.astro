@@ -34,7 +34,7 @@ const paused = byGroup('paused');
     return (
       <section class:list={['container', 'group', `group-${g.key}`]} aria-labelledby={`g-${g.key}`}>
         <SectionHeader label={g.label} id={`g-${g.key}`} title={g.title} lede={g.lede} />
-        <div class="ledger reveal">
+        <div class="ledger reveal stagger">
           {items.map((entry) => (
             <LabCard entry={entry} detailed />
           ))}

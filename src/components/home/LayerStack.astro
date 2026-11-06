@@ -394,38 +394,44 @@ const nodes: Record<string, [number, number, number][]> = {
 
   /* ---------- Motion ---------- */
   @media (prefers-reduced-motion: no-preference) {
-    /* Assembly on load: the plates open out of a compressed stack. */
+    /* Assembly on load: the plates open out of a compressed stack, starting
+       just after the name (Hero) so the two read as one entrance. */
     .plate-body {
-      animation: plate-in var(--dur-cinematic) var(--ease-out-expo) backwards;
+      animation: plate-in var(--dur-cinematic) var(--ease-out-expo) 140ms backwards;
     }
     .plate[data-layer='web'] .plate-body {
       --from: 90px;
     }
     .plate[data-layer='backend'] .plate-body {
       --from: 54px;
-      animation-delay: 40ms;
+      animation-delay: 180ms;
     }
     .plate[data-layer='realtime'] .plate-body {
       --from: 18px;
-      animation-delay: 80ms;
+      animation-delay: 220ms;
     }
     .plate[data-layer='ai'] .plate-body {
       --from: -18px;
-      animation-delay: 120ms;
+      animation-delay: 260ms;
     }
     .plate[data-layer='hardware'] .plate-body {
       --from: -54px;
-      animation-delay: 160ms;
+      animation-delay: 300ms;
     }
     .plate[data-layer='system'] .plate-body {
       --from: -90px;
-      animation-delay: 200ms;
+      animation-delay: 340ms;
     }
-    /* Labels, the interactive part, are readable by about 500ms. */
-    .lead,
+    /* Leader lines are drawn out from each plate to its label; the labels,
+       the interactive part, are readable by about 700ms. */
+    .lead {
+      transform-box: fill-box;
+      transform-origin: 0 50%;
+      animation: lead-draw var(--dur-content) var(--ease-in-out) 420ms backwards;
+    }
     .lead-dot,
     .stack-label {
-      animation: fade-in var(--dur-content) var(--ease-out) 300ms backwards;
+      animation: fade-in var(--dur-content) var(--ease-out) 440ms backwards;
     }
 
     /* The realtime signal flows only while its layer is lit. */
@@ -512,6 +518,12 @@ const nodes: Record<string, [number, number, number][]> = {
     from {
       opacity: 0;
       transform: translateY(var(--from, 0));
+    }
+  }
+
+  @keyframes lead-draw {
+    from {
+      scale: 0 1;
     }
   }
 

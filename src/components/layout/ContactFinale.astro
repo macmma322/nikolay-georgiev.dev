@@ -31,14 +31,17 @@ const linkedinMark =
   'M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 1 1 0-4.125 2.062 2.062 0 0 1 0 4.125zM7.119 20.452H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z';
 ---
 
-<div class:list={['container', 'finale', variant]} id={page ? 'contact' : undefined}>
+<div
+  class:list={['container', 'finale', variant, { reveal: !page, 'reveal-parts': !page }]}
+  id={page ? 'contact' : undefined}
+>
   <div class="finale-head">
     {page ? (
-      <h1 id="contact-h1" class="label">
+      <h1 id="contact-h1" class="label type">
         {s.label}
       </h1>
     ) : (
-      <p class="label">{s.label}</p>
+      <p class="label type">{s.label}</p>
     )}
     {page ? (
       <p class="finale-title" data-vt-lang="title">
@@ -220,6 +223,32 @@ const linkedinMark =
     padding-block: var(--space-2xl) var(--space-xl);
     display: grid;
     gap: var(--space-l);
+  }
+
+  /*
+   * One soft light behind the statement, the signal red at a whisper: the
+   * page's last word is lit, nothing else. It is a static gradient, so it
+   * costs nothing once painted; it only breathes in when the finale arrives.
+   * isolation keeps it above the footer's own background.
+   */
+  .finale {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .finale::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: 0 auto 0 0;
+    width: min(100%, 60rem);
+    pointer-events: none;
+    background: radial-gradient(
+      closest-side at 28% 34%,
+      oklch(0.68 0.19 30 / 0.085),
+      oklch(0.68 0.19 30 / 0.03) 55%,
+      transparent
+    );
   }
 
   /* The contact page: the block is the page, so it starts closer to the header. */
@@ -479,6 +508,81 @@ const linkedinMark =
     .channels,
     .elsewhere {
       grid-column: 1 / -1;
+    }
+  }
+
+  /*
+   * Arrival. The footer finale plays once as it comes into view
+   * (scripts/reveal.ts); the contact page plays on load, since there it is
+   * the first thing on screen. The light breathes in, the statement rises out
+   * of its baseline, then the email, the channels and the facts settle. The
+   * actions are never held back by more than 500ms.
+   */
+  @media screen and (prefers-reduced-motion: no-preference) {
+    :global(:root[data-motion]) .finale.reveal:not([data-shown])::before {
+      opacity: 0;
+    }
+    :global(:root[data-motion]) .finale.reveal:not([data-shown]) .finale-head > .label {
+      clip-path: inset(-0.3em 100% -0.3em -0.2em);
+    }
+    :global(:root[data-motion]) .finale.reveal:not([data-shown]) .finale-title {
+      translate: 0 105%;
+      clip-path: inset(-0.3em -0.2em 105% -0.2em);
+    }
+    :global(:root[data-motion])
+      .finale.reveal:not([data-shown])
+      :is(.finale-support, .email-row, .finale > .channels > li, .facts) {
+      opacity: 0;
+      translate: 0 var(--move-m);
+    }
+
+    :is(.finale.reveal[data-shown='play'], .finale.page)::before {
+      animation: finale-light 1400ms var(--ease-out) backwards;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .finale-head > .label {
+      animation: m-wipe var(--type-dur) var(--type-ease) backwards;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .finale-title {
+      animation: m-rise 760ms var(--ease-out-expo) 80ms backwards;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page)
+      :is(.finale-support, .email-row, .sub-row, .finale > .channels > li, .elsewhere, .facts) {
+      animation: m-up var(--dur-content) var(--ease-out-expo) backwards;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .finale-support {
+      animation-delay: 200ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .email-row {
+      animation-delay: 260ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .sub-row {
+      animation-delay: 300ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) .facts {
+      animation-delay: 320ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) > .channels > li:nth-child(1) {
+      animation-delay: 340ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) > .channels > li:nth-child(2) {
+      animation-delay: 380ms;
+    }
+    :is(.finale.reveal[data-shown='play'], .finale.page) > .channels > li:nth-child(n + 3),
+    :is(.finale.reveal[data-shown='play'], .finale.page) .elsewhere {
+      animation-delay: 420ms;
+    }
+  }
+
+  /* A language switch on the contact page keeps everything where it was. */
+  :global(:root[data-lang-switch]) .finale.page::before,
+  :global(:root[data-lang-switch]) .finale.page * {
+    animation: none;
+  }
+
+  @keyframes finale-light {
+    from {
+      opacity: 0;
+      scale: 0.9;
     }
   }
 </style>

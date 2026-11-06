@@ -17,8 +17,9 @@ import { plates } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // The word AUTO and the waypoint names stay as drawn; the callout column
 // holds about 5 characters.
@@ -47,7 +48,7 @@ const boatAntenna = { x: B.l + 8, y: 176 };
 const link = `M${antenna.x} ${antenna.y}Q262 12 ${boatAntenna.x} ${boatAntenna.y}`;
 ---
 
-<PlateFrame slug="kobait" compact={compact} legend={legend}>
+<PlateFrame slug="kobait" compact={compact} legend={legend} build={build}>
   <g class="context">
     <path class="ink" d={hull}></path>
     <path class="faint" d={gunwale}></path>

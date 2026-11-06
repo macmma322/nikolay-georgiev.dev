@@ -20,6 +20,8 @@ interface Props {
   compact?: boolean;
   /** Render the HTML parts list under the plate (case-study hero). */
   legend?: boolean;
+  /** Build the drawing once as it arrives (homepage chapters; see PlateFrame). */
+  build?: boolean;
 }
 
 const plates = {
@@ -32,9 +34,9 @@ const plates = {
   stemini: Stemini,
 } as const;
 
-const { slug, compact = false, legend = false } = Astro.props;
+const { slug, compact = false, legend = false, build = false } = Astro.props;
 const Plate = plates[slug as keyof typeof plates];
 if (!Plate) throw new Error(`No plate drawn for project "${slug}" (add one in ./art)`);
 ---
 
-<Plate compact={compact} legend={legend} />
+<Plate compact={compact} legend={legend} build={build} />

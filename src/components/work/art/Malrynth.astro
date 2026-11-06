@@ -15,8 +15,9 @@ import { plates, CH, fit } from '@/i18n/ui/plates';
 interface Props {
   compact?: boolean | undefined;
   legend?: boolean | undefined;
+  build?: boolean | undefined;
 }
-const { compact = false, legend = false } = Astro.props;
+const { compact = false, legend = false, build = false } = Astro.props;
 const { t } = useI18n(Astro);
 // Stage names MALBOOT and BOOTINFO V1, MMIO and RAM stay as drawn.
 const a = t(plates.malrynth.art);
@@ -127,7 +128,7 @@ const cells = (y: number) => {
 const nextPath = usable.map((r) => box(r, ROW.next - 8, 16)).join('');
 ---
 
-<PlateFrame slug="malrynth" compact={compact} legend={legend}>
+<PlateFrame slug="malrynth" compact={compact} legend={legend} build={build}>
   <g class="part" data-part="boot">
     <path class="wire" d={`M24 ${ROW.fw}V${builtEnd}`}></path>
     <path class="wire planned" d={`M24 ${builtEnd}V${ROW.next}`}></path>
