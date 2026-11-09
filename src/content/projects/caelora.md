@@ -58,7 +58,7 @@ built:
     points:
       - Double-buffered, checksummed region files written through a commit coordinator, with fault-injection tests.
       - Plain .NET projects compile the same source files without Unity for headless tests and benchmarks.
-      - 21 benchmark records for streaming, meshing and simulation, and a scripted Windows release build.
+      - 22 benchmark records for streaming, meshing and simulation, and a scripted Windows release build.
 diagrams: [caelora-world]
 architecture: Two layers that never trade places. An engine-free authority owns the world and every rule; Unity owns only what is seen and heard. Commands go in; versioned sections and accepted meshes come out.
 media:
