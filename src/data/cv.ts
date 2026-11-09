@@ -201,8 +201,8 @@ export const cv = {
     {
       slug: 'zone-32-19',
       lead: {
-        en: 'My own platform, built alone: a Next.js client, an Express modular monolith with 39 domain modules and PostgreSQL with 123 versioned migrations. It runs in a development environment; the public launch is pending.',
-        bg: 'Собствена платформа, която изграждам сам: клиент на Next.js, модулен монолит на Express с 39 домейн модула и PostgreSQL със 123 версионирани миграции. Работи в среда за разработка; публичното пускане предстои.',
+        en: 'My own platform, built alone: a Next.js client, an Express modular monolith with 39 domain modules and PostgreSQL with 126 versioned migrations. It runs in a development environment; the public launch is pending.',
+        bg: 'Собствена платформа, която изграждам сам: клиент на Next.js, модулен монолит на Express с 39 домейн модула и PostgreSQL със 126 версионирани миграции. Работи в среда за разработка; публичното пускане предстои.',
       },
       points: [1, 0],
       stack: [

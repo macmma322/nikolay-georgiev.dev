@@ -43,7 +43,10 @@ spec:
   - { label: Frontends, value: 'Next.js 15, React 19, Tailwind v4: academy site and accounts app' }
   - { label: API, value: 'Express 5 and TypeScript, about 250 routes, hand-written SQL' }
   - { label: Identity, value: 'Separate auth service, Argon2id, single-use SSO tickets' }
-  - { label: Classroom, value: 'LiveKit media, admission and moderation owned by the API' }
+  - {
+      label: Classroom,
+      value: 'Self-hosted LiveKit media, admission and moderation owned by the API',
+    }
   - { label: Realtime, value: 'Server-Sent Events fanned out through Redis pub/sub' }
   - { label: Data, value: 'PostgreSQL with core, academy and stemini schemas; 46 migrations' }
   - { label: Contract, value: 'OpenAPI 3.1 (216 operations), generated typed client' }
@@ -102,7 +105,7 @@ hard:
     solution: I consolidated them into namespaced core, academy and stemini schemas, with a data-migration plan and verification SQL.
   - title: Recording a lesson through an external media service
     problem: The recorder runs outside the app. Its webhooks can arrive late, twice or out of order, a lesson can end while a recording is still starting, and the recorder must neither take a student's seat nor keep an empty room alive.
-    solution: 'Recording status only moves forward and every write checks the current status first, so a duplicate or stale event changes nothing. A verified webhook drives the status and a read-time check repairs a missed one; every way a lesson can end stops the recording first; the app counts participants itself and leaves the recorder out. Playback is private, through short-lived authorised links, and stricter than access to the lesson itself. Built and tested on a release branch in October; not deployed yet.'
+    solution: 'Recording status only moves forward and every write checks the current status first, so a duplicate or stale event changes nothing. A verified webhook drives the status and a read-time check repairs a missed one; every way a lesson can end stops the recording first; the app counts participants itself and leaves the recorder out. Playback is private, through short-lived authorised links, and stricter than access to the lesson itself. Built and tested in October; recording is still switched off in production.'
 decisions:
   - decision: Classroom chat is stored only in Redis and deleted when the lesson ends.
     why: Keeping lesson chatter would create retention, moderation and export obligations for content nobody needs. Attendance and the audit trail stay in PostgreSQL.
@@ -117,11 +120,11 @@ decisions:
 now:
   - 'In production on Railway: academy site, API, accounts app, auth service, PostgreSQL and Redis.'
   - Live classrooms, course intakes and applications, the technician directory, the blog and consent-aware tracking are deployed.
-  - Production was last deployed on 21 September 2026. The October work sits on release branches that do not deploy, waiting for a staging environment.
+  - On 29 October classroom media moved from LiveKit Cloud to a self-hosted LiveKit on Railway. On an isolated staging copy, an in-region browser load test held 50 participants at 0.0% packet loss with a 1080p recording running; home and mobile networks are still untested.
 next:
-  - Lesson recording through LiveKit Egress, with private storage and short-lived playback links. Built and tested on a release branch, together with a combined course-management page for admins; it still has to run against real Egress on staging before release.
+  - Turning on lesson recording through LiveKit Egress, with private storage and short-lived playback links. It has run against real Egress on the staging media stack; production still needs its storage configuration and a checked host-and-student session.
   - Stripe billing through a small hand-written client, entitlements, an AI assessment engine and an AI coach. Built on a branch with an open pull request; not deployed.
-  - Separate development and staging environments.
+  - Full development and staging environments; today only the media stack has an isolated staging copy.
   - Automated contract tests between the API and its OpenAPI specification.
 learned:
   - Realtime features need access checks on every event, not only when the connection opens.
