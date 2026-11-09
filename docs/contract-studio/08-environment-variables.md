@@ -23,14 +23,14 @@ Required in production unless a default is given. The full list is in `contract-
 | `SESSION_MAX_HOURS`          | Absolute limit                                                  | 12                             |
 | `SESSION_ROTATE_MINUTES`     | Token rotation                                                  | 15                             |
 
+| `APP_DB_PASSWORD` | Password for `studio_app` role; `src/migrate.ts` configures it | none |
+
 On the portfolio service:
 
 | Variable              | Purpose                              |
 | --------------------- | ------------------------------------ |
 | `STUDIO_UPSTREAM`     | `https://<generated>.up.railway.app` |
 | `STUDIO_PROXY_SECRET` | Same value as `PROXY_SHARED_SECRET`  |
-
-Only for `create-app-role.ts`: `APP_DB_PASSWORD`.
 
 ## Running locally
 

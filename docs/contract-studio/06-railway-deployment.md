@@ -22,29 +22,47 @@ Pick an EU region for both services, in the dashboard under Settings → Regions
 
 ## 2. Volume and backups
 
-Attach a volume to `contract-studio`, mounted at `/data`. Then, on **both** the `Postgres` and `contract-studio` volumes: service → Backups → enable daily, weekly and monthly.
-
-## 3. Application role
-
-Generate a password, then run with the owner connection:
+Attach a volume to `contract-studio`, mounted at `/data`:
 
 ```bash
-railway run --service Postgres -- node src/create-app-role.ts
+railway volume add --service contract-studio --mount-path /data --json
 ```
 
-This needs `MIGRATION_DATABASE_URL` and `APP_DB_PASSWORD` in that shell. Run migrations first if tables do not exist yet: the grants apply to existing tables, and default privileges cover later ones.
+Then, on **both** the `Postgres` and `contract-studio` volumes: in the Railway dashboard, open the volume or service → Backups → enable daily, weekly and monthly.
+
+## 3. Application role and migrations
+
+The application role `studio_app` is created and maintained automatically by `src/migrate.ts` during Railway's pre-deploy step whenever `APP_DB_PASSWORD` is set. Because pre-deploy runs inside Railway's private network using `MIGRATION_DATABASE_URL` (the owner connection), it works on the first deploy and is idempotent on every release. No separate manual CLI command against Postgres is needed.
 
 ## 4. Variables on `contract-studio`
 
-See [08-environment-variables.md](08-environment-variables.md). Reference the database with Railway's private URL. Set `ANTHROPIC_API_KEY` yourself so it never passes through a chat or a file.
+See [08-environment-variables.md](08-environment-variables.md).
+
+Key database variables:
+
+| Variable                 | Value                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `MIGRATION_DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (owner connection for pre-deploy)                                                 |
+| `APP_DB_PASSWORD`        | 32 random alphanumeric bytes                                                                                   |
+| `DATABASE_URL`           | `postgresql://studio_app:<APP_DB_PASSWORD>@${{Postgres.RAILWAY_PRIVATE_DOMAIN}}:5432/${{Postgres.PGDATABASE}}` |
+
+Set `ANTHROPIC_API_KEY` yourself so it never passes through a chat or a file. Set `PROXY_SHARED_SECRET`, `APP_ORIGIN=https://nikolay-georgiev.dev`, `RP_ID=nikolay-georgiev.dev`, `NODE_ENV=production`.
 
 ## 5. Deploy
+
+From `contract-studio/`:
 
 ```bash
 railway up --service contract-studio --detach
 ```
 
-`railway.json` runs `node src/migrate.ts` before each release and health-checks `/healthz`. Confirm with `railway deployment list --json` that the deployment reached `SUCCESS`.
+Or from the worktree root:
+
+```bash
+railway up contract-studio --path-as-root --service contract-studio --detach
+```
+
+`railway.json` runs `node src/migrate.ts` before each release (applying migrations, seeding templates, and configuring `studio_app`) and health-checks `/healthz`. Confirm with `railway deployment list --json` that the deployment reached `SUCCESS`.
 
 ## 6. Connect the portfolio
 

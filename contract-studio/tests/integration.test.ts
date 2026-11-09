@@ -443,3 +443,23 @@ test('migration failure against an unreachable database exits non-zero and print
   );
   assert.equal(err.includes('postgres://'), false, 'does not print connection string URL');
 });
+
+test('src/migrate.ts configures studio_app role when APP_DB_PASSWORD is provided', async () => {
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, ['src/migrate.ts'], {
+    env: {
+      ...process.env,
+      DATABASE_URL: process.env['TEST_PG_URL']!,
+      APP_DB_PASSWORD: 'test_migrate_app_pw',
+    },
+  });
+  let out = '';
+  let err = '';
+  child.stdout?.on('data', (d) => (out += d));
+  child.stderr?.on('data', (d) => (err += d));
+  const code = await new Promise((resolve) => child.on('close', resolve));
+  assert.equal(code, 0, `migrate exited with code ${code}: ${err}`);
+  assert.ok(out.includes('Application role studio_app configured.'), 'role configured log');
+  const roleCheck = await db.query("select 1 from pg_roles where rolname = 'studio_app'");
+  assert.equal(roleCheck.rowCount, 1, 'studio_app role exists in database');
+});
