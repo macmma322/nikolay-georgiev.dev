@@ -1,0 +1,149 @@
+{
+  "key": "technical-annex",
+  "lang": "bg",
+  "category": "annex",
+  "name": "Приложение — Техническо задание",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "ПРИЛОЖЕНИЕ — ТЕХНИЧЕСКО ЗАДАНИЕ",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-258",
+      "label": "ЗЗД, чл. 258–269 (договор за изработка)",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Прочетени откъси от чл. 258 (работа по поръчката на другата страна) и чл. 264 (приемане). Частен издател; без сверка с ДВ."
+    },
+    {
+      "id": "zzd-20a-63",
+      "label": "ЗЗД, чл. 20а и чл. 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Изменение само по взаимно съгласие; точно и добросъвестно изпълнение."
+    }
+  ],
+  "sections": [
+    {
+      "key": "reference",
+      "title": "ВРЪЗКА С ДОГОВОРА",
+      "clauses": [
+        {
+          "key": "reference.parent",
+          "text": "Това приложение е неразделна част от договор „{{parent.title}}“ № {{parent.reference}} от {{parent.date}} (наричан по-нататък „Договора“) и е съставено в {{contract.place}} на {{contract.date}} под № {{contract.reference}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Свързва приложението с договора."
+        },
+        {
+          "key": "reference.precedence",
+          "text": "При противоречие между приложението и Договора относно технически характеристики се прилага приложението, а по всички останали въпроси — Договорът.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Правило за приоритет, за да няма противоречие между документите."
+        }
+      ]
+    },
+    {
+      "key": "scope",
+      "title": "ОБХВАТ",
+      "clauses": [
+        {
+          "key": "scope.description",
+          "text": "Проект: {{project.title}}. Описание: {{project.description}}. Обхватът накратко: {{terms.scope_summary}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Определя предмета на работата."
+        },
+        {
+          "key": "scope.deliverables",
+          "text": "Изпълнителят предава следните резултати:",
+          "list": "terms.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Резултати."
+        },
+        {
+          "key": "scope.exclusions",
+          "text": "Извън обхвата са:",
+          "list": "terms.exclusions",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Изключения."
+        }
+      ]
+    },
+    {
+      "key": "acceptance",
+      "title": "КРИТЕРИИ ЗА ПРИЕМАНЕ",
+      "clauses": [
+        {
+          "key": "acceptance.criteria",
+          "text": "Резултатите се приемат, когато отговарят на следните критерии:",
+          "list": "terms.acceptance_criteria",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Измерими критерии; приемането и последиците от мълчанието са уредени в договора."
+        },
+        {
+          "key": "acceptance.timing",
+          "text": "Сроковете са: начало {{terms.start_date}}, предаване до {{terms.delivery_date}}. Срокът за проверка е {{terms.acceptance_days}} дни, а включените кръгове корекции са {{terms.revision_rounds}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Повтаря параметрите от договора; при разминаване важи договорът за правните условия."
+        }
+      ]
+    },
+    {
+      "key": "environment",
+      "title": "СРЕДА, КОМПОНЕНТИ И ЗАВИСИМОСТИ",
+      "clauses": [
+        {
+          "key": "environment.hosting",
+          "text": "Хостинг и внедряване: {{terms.hosting_terms}}. Разходите за хостинг, домейни, външни услуги и лицензи на трети лица са за сметка на Възложителя.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Външни разходи за сметка на клиента."
+        },
+        {
+          "key": "environment.support",
+          "text": "Поддръжка след предаването: {{terms.support_terms}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Поддръжката не е включена, освен ако е уговорена."
+        },
+        {
+          "key": "environment.dependencies",
+          "text": "Работата зависи от навременното предоставяне от Възложителя на материали, достъпи и решения. Компонентите на трети лица и софтуерът с отворен код се ползват при условията на собствените си лицензи.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Зависимости и трети лица."
+        }
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "ПРОМЕНИ",
+      "clauses": [
+        {
+          "key": "changes.procedure",
+          "text": "Промени в това приложение се правят само с писмено споразумение. Работа извън описания обхват се възлага и оценява отделно, преди да започне.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Писмена форма за промени и отделна оценка на допълнителната работа."
+        }
+      ]
+    }
+  ]
+}

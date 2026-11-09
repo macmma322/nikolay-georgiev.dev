@@ -1,0 +1,117 @@
+{
+  "key": "additional-agreement",
+  "lang": "en",
+  "category": "additional_agreement",
+  "name": "Additional Agreement",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "ADDITIONAL AGREEMENT",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-20a-63",
+      "label": "ZZD, arts. 20a and 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Art. 20a: contracts may be amended only by mutual consent of the parties. Private publisher; not cross-checked against the State Gazette."
+    },
+    {
+      "id": "zapsp",
+      "label": "ZAPSP, art. 36",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-avtorskoto-pravo-i-srodnite-mu-prava",
+      "checkedAt": "2026-11-09",
+      "note": "An exclusive right is granted expressly and in writing."
+    }
+  ],
+  "sections": [
+    {
+      "key": "reference",
+      "title": "BACKGROUND",
+      "clauses": [
+        {
+          "key": "reference.parent",
+          "text": "The parties have concluded the agreement \"{{parent.title}}\" No. {{parent.reference}} of {{parent.date}} (the \"Agreement\"). By this agreement, made in {{contract.place}} on {{contract.date}} under No. {{contract.reference}}, they amend and supplement it as follows.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Amendment by mutual consent (ZZD art. 20a)."
+        }
+      ]
+    },
+    {
+      "key": "change",
+      "title": "SUBJECT OF THE CHANGE",
+      "clauses": [
+        {
+          "key": "change.description",
+          "text": "The parties agree the following change or additional work: {{change.description}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Description of the change."
+        },
+        {
+          "key": "change.deliverables",
+          "text": "The additional deliverables are:",
+          "list": "change.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Concrete deliverables."
+        },
+        {
+          "key": "change.start",
+          "text": "The Contractor starts the additional work after both parties have signed this agreement. Work begun before signing is not included in this price unless expressly described above.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Additional work is agreed in writing and priced before it starts."
+        }
+      ]
+    },
+    {
+      "key": "price",
+      "title": "PRICE AND DEADLINE",
+      "clauses": [
+        {
+          "key": "price.change",
+          "text": "The remuneration for the additional work is {{change.price}}, {{terms.price_basis}}, and is paid within {{terms.payment_days}} days after delivery of the result and the Contractor's written request for payment, unless the parties agree otherwise in writing.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Priced separately from the original price; the wording asserts no tax outcome."
+        },
+        {
+          "key": "price.date",
+          "text": "The additional work is delivered by {{change.delivery_date}}. The other deadlines under the Agreement are unchanged unless expressly agreed, and are extended by the length of any delay by the Client.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Deadline for the additional work."
+        }
+      ]
+    },
+    {
+      "key": "effect",
+      "title": "EFFECT",
+      "clauses": [
+        {
+          "key": "effect.rest",
+          "text": "All other terms of the Agreement, including acceptance, intellectual property, confidentiality and liability, remain unchanged and also apply to the additional work. In case of conflict between this agreement and the Agreement, this agreement prevails only as regards the subject of the change.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63", "zapsp"],
+          "note": "Preserves the rights and the full-payment condition for the additional results."
+        },
+        {
+          "key": "effect.written",
+          "text": "Any future amendment of the Agreement and of this agreement is valid only if made in writing and signed by both parties.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Written form."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "key": "technical-annex",
+  "lang": "en",
+  "category": "annex",
+  "name": "Annex - Technical Specification",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "ANNEX - TECHNICAL SPECIFICATION",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-258",
+      "label": "ZZD, arts. 258-269 (contract for work)",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Excerpts of art. 258 (work to the other party's order) and art. 264 (acceptance) read. Private publisher; not cross-checked against the State Gazette."
+    },
+    {
+      "id": "zzd-20a-63",
+      "label": "ZZD, arts. 20a and 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Amendment only by mutual consent; exact, good-faith performance."
+    }
+  ],
+  "sections": [
+    {
+      "key": "reference",
+      "title": "LINK TO THE AGREEMENT",
+      "clauses": [
+        {
+          "key": "reference.parent",
+          "text": "This annex is an integral part of the agreement \"{{parent.title}}\" No. {{parent.reference}} of {{parent.date}} (the \"Agreement\") and is made in {{contract.place}} on {{contract.date}} under No. {{contract.reference}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Ties the annex to the agreement."
+        },
+        {
+          "key": "reference.precedence",
+          "text": "In case of conflict between this annex and the Agreement on technical characteristics, this annex prevails; on all other matters the Agreement prevails.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Precedence rule to avoid conflicts between documents."
+        }
+      ]
+    },
+    {
+      "key": "scope",
+      "title": "SCOPE",
+      "clauses": [
+        {
+          "key": "scope.description",
+          "text": "Project: {{project.title}}. Description: {{project.description}}. Scope in brief: {{terms.scope_summary}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Defines the subject of the work."
+        },
+        {
+          "key": "scope.deliverables",
+          "text": "The Contractor delivers the following results:",
+          "list": "terms.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Deliverables."
+        },
+        {
+          "key": "scope.exclusions",
+          "text": "The following are outside the scope:",
+          "list": "terms.exclusions",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Exclusions."
+        }
+      ]
+    },
+    {
+      "key": "acceptance",
+      "title": "ACCEPTANCE CRITERIA",
+      "clauses": [
+        {
+          "key": "acceptance.criteria",
+          "text": "The results are accepted when they meet the following criteria:",
+          "list": "terms.acceptance_criteria",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Measurable criteria; acceptance and the effect of silence are regulated in the Agreement."
+        },
+        {
+          "key": "acceptance.timing",
+          "text": "The deadlines are: start {{terms.start_date}}, delivery by {{terms.delivery_date}}. The review period is {{terms.acceptance_days}} days and the included correction rounds are {{terms.revision_rounds}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Repeats parameters from the Agreement; on any divergence the Agreement governs the legal terms."
+        }
+      ]
+    },
+    {
+      "key": "environment",
+      "title": "ENVIRONMENT, COMPONENTS AND DEPENDENCIES",
+      "clauses": [
+        {
+          "key": "environment.hosting",
+          "text": "Hosting and deployment: {{terms.hosting_terms}}. Costs of hosting, domains, external services and third-party licences are borne by the Client.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "External costs borne by the client."
+        },
+        {
+          "key": "environment.support",
+          "text": "Support after delivery: {{terms.support_terms}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Support is not included unless agreed."
+        },
+        {
+          "key": "environment.dependencies",
+          "text": "The work depends on the Client providing materials, access and decisions on time. Third-party components and open-source software are used under their own licences.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Dependencies and third parties."
+        }
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "CHANGES",
+      "clauses": [
+        {
+          "key": "changes.procedure",
+          "text": "Changes to this annex are made only by written agreement. Work outside the described scope is commissioned and priced separately before it starts.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Written form for changes; separate pricing of additional work."
+        }
+      ]
+    }
+  ]
+}

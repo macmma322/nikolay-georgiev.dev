@@ -1,0 +1,117 @@
+{
+  "key": "acceptance-protocol",
+  "lang": "en",
+  "category": "acceptance_protocol",
+  "name": "Acceptance Protocol",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "ACCEPTANCE PROTOCOL",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-258",
+      "label": "ZZD, arts. 258-269 (contract for work)",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Excerpts read: art. 264 (duty to accept; objections at acceptance), art. 265 (rights on defects). Private publisher; not cross-checked against the State Gazette. Content of art. 264(2) seen only in summary."
+    },
+    {
+      "id": "zapsp",
+      "label": "ZAPSP, art. 36",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-avtorskoto-pravo-i-srodnite-mu-prava",
+      "checkedAt": "2026-11-09",
+      "note": "An exclusive right is granted expressly and in writing."
+    }
+  ],
+  "sections": [
+    {
+      "key": "reference",
+      "title": "BACKGROUND",
+      "clauses": [
+        {
+          "key": "reference.parent",
+          "text": "This protocol is made in {{contract.place}} on {{contract.date}} under No. {{contract.reference}} in connection with the agreement \"{{parent.title}}\" No. {{parent.reference}} of {{parent.date}} (the \"Agreement\") for the project \"{{project.title}}\".",
+          "material": false,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Links the protocol to the agreement; descriptive clause."
+        }
+      ]
+    },
+    {
+      "key": "handover",
+      "title": "RESULTS HANDED OVER",
+      "clauses": [
+        {
+          "key": "handover.items",
+          "text": "The Contractor hands over and the Client receives the following results under the Agreement:",
+          "list": "terms.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Records what was delivered."
+        },
+        {
+          "key": "handover.third-party",
+          "text": "The Contractor has identified to the Client the third-party components and open-source software included in the delivered results and the terms of their licences.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Confirms the disclosure of third-party licences required by the Agreement."
+        }
+      ]
+    },
+    {
+      "key": "outcome",
+      "title": "OUTCOME OF ACCEPTANCE",
+      "clauses": [
+        {
+          "key": "outcome.accepted",
+          "text": "The Client has checked the delivered results and accepts them without reservation as conforming to the Agreement.",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-258"],
+          "note": "Option A - acceptance without reservation. Use this clause or the following two."
+        },
+        {
+          "key": "outcome.reservations",
+          "text": "The Client accepts the delivered results with the following reservations: {{change.description}}. The Contractor corrects them within a reasonable time after the protocol is signed. The reservations are not a ground to withhold payment of the undisputed part of the remuneration.",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-258"],
+          "note": "Option B - acceptance with reservations; the field change.description is used to list the reservations. Whether the undisputed part must be paid regardless is a contractual decision for the lawyer."
+        },
+        {
+          "key": "outcome.rejected",
+          "text": "The Client does not accept the delivered results because of non-conformity with the acceptance criteria described in its reasoned written objection. The Contractor corrects them within a reasonable time, after which the results are resubmitted for re-checking.",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-258"],
+          "note": "Option C - rejection; ZZD art. 265 governs the rights on defects."
+        }
+      ]
+    },
+    {
+      "key": "effects",
+      "title": "EFFECTS",
+      "clauses": [
+        {
+          "key": "effects.warranty",
+          "text": "The warranty period of {{terms.warranty_days}} days runs from the date of this protocol where the results are accepted.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Start of the warranty period, consistent with the Agreement."
+        },
+        {
+          "key": "effects.payment-ip",
+          "text": "Acceptance does not change the payment deadline under the Agreement. Rights in the accepted results are transferred or granted under the terms of the Agreement and only after the remuneration for them has been paid in full.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "The protocol does not alter the full-payment condition."
+        }
+      ]
+    }
+  ]
+}

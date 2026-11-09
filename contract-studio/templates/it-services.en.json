@@ -1,0 +1,435 @@
+{
+  "key": "it-services",
+  "lang": "en",
+  "category": "it_services",
+  "name": "IT Services Agreement",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "IT SERVICES AGREEMENT",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-280",
+      "label": "ZZD, arts. 280, 281, 284, 286, 287 (mandate contract)",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Excerpts read: art. 280 (agent performs the actions commissioned, for the principal's account), art. 281 (performance as a good steward), art. 284 (notify and account), art. 286 (remuneration only if agreed), art. 287 (termination, including withdrawal; only the opening was read). Private publisher; not cross-checked against the State Gazette. Whether the actual services are a mandate, a contract for work or a mixed contract is a question for a lawyer."
+    },
+    {
+      "id": "zzd-258",
+      "label": "ZZD, arts. 258-269 (contract for work)",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Excerpts of arts. 258 and 264 read; relevant where a service produces a specific result."
+    },
+    {
+      "id": "zzd-92-94",
+      "label": "ZZD, arts. 92-94",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Art. 94(1): advance exclusion or limitation of liability for intent or gross negligence is void (read)."
+    },
+    {
+      "id": "zzd-20a-63",
+      "label": "ZZD, arts. 20a and 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Binding force of contracts, amendment only by mutual consent; exact, good-faith performance."
+    },
+    {
+      "id": "zapsp",
+      "label": "ZAPSP, arts. 36, 37, 42",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-avtorskoto-pravo-i-srodnite-mu-prava",
+      "checkedAt": "2026-11-09",
+      "note": "Art. 36: exclusive right granted expressly and in writing; art. 42(1): commissioned work belongs to the author unless the contract provides otherwise."
+    },
+    {
+      "id": "gdpr-28",
+      "label": "Regulation (EU) 2016/679, art. 28",
+      "url": "https://gdpr-info.eu/art-28-gdpr/",
+      "checkedAt": "2026-11-09",
+      "note": "Excerpts of art. 28(1) and (3) read. Unofficial mirror."
+    },
+    {
+      "id": "euro",
+      "label": "Bulgaria's adoption of the euro on 2026-01-01",
+      "url": "https://trade.ec.europa.eu/access-to-markets/en/news/bulgaria-adopts-euro-1-january-2026",
+      "checkedAt": "2026-11-09",
+      "note": "The European Commission page confirms adoption of the euro on 1 January 2026."
+    }
+  ],
+  "sections": [
+    {
+      "key": "subject",
+      "title": "SUBJECT OF THE AGREEMENT",
+      "clauses": [
+        {
+          "key": "subject.main",
+          "text": "The Client commissions and the Contractor undertakes to provide to the Client IT services in connection with \"{{project.title}}\", as described below and in the annexes to this agreement, against remuneration.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Services agreement. Legal characterisation (mandate, contract for work or mixed) to be confirmed by a lawyer."
+        },
+        {
+          "key": "subject.description",
+          "text": "Description of the services: {{project.description}}. Scope in brief: {{terms.scope_summary}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Scope description."
+        },
+        {
+          "key": "subject.deliverables",
+          "text": "The services include the following results and activities:",
+          "list": "terms.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Concrete list."
+        },
+        {
+          "key": "subject.exclusions",
+          "text": "The following are outside the subject of this agreement and are not owed:",
+          "list": "terms.exclusions",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Explicit exclusions."
+        }
+      ]
+    },
+    {
+      "key": "term",
+      "title": "TERM",
+      "clauses": [
+        {
+          "key": "term.period",
+          "text": "The Contractor starts providing the services on {{terms.start_date}} and this agreement remains in force until {{terms.delivery_date}}, unless terminated earlier under its terms.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Term."
+        }
+      ]
+    },
+    {
+      "key": "price",
+      "title": "REMUNERATION AND PAYMENT",
+      "clauses": [
+        {
+          "key": "price.amount",
+          "text": "The Contractor's remuneration is {{terms.price}}, {{terms.price_basis}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Under ZZD art. 286 (read in excerpt) a mandate is remunerated only if agreed, hence it is expressly agreed. The euro is the currency from 2026-01-01 (verified)."
+        },
+        {
+          "key": "price.schedule",
+          "text": "The remuneration is paid according to the following schedule:",
+          "list": "terms.payment_schedule",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Payment schedule."
+        },
+        {
+          "key": "price.deadline",
+          "text": "Each payment is made by bank transfer to the account designated by the Contractor within {{terms.payment_days}} days after the relevant payment falls due under the schedule and the Contractor's written request for payment is received.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Due date."
+        },
+        {
+          "key": "price.late",
+          "text": "If a payment is late, the Client owes compensation for delay equal to the statutory interest on the overdue amount, and the Contractor may suspend the services until the debt is paid.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Basis for statutory interest not verified; lawyer to confirm."
+        },
+        {
+          "key": "price.taxes",
+          "text": "Each party bears the tax and social security obligations that the law places personally on that party in connection with this agreement. This agreement does not contain or guarantee any calculation of taxes or contributions.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Deliberately neutral; tax treatment not verified from a primary source."
+        }
+      ]
+    },
+    {
+      "key": "performance",
+      "title": "PERFORMANCE OF THE SERVICES",
+      "clauses": [
+        {
+          "key": "performance.care",
+          "text": "The Contractor performs the services with the care of a good steward and keeps the Client informed of progress, providing a written report of work done on request.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "ZZD arts. 281 and 284 (read in excerpt): performance as a good steward and notice of performance."
+        },
+        {
+          "key": "performance.independence",
+          "text": "The Contractor organises its own work, decides the method, place and time of performance within the agreed deadlines, and uses its own equipment. This agreement does not create an employment relationship, does not bind the Contractor to fixed working hours and does not restrict the Contractor from working for others, subject to the confidentiality obligation.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Contractor independence. The declaration does not prevent reclassification of the relationship if the facts differ (see risk (a) in the documentation)."
+        },
+        {
+          "key": "performance.cooperation",
+          "text": "The Client promptly provides the necessary access, information and materials, designates a contact person, and gives decisions and feedback within a reasonable time. Deadlines are extended by the length of the Client's delay.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Client cooperation."
+        },
+        {
+          "key": "performance.content",
+          "text": "The Client is responsible for the lawfulness of the materials, content and data it provides and for having the right to use them and to make them available to the Contractor.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Risk for rights in client-supplied material."
+        }
+      ]
+    },
+    {
+      "key": "acceptance",
+      "title": "ACCEPTANCE",
+      "clauses": [
+        {
+          "key": "acceptance.procedure",
+          "text": "The Contractor notifies the Client in writing that results are ready. The Client checks them against the following acceptance criteria:",
+          "list": "terms.acceptance_criteria",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Acceptance of service results."
+        },
+        {
+          "key": "acceptance.objections",
+          "text": "Within {{terms.acceptance_days}} days after the notice the Client may raise written, reasoned objections. The Contractor corrects justified objections within a reasonable time.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Objections."
+        },
+        {
+          "key": "acceptance.silence",
+          "text": "If within that period the Client raises no written, reasoned objection and does not sign a protocol, the results are deemed accepted without reservation on the last day of the period.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-258"],
+          "note": "Silence as acceptance; basis is ZZD art. 264(2) per a summary, to be checked against the official text. Material clause."
+        },
+        {
+          "key": "acceptance.revisions",
+          "text": "The price includes up to {{terms.revision_rounds}} rounds of corrections based on the Client's feedback. Further rounds are additional work under the scope-change procedure.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Revision limit."
+        }
+      ]
+    },
+    {
+      "key": "changes",
+      "title": "SCOPE CHANGES",
+      "clauses": [
+        {
+          "key": "changes.procedure",
+          "text": "Any work outside the described scope is commissioned additionally in writing and priced separately before it starts. The Contractor is not obliged to start additional work until a written agreement defining its scope, price and deadline has been signed.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Change procedure."
+        },
+        {
+          "key": "changes.rate",
+          "text": "Where no other price is agreed, additional work is charged at {{terms.additional_work_rate}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Default rate."
+        }
+      ]
+    },
+    {
+      "key": "ip",
+      "title": "INTELLECTUAL PROPERTY AND LICENCES",
+      "clauses": [
+        {
+          "key": "ip.model",
+          "text": "Rights in the results of the services that are computer programs or other works within the meaning of the Copyright and Related Rights Act are governed as follows: {{terms.ip_terms}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "Chosen model goes in terms.ip_terms. ZAPSP art. 42: a commissioned work belongs to the author unless the contract provides otherwise."
+        },
+        {
+          "key": "ip.full-payment",
+          "text": "Whichever model is chosen above, any transfer or grant of rights takes effect only after the remuneration for the relevant result has been paid in full. Until full payment the Client may use the result only for testing and evaluation.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "Payment condition."
+        },
+        {
+          "key": "ip.written-form",
+          "text": "Any grant of an exclusive right is made expressly and in writing. Otherwise a non-exclusive right is granted.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "ZAPSP art. 36."
+        },
+        {
+          "key": "ip.third-party",
+          "text": "The results may include third-party components and open-source software. These are used under their own licences, which the Contractor identifies to the Client on delivery, and the Client undertakes to comply with them. The Contractor keeps its rights in its own previously created tools and components.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "Third-party, open-source and reusable code."
+        }
+      ]
+    },
+    {
+      "key": "confidentiality",
+      "title": "CONFIDENTIALITY AND PERSONAL DATA",
+      "clauses": [
+        {
+          "key": "confidentiality.obligation",
+          "text": "Each party keeps confidential the other party's confidential information received in connection with this agreement and uses it only to perform this agreement. The obligation continues after termination until the information becomes public other than through the recipient's fault, except where disclosure is required by law.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Confidentiality."
+        },
+        {
+          "key": "confidentiality.personal-data",
+          "text": "Where the Contractor will process personal data on behalf of the Client, the parties conclude a separate data processing agreement under art. 28 of Regulation (EU) 2016/679 before access is given.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["gdpr-28"],
+          "note": "Particularly relevant to administration and support with access to production data."
+        }
+      ]
+    },
+    {
+      "key": "support",
+      "title": "MAINTENANCE, HOSTING AND EXTERNAL SERVICES",
+      "clauses": [
+        {
+          "key": "support.terms",
+          "text": "Support terms: {{terms.support_terms}}. Anything beyond what is agreed is additional work.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Maintenance."
+        },
+        {
+          "key": "support.hosting",
+          "text": "Hosting terms: {{terms.hosting_terms}}. Costs of hosting, domains, external services, APIs, licences and subscriptions of third parties are borne by the Client.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "External costs are outside the remuneration."
+        }
+      ]
+    },
+    {
+      "key": "liability",
+      "title": "LIABILITY",
+      "clauses": [
+        {
+          "key": "liability.general",
+          "text": "Each party is liable for damage caused by its culpable breach of this agreement, on the conditions provided by law. The Contractor is not liable for lost profit and indirect damage, to the extent the law permits such a limitation, nor for loss of data where the Client has not kept backups.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-92-94"],
+          "note": "General liability; data loss is a typical IT-services risk."
+        },
+        {
+          "key": "liability.cap",
+          "text": "The Contractor's total liability under this agreement does not exceed {{terms.liability_cap}}.",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-92-94"],
+          "note": "Cap; optional clause."
+        },
+        {
+          "key": "liability.no-exclusion",
+          "text": "The limitations of liability do not apply to intent or gross negligence, or where the law does not permit limiting liability.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-92-94"],
+          "note": "ZZD art. 94(1) (read)."
+        }
+      ]
+    },
+    {
+      "key": "termination",
+      "title": "TERMINATION",
+      "clauses": [
+        {
+          "key": "termination.notice",
+          "text": "Either party may terminate this agreement on {{terms.notice_days}} days' written notice. The Client pays for the services provided up to the termination date.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-280"],
+          "note": "Termination on notice. ZZD art. 287 provides for withdrawal in a mandate (only the opening was read); scope to be checked."
+        },
+        {
+          "key": "termination.breach",
+          "text": "Either party may terminate this agreement by written notice if the other party fails to perform a material obligation and does not remedy it within {{terms.notice_days}} days after a written demand. Late payment and lack of cooperation by the Client that continue after the demand are material breaches.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Breach."
+        },
+        {
+          "key": "termination.effects",
+          "text": "On termination the Contractor hands over the work done so far, and rights in results are transferred or granted only for the parts that have been paid for in full.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zapsp"],
+          "note": "Consequences."
+        }
+      ]
+    },
+    {
+      "key": "general",
+      "title": "GENERAL PROVISIONS",
+      "clauses": [
+        {
+          "key": "general.amendments",
+          "text": "This agreement and its annexes may be amended only by a written agreement signed by both parties.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Written form for amendments."
+        },
+        {
+          "key": "general.electronic",
+          "text": "The parties may also sign this agreement, its annexes and agreements by electronic signature and exchange written statements by email at the addresses stated in the agreement.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Effect of electronic signatures not verified from primary text."
+        },
+        {
+          "key": "general.law",
+          "text": "Matters not regulated by this agreement are governed by the law of the Republic of Bulgaria. Disputes are resolved by negotiation and, failing that, before {{terms.dispute_forum}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Governing law and forum."
+        }
+      ]
+    }
+  ]
+}

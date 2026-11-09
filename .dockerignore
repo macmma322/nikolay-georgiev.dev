@@ -4,6 +4,9 @@ dist
 node_modules
 test-results
 playwright-report
+contract-studio
+docs/contract-studio
+scripts/windows
 .env
 .env.*
 *.log

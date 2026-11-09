@@ -1,0 +1,132 @@
+{
+  "key": "payment-settlement",
+  "lang": "en",
+  "category": "payment_settlement",
+  "name": "Payment / Debt Settlement Agreement",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "PAYMENT AGREEMENT",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-20a-63",
+      "label": "ZZD, arts. 20a and 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Binding force of contracts, amendment only by mutual consent; exact, good-faith performance. Private publisher; not cross-checked against the State Gazette."
+    },
+    {
+      "id": "zzd-92-94",
+      "label": "ZZD, arts. 92-94",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Art. 92: penalty; the court may reduce an excessive penalty (para. 2, read partially). Art. 94(1): advance exclusion or limitation of liability for intent or gross negligence is void."
+    },
+    {
+      "id": "euro",
+      "label": "Bulgaria's adoption of the euro on 2026-01-01",
+      "url": "https://trade.ec.europa.eu/access-to-markets/en/news/bulgaria-adopts-euro-1-january-2026",
+      "checkedAt": "2026-11-09",
+      "note": "The European Commission page confirms Bulgaria adopted the euro on 1 January 2026 at a fixed rate of EUR 1 = BGN 1.95583. The text of Regulation (EU) 2025/1409 was seen only as a title in a search result."
+    }
+  ],
+  "sections": [
+    {
+      "key": "background",
+      "title": "BACKGROUND",
+      "clauses": [
+        {
+          "key": "background.parent",
+          "text": "The parties have concluded the agreement \"{{parent.title}}\" No. {{parent.reference}} of {{parent.date}} (the \"Agreement\"). This agreement is made in {{contract.place}} on {{contract.date}} under No. {{contract.reference}}.",
+          "material": false,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Descriptive clause."
+        },
+        {
+          "key": "background.reason",
+          "text": "Basis of the obligation: {{settlement.reason}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "States the origin of the debt."
+        }
+      ]
+    },
+    {
+      "key": "acknowledgement",
+      "title": "ACKNOWLEDGEMENT OF THE OBLIGATION",
+      "clauses": [
+        {
+          "key": "acknowledgement.debt",
+          "text": "The Client acknowledges that at the date of this agreement it owes the Contractor the sum of {{settlement.amount}} under the Agreement.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Acknowledgement of debt. Its legal effects (e.g. on limitation periods) were not verified and are for a lawyer. The euro is the currency from 2026-01-01 (verified)."
+        }
+      ]
+    },
+    {
+      "key": "payment",
+      "title": "PAYMENT",
+      "clauses": [
+        {
+          "key": "payment.due",
+          "text": "The Client pays the sum under the previous clause no later than {{settlement.due_date}} by bank transfer to the account designated by the Contractor.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Final payment date; does not apply where instalments are agreed."
+        },
+        {
+          "key": "payment.instalments",
+          "text": "Where payment by instalments is agreed, the sum is paid in the following instalments:",
+          "list": "settlement.instalments",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Optional clause for instalments."
+        },
+        {
+          "key": "payment.acceleration",
+          "text": "If the Client is late with an instalment or with the sum, the whole remaining unpaid amount becomes immediately due.",
+          "material": true,
+          "optional": true,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Loss of instalment benefit on default; consider whether to add a penalty under ZZD art. 92 (the court may reduce an excessive penalty)."
+        },
+        {
+          "key": "payment.late",
+          "text": "In case of delay the Client owes compensation for delay equal to the statutory interest on the overdue amount for the period of delay.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": [],
+          "note": "Basis for statutory interest not verified; lawyer to confirm."
+        }
+      ]
+    },
+    {
+      "key": "effect",
+      "title": "EFFECT",
+      "clauses": [
+        {
+          "key": "effect.discharge",
+          "text": "After full payment of the sum the Contractor has no further claims against the Client for the obligation under the previous clauses. Until full payment the rights and security under the Agreement remain in force, including the condition that rights in the results are transferred or granted only after full payment.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Discharge on payment; preserves the intellectual-property condition."
+        },
+        {
+          "key": "effect.written",
+          "text": "This agreement may be amended only in writing signed by both parties. Disputes fall to {{terms.dispute_forum}} and the law of the Republic of Bulgaria applies.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Written form, governing law and forum."
+        }
+      ]
+    }
+  ]
+}

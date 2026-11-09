@@ -1,0 +1,117 @@
+{
+  "key": "additional-agreement",
+  "lang": "bg",
+  "category": "additional_agreement",
+  "name": "Допълнително споразумение",
+  "version": "0.1.0",
+  "jurisdiction": "BG",
+  "title": "ДОПЪЛНИТЕЛНО СПОРАЗУМЕНИЕ",
+  "reviewStatus": "unreviewed",
+  "sources": [
+    {
+      "id": "zzd-20a-63",
+      "label": "ЗЗД, чл. 20а и чл. 63",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-zadalzheniyata-i-dogovorite",
+      "checkedAt": "2026-11-09",
+      "note": "Чл. 20а: договорите могат да бъдат изменяни само по взаимно съгласие на страните. Частен издател; без сверка с ДВ."
+    },
+    {
+      "id": "zapsp",
+      "label": "ЗАПСП, чл. 36",
+      "url": "https://trudipravo.bg/znanie-za-vas/zakon-za-avtorskoto-pravo-i-srodnite-mu-prava",
+      "checkedAt": "2026-11-09",
+      "note": "Изключително право се отстъпва изрично и писмено."
+    }
+  ],
+  "sections": [
+    {
+      "key": "reference",
+      "title": "ОСНОВАНИЕ",
+      "clauses": [
+        {
+          "key": "reference.parent",
+          "text": "Страните са сключили договор „{{parent.title}}“ № {{parent.reference}} от {{parent.date}} (наричан по-нататък „Договора“). С настоящото споразумение, съставено в {{contract.place}} на {{contract.date}} под № {{contract.reference}}, те го изменят и допълват, както следва.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Изменението е по взаимно съгласие (чл. 20а ЗЗД)."
+        }
+      ]
+    },
+    {
+      "key": "change",
+      "title": "ПРЕДМЕТ НА ПРОМЯНАТА",
+      "clauses": [
+        {
+          "key": "change.description",
+          "text": "Страните уговарят следната промяна или допълнителна работа: {{change.description}}.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Описание на промяната."
+        },
+        {
+          "key": "change.deliverables",
+          "text": "Допълнителните резултати са:",
+          "list": "change.deliverables",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Конкретни резултати."
+        },
+        {
+          "key": "change.start",
+          "text": "Изпълнителят започва допълнителната работа след подписване на настоящото споразумение от двете страни. Работа, която е започнала преди подписването, не е включена в тази цена, освен ако е изрично описана по-горе.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Допълнителната работа се уговаря писмено и се оценява преди да започне."
+        }
+      ]
+    },
+    {
+      "key": "price",
+      "title": "ЦЕНА И СРОК",
+      "clauses": [
+        {
+          "key": "price.change",
+          "text": "Възнаграждението за допълнителната работа е {{change.price}}, {{terms.price_basis}}, и се заплаща в срок до {{terms.payment_days}} дни от предаването на резултата и писмено искане за плащане от Изпълнителя, освен ако страните са уговорили друго писмено.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Цената е отделна от първоначалната; формулировката не твърди данъчен резултат."
+        },
+        {
+          "key": "price.date",
+          "text": "Допълнителната работа се предава до {{change.delivery_date}}. Останалите срокове по Договора не се променят, освен ако е изрично уговорено, като се удължават със срока на всяка забава на Възложителя.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Срок за допълнителната работа."
+        }
+      ]
+    },
+    {
+      "key": "effect",
+      "title": "ДЕЙСТВИЕ",
+      "clauses": [
+        {
+          "key": "effect.rest",
+          "text": "Всички останали условия на Договора, включително за приемане, интелектуална собственост, поверителност и отговорност, остават непроменени и се прилагат и за допълнителната работа. При противоречие между настоящото споразумение и Договора, настоящото споразумение има предимство само по отношение на предмета на промяната.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63", "zapsp"],
+          "note": "Запазва правата и условието за пълно плащане за допълнителните резултати."
+        },
+        {
+          "key": "effect.written",
+          "text": "Всяко бъдещо изменение на Договора и на това споразумение е валидно само ако е направено в писмена форма и е подписано от двете страни.",
+          "material": true,
+          "optional": false,
+          "sourceRefs": ["zzd-20a-63"],
+          "note": "Писмена форма."
+        }
+      ]
+    }
+  ]
+}

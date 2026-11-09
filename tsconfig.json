@@ -1,7 +1,7 @@
 {
   "extends": "astro/tsconfigs/strictest",
   "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist", "node_modules", "test-results", "playwright-report"],
+  "exclude": ["dist", "node_modules", "test-results", "playwright-report", "contract-studio"],
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"]
