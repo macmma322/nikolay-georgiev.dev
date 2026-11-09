@@ -12,8 +12,8 @@ export const zonePlatform: Diagram = {
   id: 'zone-platform',
   title: { en: 'Platform topology on Railway', bg: 'Топология на платформата в Railway' },
   caption: {
-    en: 'Live path: browser to the Next.js BFF, then to the Express API over Railway private networking. Sockets authenticate with the same HttpOnly session cookie. Redis is the shared state that lets web replicas scale horizontally. The Caddy + Coraza WAF is built and deployable but not yet in the live path. Google OAuth, OpenAI (screening of activity posts), Cloudinary, Resend and Sentry are called from the API and omitted here for clarity.',
-    bg: 'Реалният път на трафика: от браузъра към Next.js BFF, после към Express API през частната мрежа на Railway. Сокетите се удостоверяват със същата HttpOnly бисквитка за сесия. Redis е споделеното състояние, благодарение на което уеб репликите се мащабират хоризонтално. WAF с Caddy и Coraza е изграден и готов за внедряване, но още не е в реалния път на трафика. Google OAuth, OpenAI (проверка на публикациите за активности), Cloudinary, Resend и Sentry се извикват от API и за яснота не са показани.',
+    en: 'Live path: browser to the Next.js BFF, then to the Express API over Railway private networking. Sockets authenticate with the same HttpOnly session cookie. Redis is the shared state that lets web replicas scale horizontally. The Caddy + Coraza WAF is built and deployable but not yet in the live path. Google OAuth, Claude (opt-in screening of activity posts), Cloudinary, Resend and Sentry are called from the API and omitted here for clarity.',
+    bg: 'Реалният път на трафика: от браузъра към Next.js BFF, после към Express API през частната мрежа на Railway. Сокетите се удостоверяват със същата HttpOnly бисквитка за сесия. Redis е споделеното състояние, благодарение на което уеб репликите се мащабират хоризонтално. WAF с Caddy и Coraza е изграден и готов за внедряване, но още не е в реалния път на трафика. Google OAuth, Claude (проверка на публикациите за активности, включвана по избор), Cloudinary, Resend и Sentry се извикват от API и за яснота не са показани.',
   },
   cols: 5,
   rows: 5,

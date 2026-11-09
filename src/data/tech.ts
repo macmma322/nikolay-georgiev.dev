@@ -335,7 +335,7 @@ export const tech: Tech[] = [
     icon: 'anthropic',
     category: 'ai',
     level: 'core',
-    proof: ['jarvis'],
+    proof: ['jarvis', 'zone-32-19'],
   },
   {
     id: 'openai',
@@ -343,7 +343,7 @@ export const tech: Tech[] = [
     mono: 'OAI',
     category: 'ai',
     level: 'working',
-    proof: ['zone-32-19', 'stemini'],
+    proof: ['stemini'],
   },
   {
     id: 'gemini',

@@ -20,14 +20,17 @@ links:
 spec:
   - { label: Engine, value: 'Unity 6 LTS with URP; Direct3D 12 on Windows' }
   - { label: Language, value: 'C#, with Burst, Jobs and Collections on hot paths' }
-  - { label: Structure, value: '51 assemblies; the rules core has no engine references' }
+  - { label: Structure, value: '57 assemblies; the rules core has no engine references' }
   - { label: World, value: 'Versioned voxel sections, streamed and meshed in background jobs' }
   - { label: Determinism, value: '16.16 fixed-point noise, keyed RNG, a Python reference oracle' }
   - { label: Saves, value: 'Edited sections only, checksummed regions, one commit file' }
   - { label: Trees, value: 'One skeleton drives wood, leaves, structure and collision' }
-  - { label: Tests, value: '6,293 EditMode tests in the last recorded full run, 0 failed' }
-  - { label: Decisions, value: '41 ADRs and 21 benchmark records' }
-  - { label: Size, value: 'About 238k lines of C#, roughly 108k of them tests' }
+  - {
+      label: Tests,
+      value: '6,552 EditMode tests; latest full run: 6,198 passed, 341 skipped, 13 failed in one stale fixture',
+    }
+  - { label: Decisions, value: '44 ADRs and 22 benchmark records' }
+  - { label: Size, value: 'About 262k lines of C#, roughly 119k of them tests' }
 highlights:
   - Rules and rendering never trade places. An engine-free, deterministic authority owns the world; Unity only draws it and asks for changes through commands.
   - Chunk meshes are built by background jobs and accepted only while their version stamps are current, so the old mesh stays on screen until the new one is valid.
@@ -49,6 +52,8 @@ built:
     points:
       - A playable First Valley with rivers, forests, a hotbar, survival vitals and field crafting.
       - A front-end shell, a loading screen and menus, with the main menu shown as v0.1.0.
+      - One action state, driven by simulation events, sets the timing of swings, chops and placement for every view through a masked upper-body animation layer.
+      - A cloak on a spring-chain solver written for the game, with body collision proxies, four quality tiers and no per-frame allocation; 98 µs per character frame on the top tier in a pessimistic Editor benchmark.
   - title: Persistence and tooling
     points:
       - Double-buffered, checksummed region files written through a commit coordinator, with fault-injection tests.
@@ -100,8 +105,8 @@ decisions:
     why: Each milestone is a slice of the first valley and ends with tests, a benchmark where performance is touched, a save-and-reload check and an ADR for every new decision.
 now:
   - A playable Windows build of the First Valley with terrain, rivers, forests, living trees that grow and fall, architectural blocks, survival vitals and field crafting.
-  - Creatures, villager memory and combat exist as tested core code, but the game does not use them yet.
-  - World audio, live water and newer menu work are on milestone branches, not merged.
+  - Creatures, villager memory and combat exist as tested core code, and livestock runs in lab scenes, but the game does not use them yet.
+  - Living-world audio, armour, the cloak and the pause and settings screens are qualified on the integration branch, not yet in a release build; live water and a newer interface pass wait on milestone branches for human review.
 next:
   - Bringing creatures and villagers into the playable valley.
   - A headless server on the engine-free authority, then multiplayer. Neither exists; the multiplayer screen is a placeholder and there is no networking code.
