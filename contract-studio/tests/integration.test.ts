@@ -92,6 +92,23 @@ test('the application role can run the app but not change the schema or the audi
     await assert.rejects(app.query('delete from audit_logs'), /permission denied/);
     await assert.rejects(app.query("update audit_logs set action = 'x'"), /permission denied/);
     await assert.rejects(app.query('delete from schema_migrations'), /permission denied/);
+    const { contract } = await fixtures(db);
+    await fill(contract.id);
+    await readyAndApprove(contract.id);
+    const client = await app.connect();
+    try {
+      await client.query('begin');
+      await client.query("set local studio.allow_purge = 'on'");
+      await assert.rejects(
+        client.query('delete from contract_versions where contract_id = $1 and version = 2', [
+          contract.id,
+        ]),
+        /approved contract versions cannot be deleted/,
+      );
+      await client.query('rollback');
+    } finally {
+      client.release();
+    }
   } finally {
     await app.end();
   }

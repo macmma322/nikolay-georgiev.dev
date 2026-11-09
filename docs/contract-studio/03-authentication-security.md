@@ -62,3 +62,27 @@ This is not legal advice, and using Claude does not by itself make the workflow 
 | `PROXY_SHARED_SECRET`   | Generate a new value, set it on the Studio service as `PROXY_SHARED_SECRET` and on the portfolio service as `STUDIO_PROXY_SECRET`, and redeploy both.            |
 | Suspected session theft | Settings → Revoke, or in SQL: `update sessions set revoked_at = now();`                                                                                          |
 | Lost device             | Sign in from another passkey and remove the lost one in Settings.                                                                                                |
+
+## Security Review Audit (WP2)
+
+An independent security review was conducted across all application paths and subsystems:
+
+1. **Middleware Pipeline & Routing**:
+   - Request order: `errorMiddleware` → `proxySecretMiddleware` → `/workspace` redirect → `securityHeadersMiddleware` → `bodyLimit(512KB)` → `csrfProtection` → `authMiddleware`.
+   - Wildcard matching on `${BASE}/*` covers the base path and subpaths. Public exceptions are strictly whitelisted (`/login`, `/auth/*`, `/setup`, `/assets/*`). Private assets like `/assets/studio.js` enforce authentication with session rotation disabled (`rotate: false`).
+   - Constant-time secret comparison (`crypto.timingSafeEqual`) prevents timing attacks against `X-Studio-Proxy-Secret`.
+2. **WebAuthn & Session Security**:
+   - Single-use challenges stored in transient cookies prevent replay attacks.
+   - `SETUP_TOKEN` is consumed in an atomic transaction and cannot be reused.
+   - Session tokens are stored hashed (SHA-256). Atomic rotation (`WHERE id = $1 AND token_hash = $old`) prevents race conditions between parallel requests.
+   - Production cookies enforce `__Host-studio`, `HttpOnly`, `Secure`, `SameSite=Strict`, `Path=/`.
+3. **Immutability & Privilege Separation (Migration 0003)**:
+   - Database trigger `contract_versions_guard()` was hardened so that the runtime application user (`studio_app`) cannot delete approved contract versions even if executing `SET LOCAL studio.allow_purge = 'on'`. Purge capabilities are restricted to the migration/owner role.
+   - `studio_app` has no DDL permissions and is blocked from modifying or truncating `audit_logs` or `schema_migrations`.
+4. **Input Validation & Injection Defense**:
+   - All SQL uses parameterized queries ($1, $2, ...).
+   - HTML output is escaped by default via template tags. AI markdown rendering in `studio.js` performs HTML escaping prior to tag whitelisting (`<strong>`, `<em>`, `<code>`, `<p>`, `<ul>`, `<li>`).
+   - Document filenames use strict ASCII and alphanumeric sanitization with no path traversal characters.
+   - Prompt injection defense: client-supplied text is sanitized inside `<data>` blocks; AI tool schemas reject attempts to modify parties, approvals, or statuses; invented financial figures are dropped.
+5. **Storage & Cleanup**:
+   - Contract deletions delete database rows and purge associated file artifacts in `/data/documents/<contract-id>/` post-transaction.
