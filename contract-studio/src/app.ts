@@ -210,6 +210,9 @@ export function createApp({ db, config, anthropic }: Deps) {
     await next();
   });
 
+  app.get('/workspace', (c) => c.redirect(BASE, 301));
+  app.get('/workspace/', (c) => c.redirect(BASE, 301));
+
   app.use(
     `${BASE}/*`,
     bodyLimit({ maxSize: 512 * 1024, onError: (c) => c.text('Request too large', 413) }),
@@ -229,7 +232,8 @@ export function createApp({ db, config, anthropic }: Deps) {
     if (!isPrivate && !PUBLIC_ASSETS.has(file)) return c.html(v.notFound(), 404);
     if (isPrivate) {
       const token = getCookie(c, cookieName(config));
-      if (!token || !(await loadSession(db, config, token))) return c.text('Unauthorized', 401);
+      if (!token || !(await loadSession(db, config, token, { rotate: false })))
+        return c.text('Unauthorized', 401);
     }
     const font = FONTS[file];
     const serif = SERIF[file];
@@ -338,14 +342,6 @@ export function createApp({ db, config, anthropic }: Deps) {
         return c.redirect(`${BASE}/login`, 303);
       return c.json({ error: 'Authentication required' }, 401);
     }
-    c.set('session', session);
-    if (session.rotated) setSessionCookie(c, session.token);
-    await next();
-  });
-  app.use(BASE, async (c, next) => {
-    const token = getCookie(c, cookieName(config));
-    const session = token ? await loadSession(db, config, token) : null;
-    if (!session) return c.redirect(`${BASE}/login`, 303);
     c.set('session', session);
     if (session.rotated) setSessionCookie(c, session.token);
     await next();
@@ -586,6 +582,10 @@ export function createApp({ db, config, anthropic }: Deps) {
       db,
       'select p.id, p.title, c.name as client_name from projects p join clients c on c.id = p.client_id order by p.created_at desc',
     );
+    const contracts = await many(
+      db,
+      'select c.id, c.title, c.reference, cl.name as client_name from contracts c join clients cl on cl.id = c.client_id order by c.created_at desc',
+    );
     const templates = (await templateChoices()).filter((t) => t['lang'] === 'bg');
     return c.html(
       v.page(
@@ -596,8 +596,10 @@ export function createApp({ db, config, anthropic }: Deps) {
           projects,
           templates,
           await getSettings(db),
+          contracts,
           c.req.query('client'),
           c.req.query('project'),
+          c.req.query('parent'),
         ),
         flash(c),
       ),
@@ -609,6 +611,7 @@ export function createApp({ db, config, anthropic }: Deps) {
       .object({
         client_id: z.uuid(),
         project_id: z.union([z.uuid(), z.literal('')]).optional(),
+        parent_id: z.union([z.uuid(), z.literal('')]).optional(),
         template_key: z.string().regex(/^[a-z-]+$/),
         lang: z.enum(['bg', 'en']),
       })
@@ -618,6 +621,7 @@ export function createApp({ db, config, anthropic }: Deps) {
       {
         clientId: data.client_id,
         projectId: data.project_id || undefined,
+        parentId: data.parent_id || undefined,
         templateKey: data.template_key,
         lang: data.lang,
       },
@@ -739,7 +743,7 @@ export function createApp({ db, config, anthropic }: Deps) {
   });
 
   app.post(`${BASE}/documents/${id('id')}/delete`, async (c) => {
-    await deleteContract(db, c.req.param('id')!, clientIp(c));
+    await deleteContract(db, config, c.req.param('id')!, clientIp(c));
     return c.redirect(withNotice(`${BASE}/documents`, 'Draft deleted'), 303);
   });
 
@@ -831,6 +835,8 @@ export function createApp({ db, config, anthropic }: Deps) {
         lang: z.enum(['bg', 'en']),
       })
       .parse(await form(c));
+    const client = await one(db, 'select 1 from clients where id = $1', [data.client_id]);
+    if (!client) throw new Rejected('Unknown client', 422);
     const project = await one<{ id: string }>(
       db,
       'insert into projects (client_id, title) values ($1, $2) returning id',

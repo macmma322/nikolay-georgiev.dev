@@ -23,6 +23,8 @@ const LABELS = {
     article: 'Чл.',
     reference: 'Рег. №',
     intro: 'Настоящият документ се сключи между:',
+    partyContractor: 'Изпълнител',
+    partyClient: 'Възложител',
     contractor: 'ИЗПЪЛНИТЕЛ',
     client: 'ВЪЗЛОЖИТЕЛ',
     forContractor: 'ЗА ИЗПЪЛНИТЕЛЯ',
@@ -43,6 +45,8 @@ const LABELS = {
     article: 'Art.',
     reference: 'Ref.',
     intro: 'This document is concluded between:',
+    partyContractor: 'Contractor',
+    partyClient: 'Client',
     contractor: 'CONTRACTOR',
     client: 'CLIENT',
     forContractor: 'FOR THE CONTRACTOR',
@@ -222,9 +226,9 @@ export function buildDocument(c: ContractContent): DocumentModel {
     });
   }
   blocks.push({ t: 'para', text: L.intro });
-  blocks.push({ t: 'para', text: partyLine(L.client, c.client, c.lang) });
+  blocks.push({ t: 'para', text: partyLine(L.partyClient, c.client, c.lang) });
   blocks.push({ t: 'para', text: L.and });
-  blocks.push({ t: 'para', text: partyLine(L.contractor, c.contractor, c.lang) });
+  blocks.push({ t: 'para', text: partyLine(L.partyContractor, c.contractor, c.lang) });
   if (!c.client.name) missing.add('client.name');
   if (!c.contractor.name) missing.add('contractor.name');
 
@@ -296,11 +300,13 @@ export const safeFilename = (
   reference: string,
   version: number,
   ext: string,
+  draft = false,
 ) => {
   const clean = (value: string) =>
     value
       .replace(/[^A-Za-z0-9-]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 60);
-  return `${clean(templateKey) || 'contract'}-${clean(reference) || 'draft'}-v${version}.${ext}`;
+  const tag = draft ? `-v${version}-draft` : `-v${version}`;
+  return `${clean(templateKey) || 'contract'}-${clean(reference) || 'draft'}${tag}.${ext}`;
 };

@@ -430,8 +430,10 @@ export const newDocumentView = (
   projects: Row[],
   templates: Row[],
   settings: SettingsData,
+  contracts: Row[] = [],
   clientId?: string,
   projectId?: string,
+  parentId?: string,
 ) =>
   clients.length
     ? html`
@@ -445,6 +447,7 @@ export const newDocumentView = (
             'required',
           )}
           ${select('Project (optional)', 'project_id', [['', 'None'], ...projects.map((p): [string, string] => [p['id'], `${p['title']} — ${p['client_name']}`])], projectId)}
+          ${select('Parent contract (optional)', 'parent_id', [['', 'None'], ...contracts.map((c): [string, string] => [c['id'], `${c['title']} (${c['reference']}) — ${c['client_name']}`])], parentId)}
           ${select('Document', 'template_key', [...new Map(templates.map((t) => [t['key'], t['name']])).entries()] as [string, string][], settings.default_template)}
           ${select(
             'Language',
@@ -500,18 +503,22 @@ const editForm = (contract: ContractRow, content: ContractContent) => {
         ${input('Place', 'place', data)}
       </div>
       ${
-        key === 'additional-agreement'
-          ? html`<h3>Change</h3>
-              ${area('Description of the change', 'change_description', data)}
-              ${area('New deliverables (one per line)', 'change_deliverables', data)}
-              <div class="grid">
-                ${input('Price of the change', 'change_price', data, 'type="number" step="0.01" min="0"')}
-                ${input('Delivery date', 'change_delivery_date', data, 'type="date"')}
-              </div>`
+        content.change !== undefined
+          ? html`<h3>${key === 'acceptance-protocol' ? 'Reservations' : 'Change'}</h3>
+              ${area(key === 'acceptance-protocol' ? 'Reservations' : 'Description of the change', 'change_description', data)}
+              ${key === 'acceptance-protocol' ? '' : area('New deliverables (one per line)', 'change_deliverables', data)}
+              ${
+                key === 'acceptance-protocol'
+                  ? ''
+                  : html`<div class="grid">
+                      ${input('Price of the change', 'change_price', data, 'type="number" step="0.01" min="0"')}
+                      ${input('Delivery date', 'change_delivery_date', data, 'type="date"')}
+                    </div>`
+              }`
           : ''
       }
       ${
-        key === 'payment-settlement'
+        content.settlement !== undefined
           ? html`<h3>Settlement</h3>
               ${area('Reason', 'settlement_reason', data, 2)}
               ${area('Instalments (one per line)', 'settlement_instalments', data)}

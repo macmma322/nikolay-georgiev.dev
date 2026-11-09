@@ -183,8 +183,7 @@ test('every real template exports to both formats without leftovers', async () =
     const { text } = await readPdf(await renderPdf(built, options));
     assert.doesNotMatch(text, /\{\{/, file.key);
     assert.ok((await renderDocx(built, options)).length > 1000, file.key);
-    if (file.key !== 'acceptance-protocol')
-      assert.deepEqual(built.missing, [], `${file.key}.${file.lang}`);
+    assert.deepEqual(built.missing, [], `${file.key}.${file.lang}`);
   }
 });
 
@@ -227,4 +226,44 @@ test('draft exports are marked and do not advance the contract', async () => {
   const { bytes } = await exportVersion(db, config, contract.id, 1, 'pdf');
   assert.ok((await readPdf(bytes)).text.includes('ЧЕРНОВА'));
   assert.equal((await getContract(db, contract.id))?.status, 'draft');
+});
+
+test('export draft, approve, export again yields clean exported file and status', async () => {
+  const { contract } = await fixtures(db);
+  await saveManualVersion(db, contract.id, {
+    contract_date: '2026-12-01',
+    place: 'Варна',
+    terms: completeTerms as never,
+    clauses: [],
+  });
+  // Export version 2 as draft
+  const draftExport = await exportVersion(db, config, contract.id, 2, 'pdf');
+  assert.ok((await readPdf(draftExport.bytes)).text.includes('ЧЕРНОВА'));
+  assert.ok(draftExport.row.filename.includes('-draft.pdf'));
+  assert.equal((await getContract(db, contract.id))?.status, 'draft');
+
+  // Now move to ready_for_review and approve
+  await transition(db, contract.id, 'ready_for_review');
+  await approveCurrent(db, contract.id, undefined);
+
+  // Export version 2 again after approval
+  const approvedExport = await exportVersion(db, config, contract.id, 2, 'pdf');
+  assert.ok(!(await readPdf(approvedExport.bytes)).text.includes('ЧЕРНОВА'));
+  assert.notEqual(approvedExport.row.sha256, draftExport.row.sha256);
+  assert.equal(approvedExport.row.filename.endsWith('-v2.pdf'), true);
+  assert.equal((await getContract(db, contract.id))?.status, 'exported');
+});
+
+test('deleting a draft removes generated files from disk', async () => {
+  const { existsSync } = await import('node:fs');
+  const { join } = await import('node:path');
+  const { deleteContract } = await import('../src/contracts.ts');
+  const { contract } = await fixtures(db);
+  // Export a draft file so directory /data/documents/<id>/ exists
+  await exportVersion(db, config, contract.id, 1, 'pdf');
+  const dir = join(config.documentDir, contract.id);
+  assert.equal(existsSync(dir), true);
+
+  await deleteContract(db, config, contract.id);
+  assert.equal(existsSync(dir), false);
 });

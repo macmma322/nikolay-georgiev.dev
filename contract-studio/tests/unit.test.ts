@@ -143,6 +143,29 @@ test('rendered output escapes hostile values', () => {
   assert.match(html, /&#60;script&#62;/);
 });
 
+test('party line uses mixed-case labels while signatures stay uppercase', () => {
+  const model = buildDocument(base);
+  const paraTexts = model.blocks
+    .filter((b) => b.t === 'para')
+    .map((b) => ('text' in b ? b.text : ''));
+  assert.ok(
+    paraTexts.some((text) => text.includes('наричан по-долу „Възложител“')),
+    'party line uses Възложител',
+  );
+  assert.ok(
+    paraTexts.some((text) => text.includes('наричан по-долу „Изпълнител“')),
+    'party line uses Изпълнител',
+  );
+  assert.ok(
+    !paraTexts.some((text) => text.includes('„ВЪЗЛОЖИТЕЛ“')),
+    'party line does not use uppercase ВЪЗЛОЖИТЕЛ',
+  );
+  const sig = model.blocks.find((b) => b.t === 'signatures');
+  assert.ok(sig && sig.t === 'signatures');
+  assert.equal(sig.left[0], 'ЗА ВЪЗЛОЖИТЕЛЯ');
+  assert.equal(sig.right[0], 'ЗА ИЗПЪЛНИТЕЛЯ');
+});
+
 test('money carries the contract currency exactly once', () => {
   const model = buildDocument({
     ...base,
@@ -181,8 +204,13 @@ test('filenames are ASCII, bounded and identifier free', () => {
     safeFilename('software-development', 'CS-2026-0001', 3, 'pdf'),
     'software-development-CS-2026-0001-v3.pdf',
   );
+  assert.equal(
+    safeFilename('software-development', 'CS-2026-0001', 3, 'pdf', true),
+    'software-development-CS-2026-0001-v3-draft.pdf',
+  );
   assert.equal(safeFilename('../../etc', 'a/b\\c"d', 1, 'pdf'), 'etc-a-b-c-d-v1.pdf');
   assert.match(safeFilename('Иван', 'Договор', 1, 'docx'), /^contract-draft-v1\.docx$/);
+  assert.match(safeFilename('Иван', 'Договор', 1, 'docx', true), /^contract-draft-v1-draft\.docx$/);
 });
 
 test('manual edits mark changed clauses and reject unknown placeholders', () => {

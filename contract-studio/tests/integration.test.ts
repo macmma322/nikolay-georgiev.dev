@@ -12,7 +12,7 @@ import {
 } from '../src/contracts.ts';
 import { many, migrate, one, type Db } from '../src/db.ts';
 import { seedTemplates } from '../src/templates.ts';
-import { completeTerms, fixtures, freshDb } from './helpers.ts';
+import { completeTerms, fixtures, freshDb, harness, testConfig } from './helpers.ts';
 
 let db: Db;
 let drop: () => Promise<void>;
@@ -301,4 +301,128 @@ test('a later profile change does not rewrite earlier contracts', async () => {
   await db.query(`update settings set data = jsonb_set(data, '{profile}', $1::jsonb)`, [
     JSON.stringify({ legal_name: 'Тест Тестов', address: 'гр. Варна' }),
   ]);
+});
+
+test('for each of the 6 templates, over HTTP: create with a parent, fill, move to ready for review, approve, export PDF', async () => {
+  const config = testConfig();
+  const h = harness(db, config);
+  await h.login();
+  const { clientId, contract: parent } = await fixtures(db);
+  // Approve parent so it can serve as a completed parent reference
+  await fill(parent.id);
+  await readyAndApprove(parent.id);
+
+  const templates = [
+    'software-development',
+    'it-services',
+    'additional-agreement',
+    'acceptance-protocol',
+    'payment-settlement',
+    'technical-annex',
+  ];
+
+  for (const templateKey of templates) {
+    // 1. Create with parent over HTTP
+    const createRes = await h.call('/documents', {
+      form: {
+        client_id: clientId,
+        parent_id: parent.id,
+        template_key: templateKey,
+        lang: 'bg',
+      },
+    });
+    assert.equal(createRes.status, 303, `Create status for ${templateKey}`);
+    const location = createRes.headers.get('location') ?? '';
+    const id = location.split('/').pop()!;
+    assert.ok(id, `Location had contract id for ${templateKey}`);
+
+    // Verify parent is linked
+    const loaded = await getContract(db, id);
+    assert.equal(loaded?.parent_contract_id, parent.id, `Parent linked for ${templateKey}`);
+
+    // 2. Fill over HTTP
+    const saveRes = await h.call(`/documents/${id}/save`, {
+      form: {
+        title: `Договор ${templateKey}`,
+        contract_date: '2026-12-01',
+        place: 'Варна',
+        project_title: 'Проект за тестване',
+        project_description: 'Описание на проекта',
+        scope_summary: 'Резюме на обхвата',
+        deliverables: 'Сайт\nАдмин панел',
+        exclusions: 'Мобилно приложение',
+        acceptance_criteria: 'Работи без грешки',
+        start_date: '2026-12-01',
+        delivery_date: '2027-03-01',
+        price_amount: '2500',
+        currency: 'EUR',
+        price_basis: 'бруто',
+        payment_schedule: 'Аванс | 1000 | при подписване\nФинално плащане | 1500 | при приемане',
+        payment_days: '10',
+        acceptance_days: '7',
+        revision_rounds: '2',
+        warranty_days: '30',
+        notice_days: '14',
+        additional_work_rate: '40 EUR на час',
+        liability_cap: 'размера на възнаграждението',
+        dispute_forum: 'компетентния български съд',
+        support_terms: 'Не е включена',
+        hosting_terms: 'За сметка на клиента',
+        ip_terms: 'прехвърляне след пълно плащане',
+        change_description: 'Описание на промяната или забележки',
+        change_deliverables: 'Допълнителна функция',
+        change_price: '500',
+        change_delivery_date: '2027-04-01',
+        settlement_amount: '1500',
+        settlement_due_date: '2027-05-01',
+        settlement_reason: 'Приключване на договора',
+        settlement_instalments: 'Първа вноска\nВтора вноска',
+      },
+    });
+    assert.equal(saveRes.status, 303, `Save status for ${templateKey}`);
+
+    // 3. Move to ready for review over HTTP
+    const readyRes = await h.call(`/documents/${id}/status`, {
+      form: { to: 'ready_for_review' },
+    });
+    assert.equal(readyRes.status, 303, `Ready for review for ${templateKey}`);
+
+    // 4. Approve over HTTP
+    const approveRes = await h.call(`/documents/${id}/approve`, {
+      form: { note: 'Одобрен' },
+    });
+    assert.equal(approveRes.status, 303, `Approve for ${templateKey}`);
+
+    // 5. Export PDF over HTTP
+    const exportRes = await h.call(`/documents/${id}/export/2/pdf`);
+    assert.equal(exportRes.status, 200, `Export status for ${templateKey}`);
+    assert.equal(exportRes.headers.get('content-type'), 'application/pdf');
+    const bytes = new Uint8Array(await exportRes.arrayBuffer());
+    assert.ok(bytes.length > 1000, `PDF size for ${templateKey}`);
+
+    const contractAfter = await getContract(db, id);
+    assert.equal(contractAfter?.status, 'exported', `Final status for ${templateKey}`);
+  }
+});
+
+test('migration failure against an unreachable database exits non-zero and prints no connection string', async () => {
+  const { spawn } = await import('node:child_process');
+  const secretUrl = 'postgres://app_user:super_secret_password_123@127.0.0.1:54399/fake_db';
+  const child = spawn(process.execPath, ['src/migrate.ts'], {
+    env: { ...process.env, DATABASE_URL: secretUrl },
+  });
+  let out = '';
+  let err = '';
+  child.stdout?.on('data', (d) => (out += d));
+  child.stderr?.on('data', (d) => (err += d));
+  const code = await new Promise((resolve) => child.on('close', resolve));
+  assert.notEqual(code, 0, 'exits non-zero');
+  assert.ok(err.includes('Migration failed:'), 'prints failure message');
+  assert.equal(err.includes('super_secret_password_123'), false, 'does not leak password');
+  assert.equal(
+    out.includes('super_secret_password_123'),
+    false,
+    'does not leak password in stdout',
+  );
+  assert.equal(err.includes('postgres://'), false, 'does not print connection string URL');
 });

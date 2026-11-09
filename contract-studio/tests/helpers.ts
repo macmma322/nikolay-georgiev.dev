@@ -76,7 +76,10 @@ export function harness(db: Db, config: Config, baseURL?: string) {
     const method = options.method ?? (body !== undefined ? 'POST' : 'GET');
     if (method !== 'GET' && options.origin !== null)
       headers.set('origin', options.origin ?? ORIGIN);
-    const url = path.startsWith(BASE) || path === '/healthz' ? path : `${BASE}${path}`;
+    const url =
+      path.startsWith(BASE) || path.startsWith('/workspace') || path === '/healthz'
+        ? path
+        : `${BASE}${path}`;
     return app.request(url, { method, headers, ...(body !== undefined ? { body } : {}) });
   };
   return {

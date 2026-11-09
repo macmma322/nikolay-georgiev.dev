@@ -99,13 +99,65 @@ test('security and privacy headers are on every response', async () => {
   }
 });
 
-test('session cookie attributes on login start', async () => {
-  const { createApp } = await import('../src/app.ts');
-  assert.ok(createApp);
+test('session cookie attributes on rotation with https config', async () => {
+  const httpsConfig = testConfig({
+    appOrigin: 'https://nikolay-georgiev.dev',
+    rpId: 'nikolay-georgiev.dev',
+    secureCookies: true,
+  });
+  const httpsH = harness(db, httpsConfig);
+  await httpsH.login();
+  await db.query(
+    "update sessions set rotated_at = now() - interval '1 hour' where revoked_at is null",
+  );
+  const res = await httpsH.call('');
+  assert.equal(res.status, 200);
+  const setCookie = res.headers.get('set-cookie') ?? '';
+  assert.ok(setCookie.includes('__Host-studio='), 'cookie name is __Host-studio');
+  assert.ok(setCookie.includes('HttpOnly'), 'HttpOnly attribute');
+  assert.ok(setCookie.includes('Secure'), 'Secure attribute');
+  assert.ok(setCookie.includes('SameSite=Strict'), 'SameSite=Strict attribute');
+  assert.ok(setCookie.includes('Path=/'), 'Path=/ attribute');
+});
+
+test('asset route for studio.js does not rotate session', async () => {
+  const token = await h.login();
+  await db.query(
+    "update sessions set rotated_at = now() - interval '1 hour' where revoked_at is null",
+  );
+  const assetRes = await h.call('/assets/studio.js');
+  assert.equal(assetRes.status, 200);
+  assert.equal(assetRes.headers.get('set-cookie'), null);
+  const after = await loadSession(db, config, token, { rotate: false });
+  assert.equal(after?.rotated, false);
+  assert.equal(after?.token, token);
+});
+
+test('parallel session rotations are atomic and treat lost race as not rotated', async () => {
   const token = await createSession(db, config, null, null);
+  await db.query(
+    "update sessions set rotated_at = now() - interval '1 hour' where revoked_at is null",
+  );
+  const [res1, res2] = await Promise.all([
+    loadSession(db, config, token),
+    loadSession(db, config, token),
+  ]);
+  const rotatedCount = [res1?.rotated, res2?.rotated].filter(Boolean).length;
+  assert.equal(rotatedCount, 1);
   assert.ok(await loadSession(db, config, token));
-  const page = await h.call('/login', { noCookie: true });
-  assert.equal(page.status, 200);
+});
+
+test('/workspace redirects to BASE', async () => {
+  const res = await h.call('/workspace');
+  assert.equal(res.status, 301);
+  assert.equal(res.headers.get('location'), BASE);
+});
+
+test('tool schemas do not include $schema', async () => {
+  const { TOOLS } = await import('../src/ai.ts');
+  for (const tool of TOOLS) {
+    assert.equal('$schema' in (tool.input_schema as Record<string, unknown>), false);
+  }
 });
 
 test('expired, idle and revoked sessions stop working', async () => {
@@ -301,7 +353,7 @@ test('frozen contracts refuse edits over HTTP and approved exports stay download
   assert.equal(pdf.headers.get('content-type'), 'application/pdf');
   assert.match(
     pdf.headers.get('content-disposition') ?? '',
-    /attachment; filename="software-development-CS-\d{4}-\d{4}-v1\.pdf"/,
+    /attachment; filename="software-development-CS-\d{4}-\d{4}-v1-draft\.pdf"/,
   );
   assert.equal(
     (await h.call(`/documents/${contract.id}/export/1/pdf`, { noCookie: true })).status,

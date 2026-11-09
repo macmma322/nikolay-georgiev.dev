@@ -355,3 +355,29 @@ test('deleting a conversation removes its messages but not the spend record', as
   );
   assert.ok((await many(db, 'select 1 from ai_usage_monthly')).length >= 1);
 });
+
+test('unbound proposal draft with unknown client is rejected with 422 and creates no project', async () => {
+  const conv = await one<{ id: string }>(
+    db,
+    "insert into ai_conversations (title) values ('Unbound test') returning id",
+  );
+  const proposal = await one<{ id: string }>(
+    db,
+    `insert into ai_proposals (conversation_id, payload)
+     values ($1, '{"summary":"x","set_terms":{}}'::jsonb) returning id`,
+    [conv?.id],
+  );
+  const initialProjectsCount = (await many(db, 'select 1 from projects')).length;
+
+  const res = await h.call(`/proposals/${proposal?.id}/draft`, {
+    form: {
+      client_id: '00000000-0000-0000-0000-000000000099',
+      project_title: 'Unbound Project',
+      template_key: 'software-development',
+      lang: 'bg',
+    },
+  });
+  assert.equal(res.status, 422);
+  const afterProjectsCount = (await many(db, 'select 1 from projects')).length;
+  assert.equal(afterProjectsCount, initialProjectsCount, 'no project was created');
+});

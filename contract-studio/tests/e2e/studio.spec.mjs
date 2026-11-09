@@ -157,7 +157,7 @@ test('the whole contract journey', async ({ page, context }) => {
       page.click(`text=${label}`),
     ]);
     expect(download.suggestedFilename()).toMatch(
-      new RegExp(`^software-development-CS-\\d{4}-\\d{4}-v4\\.${extension}$`),
+      new RegExp(`^software-development-CS-\\d{4}-\\d{4}-v4-draft\\.${extension}$`),
     );
     if (process.env.SHOT_DIR) await download.saveAs(`${process.env.SHOT_DIR}/sample.${extension}`);
   }

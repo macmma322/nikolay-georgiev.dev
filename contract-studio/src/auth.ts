@@ -213,6 +213,7 @@ export async function loadSession(
   db: Queryable,
   config: Config,
   token: string,
+  options: { rotate?: boolean } = {},
 ): Promise<Session | null> {
   const digest = hash(token);
   const row = await one<{ id: string; current: boolean; rotate: boolean }>(
@@ -226,13 +227,17 @@ export async function loadSession(
     [digest, config.sessionIdleMinutes, config.sessionRotateMinutes],
   );
   if (!row) return null;
-  if (row.current && row.rotate) {
+  const shouldRotate = (options.rotate ?? true) && row.current && row.rotate;
+  if (shouldRotate) {
     const next = newToken();
-    await db.query(
-      `update sessions set previous_token_hash = token_hash, token_hash = $1, rotated_at = now(), last_seen_at = now() where id = $2`,
-      [hash(next), row.id],
+    const result = await db.query(
+      `update sessions set previous_token_hash = token_hash, token_hash = $1, rotated_at = now(), last_seen_at = now()
+       where id = $2 and token_hash = $3`,
+      [hash(next), row.id, digest],
     );
-    return { id: row.id, token: next, rotated: true };
+    if ((result.rowCount ?? 0) > 0) {
+      return { id: row.id, token: next, rotated: true };
+    }
   }
   await db.query('update sessions set last_seen_at = now() where id = $1', [row.id]);
   return { id: row.id, token, rotated: false };

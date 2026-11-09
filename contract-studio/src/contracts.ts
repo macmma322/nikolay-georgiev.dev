@@ -1,6 +1,6 @@
 // The contract lifecycle. Every rule about what may change, and when, lives here.
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { Config } from './config.ts';
 import { audit, many, one, tx, type Db, type Queryable, type Tx } from './db.ts';
@@ -208,6 +208,28 @@ type NewContract = {
   settlement?: ContractContent['settlement'] | undefined;
 };
 
+export async function buildParentReference(
+  db: Queryable,
+  parentId: string,
+  clientId?: string,
+): Promise<{ reference: string; title: string; date?: string }> {
+  const parent = await getContract(db, parentId);
+  if (!parent) throw new Rejected('Parent contract not found', 404);
+  if (clientId && parent.client_id !== clientId) {
+    throw new Rejected('Parent contract belongs to another client', 422);
+  }
+  const parentVersion = await getVersion(
+    db,
+    parent.id,
+    parent.approved_version ?? parent.current_version,
+  );
+  return {
+    reference: parent.reference,
+    title: parent.title,
+    ...(parentVersion?.content.contract_date ? { date: parentVersion.content.contract_date } : {}),
+  };
+}
+
 export async function createContract(db: Db, input: NewContract, ip: string | null = null) {
   return tx(db, async (client) => {
     const template = await latestTemplate(client, input.templateKey, input.lang);
@@ -225,11 +247,24 @@ export async function createContract(db: Db, input: NewContract, ip: string | nu
     if (input.projectId && !project)
       throw new Rejected('That project belongs to another client', 422);
 
+    let parent = input.parent;
+    if (input.parentId) {
+      const parentRef = await buildParentReference(client, input.parentId, input.clientId);
+      parent = parent ?? parentRef;
+    }
+
     const settings = await getSettings(client);
     const seq = await one<{ n: number }>(client, "select nextval('contract_reference_seq') as n");
     const reference = `CS-${new Date().getUTCFullYear()}-${String(seq?.n).padStart(4, '0')}`;
     const definition = template.definition;
     const title = input.title?.trim() || definition.title;
+
+    const defStr = JSON.stringify(definition);
+    const hasChange = /change\./.test(defStr);
+    const hasSettlement = /settlement\./.test(defStr);
+    const change = input.change ?? (hasChange ? { deliverables: [] } : undefined);
+    const settlement = input.settlement ?? (hasSettlement ? { instalments: [] } : undefined);
+
     const content = contractContent.parse({
       template_key: definition.key,
       template_version: definition.version,
@@ -242,9 +277,9 @@ export async function createContract(db: Db, input: NewContract, ip: string | nu
         title: project?.title ?? '',
         ...(project?.description ? { description: project.description } : {}),
       },
-      ...(input.parent ? { parent: input.parent } : {}),
-      ...(input.change ? { change: input.change } : {}),
-      ...(input.settlement ? { settlement: input.settlement } : {}),
+      ...(parent ? { parent } : {}),
+      ...(change ? { change } : {}),
+      ...(settlement ? { settlement } : {}),
       terms: {
         ...(project?.scope_summary ? { scope_summary: project.scope_summary } : {}),
         deliverables: project?.deliverables ?? [],
@@ -433,8 +468,8 @@ export async function transition(db: Db, id: string, to: Status, ip: string | nu
   });
 }
 
-export async function deleteContract(db: Db, id: string, ip: string | null = null) {
-  return tx(db, async (client) => {
+export async function deleteContract(db: Db, config: Config, id: string, ip: string | null = null) {
+  await tx(db, async (client) => {
     const contract = await lock(client, id);
     if (
       contract.approved_version !== null ||
@@ -445,6 +480,7 @@ export async function deleteContract(db: Db, id: string, ip: string | null = nul
     await client.query('delete from contracts where id = $1', [id]);
     await audit(client, 'contract.deleted', 'contract', id, { reference: contract.reference }, ip);
   });
+  await rm(join(config.documentDir, id), { recursive: true, force: true });
 }
 
 // ------------------------------- AI proposals -------------------------------
@@ -646,6 +682,7 @@ export type DocumentRow = {
   id: string;
   contract_version_id: string;
   format: 'pdf' | 'docx';
+  draft: boolean;
   filename: string;
   byte_size: number;
   sha256: string;
@@ -673,10 +710,11 @@ export async function exportVersion(
   const version = contract && (await getVersion(db, contractId, versionNumber));
   if (!contract || !version) throw new Rejected('Not found', 404);
 
+  const isDraft = version.approval_state !== 'approved';
   const existing = await one<DocumentRow>(
     db,
-    'select * from generated_documents where contract_version_id = $1 and format = $2',
-    [version.id, format],
+    'select * from generated_documents where contract_version_id = $1 and format = $2 and draft = $3',
+    [version.id, format, isDraft],
   );
   if (existing) {
     const bytes = new Uint8Array(await readFile(join(config.documentDir, existing.storage_path)));
@@ -686,52 +724,65 @@ export async function exportVersion(
       'document.downloaded',
       'contract',
       contractId,
-      { version: versionNumber, format },
+      { version: versionNumber, format, draft: isDraft },
       ip,
     );
+    if (!isDraft && contract.status === 'approved') {
+      await db.query(`update contracts set status = 'exported', updated_at = now() where id = $1`, [
+        contractId,
+      ]);
+    }
     return { row: existing, bytes };
   }
 
   const settings = await getSettings(db);
   const model = buildDocument(version.content);
   const options = {
-    draft: version.approval_state !== 'approved',
+    draft: isDraft,
     timestamp: version.approved_at ?? version.created_at,
     pageNumbers: settings.page_numbers,
   };
   const bytes =
     format === 'pdf' ? await renderPdf(model, options) : await renderDocx(model, options);
-  const storagePath = join(contractId, `${version.id}.${format}`);
+  const storageName = isDraft ? `${version.id}.draft.${format}` : `${version.id}.${format}`;
+  const storagePath = join(contractId, storageName);
   await mkdir(join(config.documentDir, contractId), { recursive: true });
   await writeFile(join(config.documentDir, storagePath), bytes);
-  const row = (await one<DocumentRow>(
-    db,
-    `insert into generated_documents (contract_version_id, format, filename, byte_size, sha256, storage_path, renderer_version)
-     values ($1, $2, $3, $4, $5, $6, $7) returning *`,
+  await db.query(
+    `insert into generated_documents (contract_version_id, format, draft, filename, byte_size, sha256, storage_path, renderer_version)
+     values ($1, $2, $3, $4, $5, $6, $7, $8)
+     on conflict (contract_version_id, format, draft) do nothing`,
     [
       version.id,
       format,
+      isDraft,
       safeFilename(
         version.content.template_key,
         version.content.reference,
         version.version,
         format,
+        isDraft,
       ),
       bytes.length,
       sha256(bytes),
       storagePath,
       RENDERER_VERSION,
     ],
+  );
+  const row = (await one<DocumentRow>(
+    db,
+    'select * from generated_documents where contract_version_id = $1 and format = $2 and draft = $3',
+    [version.id, format, isDraft],
   )) as DocumentRow;
   await audit(
     db,
     'document.exported',
     'contract',
     contractId,
-    { version: versionNumber, format },
+    { version: versionNumber, format, draft: isDraft },
     ip,
   );
-  if (version.approval_state === 'approved' && contract.status === 'approved') {
+  if (!isDraft && contract.status === 'approved') {
     await db.query(`update contracts set status = 'exported', updated_at = now() where id = $1`, [
       contractId,
     ]);
