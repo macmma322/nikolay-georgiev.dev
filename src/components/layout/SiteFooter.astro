@@ -51,22 +51,20 @@ const year = new Date().getFullYear();
   </div>
 </footer>
 
-<script is:inline>
-  (() => {
-    const portal = document.querySelector('[data-portal]');
-    if (portal) {
-      portal.addEventListener('click', () => {
-        window.location.href = portal.getAttribute('data-portal') || '/workspace/contracts';
-      });
-    }
-    // Hidden shortcut: Ctrl+Shift+W or Cmd+Shift+W navigates directly to workspace
-    window.addEventListener('keydown', (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'W' || e.key === 'w')) {
-        e.preventDefault();
-        window.location.href = '/workspace/contracts';
-      }
+<script>
+  const portal = document.querySelector<HTMLElement>('[data-portal]');
+  if (portal) {
+    portal.addEventListener('click', () => {
+      window.location.href = portal.dataset['portal'] || '/workspace/contracts';
     });
-  })();
+  }
+  // Hidden shortcut: Ctrl+Shift+W or Cmd+Shift+W navigates directly to workspace
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'W' || e.key === 'w')) {
+      e.preventDefault();
+      window.location.href = '/workspace/contracts';
+    }
+  });
 </script>
 
 <style>
