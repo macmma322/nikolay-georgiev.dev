@@ -185,6 +185,7 @@ export const zonePlatform: Diagram = {
       label: { en: 'queue state', bg: 'състояние на опашката' },
     },
     { from: 'bullmq', to: 'banks', label: { en: 'jobs', bg: 'задачи' } },
+    { from: 'worker', to: 'postgres', fromSide: 'left', toSide: 'right' },
     {
       from: 'worker',
       to: 'banks',
