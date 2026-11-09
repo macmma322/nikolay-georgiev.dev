@@ -1,6 +1,31 @@
 import { expect, test } from '@playwright/test';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const BASE = '/workspace/contracts';
+const axePath = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../../../node_modules/axe-core/axe.min.js',
+);
+const axeSrc = fs.existsSync(axePath) ? fs.readFileSync(axePath, 'utf8') : null;
+
+async function auditA11y(page, name) {
+  if (!axeSrc) return;
+  await page.evaluate(axeSrc);
+  const results = await page.evaluate(async () => {
+    return await window.axe.run(document, {
+      resultTypes: ['violations'],
+    });
+  });
+  const serious = results.violations.filter(
+    (v) => v.impact === 'critical' || v.impact === 'serious',
+  );
+  if (serious.length > 0) {
+    console.error(`A11Y violations on ${name}:`, serious);
+  }
+  expect(serious).toEqual([]);
+}
 
 async function virtualAuthenticator(page) {
   const cdp = await page.context().newCDPSession(page);
@@ -45,6 +70,7 @@ test('the whole contract journey', async ({ page, context }) => {
   await page.goto(BASE);
   await expect(page).toHaveURL(`${BASE}/login`);
   await expect(page.getByRole('button', { name: 'Sign in with passkey' })).toBeVisible();
+  await auditA11y(page, 'login');
   const anonymous = await page.request.get(`${BASE}/clients`, { maxRedirects: 0 });
   expect(anonymous.status()).toBe(303);
 
@@ -67,6 +93,7 @@ test('the whole contract journey', async ({ page, context }) => {
   await expect(page).toHaveURL(`${BASE}/login`);
   await page.click('#login');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+  await auditA11y(page, 'dashboard');
   const cookies = await context.cookies();
   const session = cookies.find((cookie) => cookie.name === 'studio');
   expect(session?.httpOnly).toBe(true);
@@ -95,6 +122,7 @@ test('the whole contract journey', async ({ page, context }) => {
   await expect(page.locator('#preview')).toContainText('Учебен Център Пример ЕООД');
   await expect(page.locator('[data-testid=missing]')).toBeVisible();
   const contractUrl = page.url().split('?')[0];
+  await auditA11y(page, 'contract');
 
   // 7-9: Claude asks, the proposal is reviewed and applied.
   await send(
