@@ -35,7 +35,9 @@ const year = new Date().getFullYear();
       {l(openSource.title)}
     </a>
     <p class="copyright-line">
-      <span>© {year} {site.name}</span>
+      <span>
+        © {year} {site.name}
+      </span>
       <button
         type="button"
         class="secret-portal"
@@ -176,6 +178,8 @@ const year = new Date().getFullYear();
 
   .secret-portal:is(:hover, :focus-visible) .portal-dot {
     background: #6366f1;
-    box-shadow: 0 0 8px #6366f1, 0 0 14px #6366f1;
+    box-shadow:
+      0 0 8px #6366f1,
+      0 0 14px #6366f1;
   }
 </style>
