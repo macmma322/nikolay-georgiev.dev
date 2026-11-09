@@ -99,8 +99,8 @@ export const zonePlatform: Diagram = {
       id: 'postgres',
       label: { en: 'PostgreSQL', bg: 'PostgreSQL' },
       sub: {
-        en: 'public + employee_portal,\n122 SQL migrations',
-        bg: 'public + employee_portal,\n122 SQL миграции',
+        en: 'public + employee_portal,\n126 SQL migrations',
+        bg: 'public + employee_portal,\n126 SQL миграции',
       },
       kind: 'store',
       col: 2,
@@ -110,11 +110,11 @@ export const zonePlatform: Diagram = {
       id: 'worker',
       label: { en: 'Scheduled jobs', bg: 'Задачи по график' },
       sub: {
-        en: 'node-cron in process,\nCRON_ENABLED gate',
-        bg: 'node-cron в процеса,\nфлаг CRON_ENABLED',
+        en: 'node-cron singleton,\nCRON_ENABLED gate',
+        bg: 'node-cron в 1 инстанция,\nфлаг CRON_ENABLED',
       },
       kind: 'worker',
-      tag: { en: 'Inside the API', bg: 'Вътре в API' },
+      tag: { en: 'Separate service', bg: 'Отделна услуга' },
       col: 3,
       row: 3,
     },
@@ -185,6 +185,7 @@ export const zonePlatform: Diagram = {
       label: { en: 'queue state', bg: 'състояние на опашката' },
     },
     { from: 'bullmq', to: 'banks', label: { en: 'jobs', bg: 'задачи' } },
+    { from: 'worker', to: 'postgres', fromSide: 'left', toSide: 'right' },
     {
       from: 'worker',
       to: 'banks',

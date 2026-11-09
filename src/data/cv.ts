@@ -29,7 +29,7 @@ export const cv = {
   } satisfies L,
 
   /** The CV's revision date: the PDFs' creation date, and the preview's. */
-  updated: '2026-10-28',
+  updated: '2026-11-09',
 
   /** Self-reported, so stated only here (PRODUCT.md, content rule 2). */
   extraPoints: {
