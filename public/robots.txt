@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /workspace
 
 Sitemap: https://nikolay-georgiev.dev/sitemap-index.xml
