@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test';
+import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
+import pg from 'pg';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -57,6 +59,60 @@ const fill = async (page, fields) => {
     await page.fill(`#edit-form [name="${name}"]`, String(value));
 };
 
+// The real production portfolio, answered locally: the test checks where the
+// browser goes, without depending on the live site.
+const HOME = 'https://nikolay-georgiev.dev/';
+test.beforeEach(async ({ context }) => {
+  await context.route('https://nikolay-georgiev.dev/**', (route) =>
+    route.fulfill({
+      contentType: 'text/html',
+      body: '<!doctype html><title>Portfolio</title><h1>Nikolay Georgiev</h1>',
+    }),
+  );
+});
+
+// Log out from the header and arrive on the public portfolio, never on sign-in.
+async function logOut(page) {
+  await page.locator('.header-actions').getByRole('button', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(HOME);
+  await expect(page.getByRole('heading', { name: 'Nikolay Georgiev' })).toBeVisible();
+}
+
+// Later tests have no passkey: they get a session the way sign-in makes one.
+const sql = async (text, values = []) => {
+  const client = new pg.Client({ connectionString: process.env.DATABASE_URL });
+  await client.connect();
+  try {
+    return (await client.query(text, values)).rows;
+  } finally {
+    await client.end();
+  }
+};
+async function signIn(context) {
+  const token = randomBytes(32).toString('base64url');
+  await sql(
+    "insert into sessions (token_hash, expires_at) values (sha256($1::bytea), now() + interval '2 hours')",
+    [Buffer.from(token)],
+  );
+  await context.addCookies([
+    {
+      name: 'studio',
+      value: token,
+      url: 'http://localhost:18787',
+      httpOnly: true,
+      sameSite: 'Strict',
+    },
+  ]);
+  return token;
+}
+const expire = (token) =>
+  sql(
+    "update sessions set last_seen_at = now() - interval '2 hours' where token_hash = sha256($1::bytea)",
+    [Buffer.from(token)],
+  );
+const overflow = (page) =>
+  page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+
 test('the whole contract journey', async ({ page, context }) => {
   const violations = [];
   page.on('console', (message) => {
@@ -88,9 +144,9 @@ test('the whole contract journey', async ({ page, context }) => {
   await page.click('text=Save settings');
   await expect(page.getByText('Settings saved')).toBeVisible();
 
-  // 3: real sign-in with the passkey.
-  await page.click('text=Log out');
-  await expect(page).toHaveURL(`${BASE}/login`);
+  // 3: Log out lands on the public portfolio, then a real sign-in with the passkey.
+  await logOut(page);
+  await page.goto(`${BASE}/login`);
   await page.click('#login');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   await auditA11y(page, 'dashboard');
@@ -247,9 +303,14 @@ test('the whole contract journey', async ({ page, context }) => {
   );
   expect(violations).toEqual([]);
 
-  // 19-20: logout closes everything.
-  await page.click('text=Log out');
-  await expect(page).toHaveURL(`${BASE}/login`);
+  // 19-20: logout closes everything, and Back shows nothing private.
+  await page.goto(contractUrl);
+  await expect(page.locator('#preview')).toContainText('ДОГОВОР');
+  await logOut(page);
+  await page.goBack();
+  await expect(page).toHaveURL(/\/login/);
+  await expect(page.locator('body')).not.toContainText('Учебен Център');
+  await expect(page.locator('#preview')).toHaveCount(0);
   await page.goto(contractUrl);
   await expect(page).toHaveURL(`${BASE}/login`);
   const download = await page.request.get(`${contractUrl}/export/4/pdf`);
@@ -266,4 +327,170 @@ test('phone layout stacks the chat and the document', async ({ page, context }) 
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
   );
   expect(overflow).toBeLessThanOrEqual(0);
+});
+
+test('Back to Portfolio navigates home and keeps the session', async ({ page, context }) => {
+  await signIn(context);
+  await page.goto(`${BASE}/clients`);
+  await page.locator('.header-actions').getByRole('link', { name: 'Back to Portfolio' }).click();
+  await expect(page).toHaveURL(HOME);
+  await page.goto(BASE);
+  await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+});
+
+test('an expired session protects the page and asks to sign in again', async ({
+  page,
+  context,
+}) => {
+  // A plain form post after the session idled out.
+  let token = await signIn(context);
+  await page.goto(`${BASE}/clients/new`);
+  await page.fill('[name=name]', 'Expiry Test ЕООД');
+  await expire(token);
+  await page.click('text=Save client');
+  await expect(page).toHaveURL(`${BASE}/login?expired=1`);
+  await expect(page.getByText('Your session has ended')).toBeVisible();
+  expect(await sql("select 1 from clients where name = 'Expiry Test ЕООД'")).toHaveLength(0);
+
+  // A background request (the live preview) after the session idled out.
+  token = await signIn(context);
+  const [contract] = await sql('select id from contracts order by created_at limit 1');
+  await page.goto(`${BASE}/documents/${contract.id}`);
+  await expect(page.locator('#preview')).toBeVisible();
+  await expire(token);
+  await page.fill('#edit-form [name=place]', 'София');
+  await expect(page).toHaveURL(`${BASE}/login?expired=1`);
+  await expect(page.locator('#preview')).toHaveCount(0);
+});
+
+test('the rendered page wears the portfolio tokens and faces', async ({ page, context }) => {
+  await signIn(context);
+  const [contract] = await sql('select id from contracts order by created_at limit 1');
+  await page.goto(`${BASE}/documents/${contract.id}`);
+  await page.evaluate(() => document.fonts.ready);
+  const styles = await page.evaluate(() => {
+    const probe = document.createElement('i');
+    document.body.append(probe);
+    const token = (name, prop = 'color') => {
+      probe.style[prop] = `var(${name})`;
+      return getComputedStyle(probe)[prop];
+    };
+    const css = (selector, prop) => getComputedStyle(document.querySelector(selector))[prop];
+    return {
+      bg: css('body', 'backgroundColor'),
+      ink0: token('--ink-0'),
+      fg: css('body', 'color'),
+      fgToken: token('--fg'),
+      body: css('body', 'fontFamily'),
+      heading: css('main h1', 'fontFamily'),
+      label: css('.eyebrow', 'fontFamily'),
+      header: css('.site-header', 'height'),
+      paper: css('.paper', 'backgroundColor'),
+      paperInk: css('.paper', 'color'),
+      scheme: css('html', 'colorScheme'),
+      mona: document.fonts.check('16px "Mona Sans"'),
+      hubot: document.fonts.check('16px "Hubot Sans"'),
+      martian: document.fonts.check('12px "Martian Mono"'),
+    };
+  });
+  expect(styles.bg).toBe(styles.ink0);
+  expect(styles.fg).toBe(styles.fgToken);
+  expect(styles.body).toMatch(/^"?TikTok Sans"?, "?Mona Sans"?/);
+  expect(styles.heading).toMatch(/"?Hubot Sans"?/);
+  expect(styles.label).toMatch(/"?Martian Mono"?/);
+  expect(styles.header).toBe('68px');
+  expect(styles.paper).toBe('rgb(251, 250, 247)');
+  expect(styles.paperInk).toBe('rgb(23, 24, 28)');
+  expect(styles.scheme).toBe('dark');
+  expect(styles.mona && styles.hubot && styles.martian).toBe(true);
+});
+
+test('desktop, tablet and phone layouts hold together', async ({ page, context }) => {
+  await signIn(context);
+  const [contract] = await sql('select id from contracts order by created_at limit 1');
+  const pages = [
+    '',
+    '/clients',
+    '/projects',
+    '/documents',
+    `/documents/${contract.id}`,
+    '/assistant',
+    '/templates',
+    '/settings',
+  ];
+  for (const [width, height] of [
+    [1440, 900],
+    [1024, 768],
+    [768, 1024],
+    [390, 844],
+  ]) {
+    await page.setViewportSize({ width, height });
+    for (const path of pages) {
+      await page.goto(`${BASE}${path}`);
+      expect(await overflow(page), `${width}px ${path}`).toBeLessThanOrEqual(0);
+      await expect(page.locator('.nav-desktop')).toBeVisible({ visible: width >= 1240 });
+      await expect(page.locator('.menu-button')).toBeVisible({ visible: width < 1240 });
+    }
+    await page.goto(`${BASE}/documents/${contract.id}`);
+    await shot(page, `contract-${width}`);
+    await page.goto(BASE);
+    await shot(page, `dashboard-${width}`);
+    for (const name of ['clients', 'settings']) {
+      await page.goto(`${BASE}/${name}`);
+      await shot(page, `${name}-${width}`);
+    }
+  }
+
+  // Phone: everything lives in the menu, which traps focus and closes on Escape.
+  await page.goto(`${BASE}/clients`);
+  await page.getByRole('button', { name: 'Menu' }).click();
+  const menu = page.getByRole('dialog', { name: 'Workspace menu' });
+  await expect(menu).toBeVisible();
+  await expect(menu.getByRole('link', { name: 'Dashboard' })).toBeFocused();
+  await expect(menu.getByRole('link', { name: 'Back to Portfolio' })).toBeVisible();
+  await expect(menu.getByRole('button', { name: 'Log out' })).toBeVisible();
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));
+  await auditA11y(page, 'phone menu');
+  await shot(page, 'menu-390');
+  await page.keyboard.press('Escape');
+  await expect(menu).toBeHidden();
+  await page.getByRole('button', { name: 'Menu' }).click();
+  await menu.getByRole('button', { name: 'Log out' }).click();
+  await expect(page).toHaveURL(HOME);
+});
+
+test('keyboard focus is visible and reduced motion removes movement', async ({ page, context }) => {
+  await signIn(context);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto(`${BASE}/clients`);
+  await auditA11y(page, 'clients');
+  await page.keyboard.press('Tab');
+  const skip = page.getByRole('link', { name: 'Skip to content' });
+  await expect(skip).toBeFocused();
+  expect(await skip.evaluate((el) => getComputedStyle(el).transform)).toBe('none');
+  await page.keyboard.press('Tab');
+  await page.keyboard.press('Tab');
+  const outline = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+  expect(outline).toBe('solid');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole('button', { name: 'Menu' }).click();
+  const animation = await page
+    .locator('.mobile-list li')
+    .first()
+    .evaluate((el) => getComputedStyle(el).animationDuration);
+  expect(parseFloat(animation)).toBeLessThan(0.001);
+});
+
+test('the sign-in page matches the site and links home', async ({ page, context }) => {
+  await context.clearCookies();
+  await page.goto(`${BASE}/login`);
+  await expect(page.getByRole('link', { name: 'Back to Portfolio' })).toHaveAttribute('href', HOME);
+  const box = await page.locator('main').boundingBox();
+  const width = page.viewportSize().width;
+  expect(Math.abs(box.x + box.width / 2 - width / 2)).toBeLessThan(2);
+  await auditA11y(page, 'login');
+  await shot(page, 'login-1440');
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await overflow(page)).toBeLessThanOrEqual(0);
+  await shot(page, 'login-390');
 });

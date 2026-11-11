@@ -12,6 +12,7 @@
     "dev": "node --env-file=.env --watch src/server.ts",
     "migrate": "node src/migrate.ts",
     "typecheck": "tsc --noEmit",
+    "sync:tokens": "node -e \"require('node:fs').copyFileSync('../src/styles/tokens.css', 'assets/tokens.css')\"",
     "test": "node tests/run.mjs",
     "test:e2e": "node tests/e2e/run.mjs"
   },

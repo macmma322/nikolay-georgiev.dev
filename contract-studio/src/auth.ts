@@ -246,6 +246,18 @@ export async function loadSession(
 export const revokeSession = (db: Queryable, id: string) =>
   db.query('update sessions set revoked_at = now() where id = $1', [id]);
 
+// Logout: matches the cookie's token even when the session has idled out or
+// just rotated, so whatever the browser holds can never be used again.
+// Returns how many live sessions it closed (0 for an unknown or already revoked token).
+export const revokeToken = async (db: Queryable, token: string) => {
+  const result = await db.query(
+    `update sessions set revoked_at = now()
+     where (token_hash = $1 or previous_token_hash = $1) and revoked_at is null`,
+    [hash(token)],
+  );
+  return result.rowCount ?? 0;
+};
+
 export async function housekeeping(db: Queryable, retentionDays: number) {
   await db.query('delete from auth_challenges where expires_at < now()');
   await db.query("delete from sessions where expires_at < now() - interval '30 days'");

@@ -20,6 +20,7 @@ import {
   RateLimiter,
   registrationOptions,
   revokeSession,
+  revokeToken,
   safeEqual,
   setupAllowed,
   type Session,
@@ -67,6 +68,7 @@ const FONTS: Record<string, [string, string]> = {
   'mona.woff2': ['mona-sans', 'mona-sans-latin-wght-normal.woff2'],
   'martian.woff2': ['martian-mono', 'martian-mono-latin-wght-normal.woff2'],
   'cyrillic.woff2': ['tiktok-sans', 'tiktok-sans-cyrillic-wdth-normal.woff2'],
+  'martian-cyrillic.woff2': ['martian-mono', 'martian-mono-cyrillic-wght-normal.woff2'],
 };
 const serifPath = (weight: string) =>
   join(
@@ -76,14 +78,17 @@ const serifPath = (weight: string) =>
   );
 const SERIF: Record<string, string> = { 'serif.ttf': '400Regular', 'serif-bold.ttf': '700Bold' };
 const PUBLIC_ASSETS = new Set([
+  'tokens.css',
   'studio.css',
   'auth.js',
   ...Object.keys(FONTS),
   ...Object.keys(SERIF),
 ]);
 const PRIVATE_ASSETS = new Set(['studio.js']);
-const CSP =
-  "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+// form-action also names the portfolio: browsers apply it to the redirect that
+// follows a form post, and logging out redirects there.
+const csp = (config: Config) =>
+  `default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; form-action 'self' ${new URL(config.portfolioUrl).origin}; base-uri 'none'; frame-ancestors 'none'`;
 
 type Env = { Variables: { session: Session } };
 export type Deps = { db: Db; config: Config; anthropic: Anthropic | null };
@@ -175,6 +180,8 @@ export function createApp({ db, config, anthropic }: Deps) {
   const authGlobal = new RateLimiter(60, 60_000);
   const aiLimiter = new RateLimiter(config.aiRequestsPerMinute, 60_000);
   const mutationLimiter = new RateLimiter(240, 60_000);
+  const CSP = csp(config);
+  const ctx = (c: Context) => ({ ...flash(c), home: config.portfolioUrl });
 
   app.use('*', async (c, next) => {
     await next();
@@ -276,7 +283,9 @@ export function createApp({ db, config, anthropic }: Deps) {
   };
 
   // ---------------------------------- Login ----------------------------------
-  app.get(`${BASE}/login`, (c) => c.html(v.loginView()));
+  app.get(`${BASE}/login`, (c) =>
+    c.html(v.loginView(config.portfolioUrl, c.req.query('expired') === '1')),
+  );
   app.post(`${BASE}/auth/options`, async (c) => {
     if (!limitAuth(c)) return c.json({ error: 'Too many attempts' }, 429);
     return c.json(await authenticationOptions(db, config));
@@ -300,7 +309,7 @@ export function createApp({ db, config, anthropic }: Deps) {
   });
 
   app.get(`${BASE}/setup`, (c) =>
-    config.setupToken ? c.html(v.setupView()) : c.html(v.notFound(), 404),
+    config.setupToken ? c.html(v.setupView(config.portfolioUrl)) : c.html(v.notFound(), 404),
   );
   app.post(`${BASE}/setup/options`, async (c) => {
     if (!limitAuth(c)) return c.json({ error: 'Too many attempts' }, 429);
@@ -333,25 +342,45 @@ export function createApp({ db, config, anthropic }: Deps) {
     return c.json({ ok: true, next: `${BASE}/settings` });
   });
 
+  const clearSessionCookie = (c: Context) =>
+    deleteCookie(c, cookieName(config), { path: '/', secure: config.secureCookies });
+
+  // Before the session gate, so a session that already idled out can still be
+  // closed. Success always ends on the public portfolio, never on the login page.
+  app.post(`${BASE}/logout`, async (c) => {
+    const token = getCookie(c, cookieName(config));
+    let closed = 0;
+    try {
+      if (token) closed = await revokeToken(db, token);
+    } catch {
+      // Nothing was revoked: say so rather than pretend the session is gone.
+      return c.html(v.logoutFailedView(config.portfolioUrl), 503);
+    }
+    clearSessionCookie(c);
+    // Drops what the browser kept of the workspace, back/forward cache included.
+    c.header('Clear-Site-Data', '"cache"');
+    // Only a real logout is recorded: an anonymous post cannot write to the audit log.
+    if (closed) await audit(db, 'auth.logout', null, null, {}, clientIp(c)).catch(() => {});
+    return c.redirect(config.portfolioUrl, 303);
+  });
+
   // ---------------------- Everything below needs a session ---------------------
   app.use(`${BASE}/*`, async (c, next) => {
     const token = getCookie(c, cookieName(config));
     const session = token ? await loadSession(db, config, token) : null;
     if (!session) {
-      if (c.req.method === 'GET' && !c.req.path.includes('/export/'))
-        return c.redirect(`${BASE}/login`, 303);
+      if (token) clearSessionCookie(c);
+      // Page loads and plain form posts go to sign-in; fetches and downloads get a 401.
+      const navigation =
+        c.req.method === 'GET'
+          ? !c.req.path.includes('/export/')
+          : c.req.header('sec-fetch-mode') === 'navigate';
+      if (navigation) return c.redirect(`${BASE}/login${token ? '?expired=1' : ''}`, 303);
       return c.json({ error: 'Authentication required' }, 401);
     }
     c.set('session', session);
     if (session.rotated) setSessionCookie(c, session.token);
     await next();
-  });
-
-  app.post(`${BASE}/logout`, async (c) => {
-    await revokeSession(db, c.get('session').id);
-    deleteCookie(c, cookieName(config), { path: '/', secure: config.secureCookies });
-    await audit(db, 'auth.logout', null, null, {}, clientIp(c));
-    return c.redirect(`${BASE}/login`, 303);
   });
 
   // -------------------------------- Dashboard ---------------------------------
@@ -378,7 +407,7 @@ export function createApp({ db, config, anthropic }: Deps) {
        order by p.target_date limit 8`,
     );
     return c.html(
-      v.page('Dashboard', 'dashboard', v.dashboardView(stats ?? {}, recent, deadlines), flash(c)),
+      v.page('Dashboard', 'dashboard', v.dashboardView(stats ?? {}, recent, deadlines), ctx(c)),
     );
   });
 
@@ -401,10 +430,10 @@ export function createApp({ db, config, anthropic }: Deps) {
       db,
       `select * from clients ${showArchived ? '' : 'where archived_at is null'} order by lower(name)`,
     );
-    return c.html(v.page('Clients', 'clients', v.clientsView(rows, showArchived), flash(c)));
+    return c.html(v.page('Clients', 'clients', v.clientsView(rows, showArchived), ctx(c)));
   });
   app.get(`${BASE}/clients/new`, (c) =>
-    c.html(v.page('New client', 'clients', v.clientForm(), flash(c))),
+    c.html(v.page('New client', 'clients', v.clientForm(), ctx(c))),
   );
   app.post(`${BASE}/clients`, async (c) => {
     const data = clientInput.parse(await form(c));
@@ -435,14 +464,14 @@ export function createApp({ db, config, anthropic }: Deps) {
         String(client['name']),
         'clients',
         v.clientDetail(client, projects, contracts),
-        flash(c),
+        ctx(c),
       ),
     );
   });
   app.get(`${BASE}/clients/${id('id')}/edit`, async (c) => {
     const client = await one(db, 'select * from clients where id = $1', [c.req.param('id')!]);
     return client
-      ? c.html(v.page('Edit client', 'clients', v.clientForm(client), flash(c)))
+      ? c.html(v.page('Edit client', 'clients', v.clientForm(client), ctx(c)))
       : c.notFound();
   });
   app.post(`${BASE}/clients/${id('id')}`, async (c) => {
@@ -499,7 +528,7 @@ export function createApp({ db, config, anthropic }: Deps) {
       db,
       'select p.*, c.name as client_name from projects p join clients c on c.id = p.client_id order by p.created_at desc',
     );
-    return c.html(v.page('Projects', 'projects', v.projectsView(rows), flash(c)));
+    return c.html(v.page('Projects', 'projects', v.projectsView(rows), ctx(c)));
   });
   app.get(`${BASE}/projects/new`, async (c) =>
     c.html(
@@ -507,7 +536,7 @@ export function createApp({ db, config, anthropic }: Deps) {
         'New project',
         'projects',
         v.projectForm(await activeClients(), undefined, c.req.query('client')),
-        flash(c),
+        ctx(c),
       ),
     ),
   );
@@ -534,19 +563,14 @@ export function createApp({ db, config, anthropic }: Deps) {
       [project['id']],
     );
     return c.html(
-      v.page(String(project['title']), 'projects', v.projectDetail(project, contracts), flash(c)),
+      v.page(String(project['title']), 'projects', v.projectDetail(project, contracts), ctx(c)),
     );
   });
   app.get(`${BASE}/projects/${id('id')}/edit`, async (c) => {
     const project = await one(db, 'select * from projects where id = $1', [c.req.param('id')!]);
     return project
       ? c.html(
-          v.page(
-            'Edit project',
-            'projects',
-            v.projectForm(await activeClients(), project),
-            flash(c),
-          ),
+          v.page('Edit project', 'projects', v.projectForm(await activeClients(), project), ctx(c)),
         )
       : c.notFound();
   });
@@ -575,7 +599,7 @@ export function createApp({ db, config, anthropic }: Deps) {
       db,
       'select d.*, c.name as client_name from contracts d join clients c on c.id = d.client_id order by d.updated_at desc',
     );
-    return c.html(v.page('Contracts', 'documents', v.documentsView(rows), flash(c)));
+    return c.html(v.page('Contracts', 'documents', v.documentsView(rows), ctx(c)));
   });
   app.get(`${BASE}/documents/new`, async (c) => {
     const projects = await many(
@@ -601,7 +625,7 @@ export function createApp({ db, config, anthropic }: Deps) {
           c.req.query('project'),
           c.req.query('parent'),
         ),
-        flash(c),
+        ctx(c),
       ),
     );
   });
@@ -697,7 +721,7 @@ export function createApp({ db, config, anthropic }: Deps) {
           parent,
           reviewStatus: template?.review_status ?? 'unreviewed',
         }),
-        flash(c),
+        ctx(c),
         true,
       ),
     );
@@ -812,7 +836,7 @@ export function createApp({ db, config, anthropic }: Deps) {
           await activeClients(),
           (await templateChoices()).filter((t) => t['lang'] === 'bg'),
         ),
-        flash(c),
+        ctx(c),
       ),
     );
   });
@@ -908,7 +932,7 @@ export function createApp({ db, config, anthropic }: Deps) {
       db,
       'select a.*, d.reference from ai_conversations a left join contracts d on d.id = a.contract_id order by a.updated_at desc limit 100',
     );
-    return c.html(v.page('AI Assistant', 'assistant', v.assistantView(rows), flash(c)));
+    return c.html(v.page('AI Assistant', 'assistant', v.assistantView(rows), ctx(c)));
   });
   app.post(`${BASE}/assistant`, async (c) => {
     const row = await one<{ id: string }>(
@@ -941,7 +965,7 @@ export function createApp({ db, config, anthropic }: Deps) {
         'AI Assistant',
         'assistant',
         v.conversationView(conversation.id, messages, proposals),
-        flash(c),
+        ctx(c),
       ),
     );
   });
@@ -1005,14 +1029,14 @@ export function createApp({ db, config, anthropic }: Deps) {
 
   // -------------------------------- Templates ---------------------------------
   app.get(`${BASE}/templates`, async (c) =>
-    c.html(v.page('Templates', 'templates', v.templatesView(await templateChoices()), flash(c))),
+    c.html(v.page('Templates', 'templates', v.templatesView(await templateChoices()), ctx(c))),
   );
   app.get(`${BASE}/templates/${id('id')}`, async (c) => {
     const row = await one(db, 'select * from contract_templates where id = $1', [
       c.req.param('id')!,
     ]);
     return row
-      ? c.html(v.page(String(row['name']), 'templates', v.templateDetail(row), flash(c)))
+      ? c.html(v.page(String(row['name']), 'templates', v.templateDetail(row), ctx(c)))
       : c.notFound();
   });
   app.post(`${BASE}/templates/${id('id')}/review`, async (c) => {
@@ -1064,7 +1088,7 @@ export function createApp({ db, config, anthropic }: Deps) {
           spend,
           templates.filter((t) => t['lang'] === 'bg'),
         ),
-        flash(c),
+        ctx(c),
       ),
     );
   });

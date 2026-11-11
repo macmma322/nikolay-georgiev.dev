@@ -30,7 +30,8 @@ export async function startPostgres(port) {
 }
 
 if (fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  const pg = await startPostgres(54329);
+  // Below 49152: Windows reserves blocks of the dynamic range (Hyper-V, WinNAT). 15432 is a common local tunnel port.
+  const pg = await startPostgres(Number(process.env.TEST_PG_PORT ?? 25432));
   const child = spawn(
     process.execPath,
     ['--test', '--test-concurrency=4', ...process.argv.slice(2), 'tests/*.test.ts'],

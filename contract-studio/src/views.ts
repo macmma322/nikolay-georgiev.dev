@@ -15,7 +15,8 @@ import { buildDocument, fieldLabel } from './render.ts';
 import type { ContractContent, ContractProposal, SettingsData, TemplateFile } from './schema.ts';
 
 export type Body = HtmlEscapedString | Promise<HtmlEscapedString>;
-type Notice = { notice?: string | undefined; error?: string | undefined };
+// `home` is the public portfolio (config.portfolioUrl), never a request value.
+type Chrome = { notice?: string | undefined; error?: string | undefined; home?: string };
 type Row = Record<string, any>;
 
 const NAV = [
@@ -28,71 +29,225 @@ const NAV = [
   ['settings', 'Settings', '/settings'],
 ] as const;
 
+// tokens.css is the portfolio's src/styles/tokens.css, byte for byte (a test checks).
 const head = (title: string) =>
   html`<head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex, noarchive, nofollow" />
+    <meta name="color-scheme" content="dark" />
     <title>${title} · Contract Studio</title>
+    <link rel="stylesheet" href="${BASE}/assets/tokens.css" />
     <link rel="stylesheet" href="${BASE}/assets/studio.css" />
   </head>`;
 
-const banners = ({ notice, error }: Notice) => html`
+// The portfolio's monogram (components/ui/Mark.astro), with its one signal square.
+const mark =
+  raw(`<svg class="mark" viewBox="0 0 24 24" width="30" height="30" aria-hidden="true" focusable="false">
+  <path class="mark-frame" d="M1 1h17.5L23 5.5V23H1z"></path>
+  <path class="mark-glyph" d="M5 16.5v-9l5.5 9v-9M19 7.5h-5.2v9H19v-4.2h-2.6"></path>
+  <rect class="mark-signal" x="19.6" y="19.6" width="1.8" height="1.8"></rect>
+</svg>`);
+const arrowBack = raw(
+  '<svg class="nudge-back" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false"><path d="M13 8H3.5M7.5 4 3.5 8l4 4" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>',
+);
+
+const brand = (href: string) =>
+  html`<a class="brand" href="${href}">
+    ${mark}
+    <span class="brand-text">
+      <span class="brand-name">Nikolay Georgiev</span>
+      <span class="brand-role">Contract Studio</span>
+    </span>
+  </a>`;
+
+// Navigation only: the session stays signed in.
+const backLink = (home: string, className = 'back-link') =>
+  html`<a class="${className}" href="${home}" data-testid="back-to-portfolio"
+    >${arrowBack}<span><span class="visually-hidden">Back to </span>Portfolio</span></a
+  >`;
+
+const logoutForm = (className: string) =>
+  html`<form method="post" action="${BASE}/logout" class="logout">
+    <button class="${className}">Log out</button>
+  </form>`;
+
+const banners = ({ notice, error }: Chrome) => html`
   ${notice ? html`<p class="banner ok" role="status">${notice}</p>` : ''}
   ${error ? html`<p class="banner bad" role="alert">${error}</p>` : ''}
 `;
 
-export const page = (title: string, active: string, body: Body, flash: Notice = {}, wide = false) =>
-  html`<!doctype html>
+const index = (i: number) => String(i + 1).padStart(2, '0');
+
+export const page = (
+  title: string,
+  active: string,
+  body: Body,
+  chrome: Chrome = {},
+  wide = false,
+) => {
+  const home = chrome.home ?? '/';
+  const section = NAV.findIndex(([key]) => key === active);
+  return html`<!doctype html>
     <html lang="en">
       ${head(title)}
       <body>
-        <a class="skip" href="#main">Skip to content</a>
-        <header class="top">
-          <a class="brand" href="${BASE}">Contract Studio</a>
-          <nav aria-label="Workspace">
-            ${NAV.map(
-              ([key, label, path]) =>
-                html`<a href="${BASE}${path}" ${key === active ? raw('aria-current="page"') : ''}
-                  >${label}</a
-                >`,
-            )}
-          </nav>
-          <form method="post" action="${BASE}/logout"><button class="ghost">Log out</button></form>
+        <div class="atmosphere" aria-hidden="true"></div>
+        <a class="skip-link" href="#main">Skip to content</a>
+        <header class="site-header">
+          <div class="bar container">
+            ${brand(BASE)}
+            <nav class="nav-desktop" aria-label="Workspace">
+              <ul role="list">
+                ${NAV.map(
+                  ([key, label, path]) =>
+                    html`<li>
+                      <a href="${BASE}${path}" ${key === active ? raw('aria-current="page"') : ''}
+                        >${label}</a
+                      >
+                    </li>`,
+                )}
+              </ul>
+            </nav>
+            <div class="header-actions">
+              ${backLink(home)} ${logoutForm('cv-link')}
+              <button
+                class="menu-button"
+                type="button"
+                popovertarget="studio-menu"
+                aria-haspopup="dialog"
+              >
+                <span class="menu-lines" aria-hidden="true"><span></span><span></span></span>
+                <span class="menu-label">Menu</span>
+              </button>
+            </div>
+          </div>
+          <div
+            id="studio-menu"
+            class="mobile-menu"
+            popover
+            role="dialog"
+            aria-modal="true"
+            aria-label="Workspace menu"
+          >
+            <div class="mobile-top container">
+              <span class="label">Contract Studio</span>
+              <button
+                class="mobile-close"
+                type="button"
+                popovertarget="studio-menu"
+                popovertargetaction="hide"
+              >
+                Close
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                  <path
+                    d="m3.5 3.5 9 9m0-9-9 9"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                  ></path>
+                </svg>
+              </button>
+            </div>
+            <nav class="mobile-nav container" aria-label="Workspace, mobile">
+              <ol role="list" class="mobile-list">
+                ${NAV.map(
+                  ([key, label, path], i) =>
+                    html`<li>
+                      <a href="${BASE}${path}" ${key === active ? raw('aria-current="page"') : ''}>
+                        <span class="mobile-index">${index(i)}</span>
+                        <span class="mobile-word">${label}</span>
+                      </a>
+                    </li>`,
+                )}
+              </ol>
+              <div class="mobile-meta">
+                ${backLink(home, 'mobile-back')} ${logoutForm('btn-secondary')}
+              </div>
+            </nav>
+          </div>
         </header>
-        <main id="main" class="${wide ? 'wide' : ''}">${banners(flash)}${body}</main>
+        <main id="main" class="container${wide ? ' wide' : ''}">
+          ${
+            section >= 0
+              ? html`<p class="label eyebrow">
+                  <span class="eyebrow-index">${index(section)}</span>
+                  ${
+                    NAV[section]![1] === title
+                      ? NAV[section]![1]
+                      : html`<a href="${BASE}${NAV[section]![2]}">${NAV[section]![1]}</a>`
+                  }
+                </p>`
+              : ''
+          }
+          ${banners(chrome)}${body}
+        </main>
         <script type="module" src="${BASE}/assets/studio.js"></script>
       </body>
     </html>`;
+};
 
-export const authPage = (title: string, body: Body) =>
+export const authPage = (title: string, body: Body, home?: string, script = true) =>
   html`<!doctype html>
     <html lang="en">
       ${head(title)}
       <body class="auth">
-        <main>
+        <div class="atmosphere" aria-hidden="true"></div>
+        <header class="site-header">
+          <div class="bar container">${brand(home ?? BASE)} ${home ? backLink(home) : ''}</div>
+        </header>
+        <main id="main" class="auth-panel">
           <p class="label">Private workspace</p>
           <h1>${title}</h1>
           ${body}
           <p id="auth-message" class="banner bad" role="alert" hidden></p>
         </main>
-        <script type="module" src="${BASE}/assets/auth.js"></script>
+        ${script ? html`<script type="module" src="${BASE}/assets/auth.js"></script>` : ''}
       </body>
     </html>`;
 
-export const loginView = () =>
-  authPage('Sign in', html`<button id="login" class="primary">Sign in with passkey</button>`);
+export const loginView = (home: string, expired = false) =>
+  authPage(
+    'Sign in',
+    html`${
+        expired
+          ? html`<p class="banner warn" role="status">
+              Your session has ended. Sign in again to continue.
+            </p>`
+          : ''
+      }
+      <p class="lede">Contracts, clients and drafts. Sign in with the passkey on this device.</p>
+      <button id="login" class="primary">Sign in with passkey</button>`,
+    home,
+  );
 
-export const setupView = () =>
+export const setupView = (home: string) =>
   authPage(
     'Add a passkey',
-    html`<form id="setup">
+    html`<form id="setup" class="form">
       <label
         >One-time setup token <input name="token" type="password" autocomplete="off" required
       /></label>
       <label>Name this passkey <input name="label" value="Windows Hello" maxlength="80" /></label>
       <button class="primary">Create passkey</button>
     </form>`,
+    home,
+  );
+
+export const logoutFailedView = (home: string) =>
+  authPage(
+    'Log out did not finish',
+    html`<p class="banner bad" role="alert">
+        The server could not close your session, so it may still be active. Nothing was signed out.
+      </p>
+      <div class="actions">
+        <form method="post" action="${BASE}/logout">
+          <button class="primary">Try again</button>
+        </form>
+        <a class="button" href="${BASE}">Back to the workspace</a>
+      </div>`,
+    home,
+    false,
   );
 
 const value = (data: Row | undefined, name: string) => (data?.[name] ?? '') as string;
@@ -115,11 +270,53 @@ const select = (
       ${options.map(([v, text]) => html`<option value="${v}" ${v === current ? raw('selected') : ''}>${text}</option>`)}
     </select></label
   >`;
-const badge = (text: string) =>
-  html`<span class="badge s-${text}">${text.replace(/_/g, ' ')}</span>`;
-const date = (value?: Date | string | null) =>
-  value ? (typeof value === 'string' ? value : value.toISOString().slice(0, 10)) : '—';
-const empty = (text: string) => html`<p class="muted">${text}</p>`;
+// The portfolio's status vocabulary (components/ui/StatusBadge.astro): shape
+// plus label, drawn as SVG so it survives forced colours.
+const SHAPES: Record<string, 'solid' | 'half' | 'dashed' | 'paused'> = {
+  approved: 'solid',
+  signed: 'solid',
+  active: 'solid',
+  completed: 'solid',
+  delivered: 'solid',
+  lawyer_reviewed: 'solid',
+  covered: 'solid',
+  ready_for_review: 'half',
+  exported: 'half',
+  sent: 'half',
+  needs_information: 'dashed',
+  unreviewed: 'dashed',
+  ambiguous: 'dashed',
+  planned: 'dashed',
+  on_hold: 'paused',
+  terminated: 'paused',
+  archived: 'paused',
+  cancelled: 'paused',
+  declined: 'paused',
+  excluded: 'paused',
+};
+const badge = (text: string) => {
+  const shape = SHAPES[text] ?? 'hollow';
+  return html`<span class="badge shape-${shape} s-${text}"
+    ><svg
+      class="glyph"
+      viewBox="0 0 10 10"
+      width="10"
+      height="10"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <rect class="frame" x="0.75" y="0.75" width="8.5" height="8.5" pathLength="24"></rect>
+      ${shape === 'half' ? raw('<rect class="fill" x="0.75" y="0.75" width="4.25" height="8.5"></rect>') : ''}
+      ${shape === 'paused' ? raw('<path class="stroke" d="M2.5 7.5 7.5 2.5"></path>') : ''}</svg
+    ><span class="badge-text">${text.replace(/_/g, ' ')}</span></span
+  >`;
+};
+const date = (value?: Date | string | null) => {
+  if (!value) return '—';
+  const day = typeof value === 'string' ? value : value.toISOString().slice(0, 10);
+  return html`<time datetime="${day}">${day}</time>`;
+};
+const empty = (text: string) => html`<p class="empty">${text}</p>`;
 const table = (headers: string[], rows: Body[]) =>
   html`<div class="table">
     <table>
@@ -745,7 +942,7 @@ export const workspaceView = (w: Workspace) => {
           (to: Status) =>
             html`<form method="post" action="${BASE}/documents/${contract.id}/status">
               <input type="hidden" name="to" value="${to}" /><button>
-                ${to.replace(/_/g, ' ')}
+                Mark as ${to.replace(/_/g, ' ')}
               </button>
             </form>`,
         )}
@@ -1090,6 +1287,10 @@ export const notFound = () =>
     <html lang="en">
       ${head('Not found')}
       <body class="auth">
-        <main><h1>Not found</h1></main>
+        <div class="atmosphere" aria-hidden="true"></div>
+        <main id="main" class="auth-panel">
+          <p class="label">404</p>
+          <h1>Not found</h1>
+        </main>
       </body>
     </html>`;

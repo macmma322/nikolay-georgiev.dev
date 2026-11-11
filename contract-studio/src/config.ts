@@ -9,6 +9,19 @@ export const ALLOWED_MODELS = [
   'claude-fable-5-1',
 ];
 
+// Where "Log out" and "Portfolio" land. Set by the operator, never by a request.
+export const PORTFOLIO_HOME = 'https://nikolay-georgiev.dev/';
+
+function portfolioUrl(value: string | undefined, production: boolean) {
+  const url = new URL(value || PORTFOLIO_HOME);
+  const local = ['localhost', '127.0.0.1'].includes(url.hostname);
+  if (url.protocol !== 'https:' && !(url.protocol === 'http:' && local && !production))
+    throw new Error('PORTFOLIO_URL must be an https URL');
+  if (url.username || url.password || url.search || url.hash)
+    throw new Error('PORTFOLIO_URL must be a plain origin and path');
+  return url.href;
+}
+
 const number = (value: string | undefined, fallback: number) => {
   const parsed = Number(value);
   return value !== undefined && value !== '' && Number.isFinite(parsed) ? parsed : fallback;
@@ -28,6 +41,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     port: number(env['PORT'], 18787),
     databaseUrl: required('DATABASE_URL', 'postgres://postgres@127.0.0.1:5433/studio'),
     appOrigin,
+    portfolioUrl: portfolioUrl(env['PORTFOLIO_URL'], production),
     rpId: required('RP_ID', new URL(appOrigin).hostname),
     // Only the portfolio's Caddy knows this: a direct hit on the Railway domain gets a 404.
     proxySecret: required('PROXY_SHARED_SECRET', ''),

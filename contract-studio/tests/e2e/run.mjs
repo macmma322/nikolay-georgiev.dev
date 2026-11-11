@@ -8,7 +8,7 @@ import { startMock } from '../mock-anthropic.mjs';
 import { startPostgres } from '../run.mjs';
 
 const PORT = 18787;
-const pg = await startPostgres(54330);
+const pg = await startPostgres(Number(process.env.E2E_PG_PORT ?? 25433));
 const mock = await startMock();
 const env = {
   ...process.env,

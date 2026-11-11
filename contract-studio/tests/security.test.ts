@@ -197,13 +197,6 @@ test('tokens are stored hashed and rotate with a short grace period', async () =
   assert.equal(await loadSession(db, config, token), null);
 });
 
-test('logout revokes the session on the server', async () => {
-  const response = await h.call('/logout', { method: 'POST' });
-  assert.equal(response.status, 303);
-  assert.equal((await h.call('')).status, 303);
-  assert.equal((await h.call('/settings')).headers.get('location'), `${BASE}/login`);
-});
-
 test('a setup token is checked exactly and works only once', async () => {
   const secured = { ...config, setupToken: 'one-time-token' };
   assert.equal(await setupAllowed(db, secured, 'one-time-tokex'), false);

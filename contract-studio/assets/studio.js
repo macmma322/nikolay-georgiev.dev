@@ -1,5 +1,57 @@
-// The workspace's only behaviour: chat streaming, live preview, a little markdown.
+// The workspace's only behaviour: chat streaming, live preview, a little markdown,
+// the phone menu, and leaving nothing usable behind once the session is gone.
+const BASE = '/workspace/contracts';
 const escape = (text) => text.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
+
+// A page brought back by Back/Forward is a copy from before; ask the server
+// again, which sends a signed-out browser to sign-in instead of showing it.
+addEventListener('pageshow', (event) => {
+  if (event.persisted) location.reload();
+});
+// Browsers that keep no-store pages in that cache (Safari) keep an empty one.
+addEventListener('pagehide', (event) => {
+  if (event.persisted) document.getElementById('main')?.replaceChildren();
+});
+
+// Any request refused for want of a session: clear the screen, then sign in.
+const signedOut = () => {
+  document.getElementById('main')?.replaceChildren();
+  location.replace(`${BASE}/login?expired=1`);
+};
+
+// The phone menu (the portfolio's SiteHeader behaviour): a native popover;
+// while open the page behind is inert and Tab wraps inside it.
+const menu = document.getElementById('studio-menu');
+if (menu) {
+  const setPageInert = (inert) =>
+    document
+      .querySelectorAll('.skip-link, .site-header > .bar, main')
+      .forEach((el) => (el.inert = inert));
+  menu.addEventListener('beforetoggle', (event) => {
+    if (event.newState === 'closed') setPageInert(false);
+  });
+  menu.addEventListener('toggle', (event) => {
+    if (event.newState !== 'open') return;
+    menu.querySelector('.mobile-list a')?.focus();
+    setPageInert(true);
+  });
+  menu.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return;
+    const items = menu.querySelectorAll('a[href], button');
+    const first = items[0];
+    const last = items[items.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last?.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first?.focus();
+    }
+  });
+  matchMedia('(min-width: 1240px)').addEventListener('change', (event) => {
+    if (event.matches && menu.matches(':popover-open')) menu.hidePopover();
+  });
+}
 
 // Escapes first, then adds a small allowlist of tags: model text never reaches
 // the page as HTML of its own.
@@ -47,6 +99,7 @@ if (edit && preview) {
           body: new URLSearchParams(new FormData(edit)),
           signal: controller.signal,
         });
+        if (response.status === 401) return signedOut();
         if (response.ok) preview.innerHTML = await response.text();
       } catch (error) {
         if (error.name !== 'AbortError') console.warn('Preview failed');
@@ -108,6 +161,7 @@ if (chat) {
         body: JSON.stringify({ message }),
         signal: controller.signal,
       });
+      if (response.status === 401) return signedOut();
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.error ?? 'Claude could not complete that request.');
