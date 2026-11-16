@@ -988,7 +988,7 @@ export const decisions: readonly Decision[] = [
       },
       {
         en: 'The tree system’s 201 tests run headless; the latest full EditMode run had 7,570 tests; 3 failed, all known first-person clearance cases.',
-        bg: '201-те теста на дърветата минават headless; при последното пълно пускане в EditMode имаше 7570 теста; 3 се провалиха, всичките известни проверки за видимост от първо лице.',
+        bg: '201-те теста на дърветата минават headless; при последното пълно пускане в EditMode имаше 7570 теста; 3 се провалиха, всичките известни проверки за отстояние от първо лице.',
       },
       {
         en: 'Separate the rules from the engine on day one; later it is far harder.',
