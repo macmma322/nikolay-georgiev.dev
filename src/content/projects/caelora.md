@@ -27,10 +27,10 @@ spec:
   - { label: Trees, value: 'One skeleton drives wood, leaves, structure and collision' }
   - {
       label: Tests,
-      value: '6,552 EditMode tests; latest full run: 6,198 passed, 341 skipped, 13 failed in one stale fixture',
+      value: '7,570 EditMode and 517 PlayMode tests; latest full run: 0 PlayMode failures, 3 known EditMode failures in first-person clearance cases',
     }
-  - { label: Decisions, value: '44 ADRs and 22 benchmark records' }
-  - { label: Size, value: 'About 262k lines of C#, roughly 119k of them tests' }
+  - { label: Decisions, value: '50 ADRs and 22 benchmark records' }
+  - { label: Size, value: 'About 302k lines of C#, roughly 139k of them tests' }
 highlights:
   - Rules and rendering never trade places. An engine-free, deterministic authority owns the world; Unity only draws it and asks for changes through commands.
   - Chunk meshes are built by background jobs and accepted only while their version stamps are current, so the old mesh stays on screen until the new one is valid.
@@ -106,7 +106,7 @@ decisions:
 now:
   - A playable Windows build of the First Valley with terrain, rivers, forests, living trees that grow and fall, architectural blocks, survival vitals and field crafting.
   - Creatures, villager memory and combat exist as tested core code, and livestock runs in lab scenes, but the game does not use them yet.
-  - Living-world audio, armour, the cloak and the pause and settings screens are qualified on the integration branch, not yet in a release build; live water and a newer interface pass wait on milestone branches for human review.
+  - 'The release candidate is now the main line: the cinematic menu and settings screens, premium equipment and the cloak, checked in a Windows development build. Live water waits on a milestone branch for human review.'
 next:
   - Bringing creatures and villagers into the playable valley.
   - A headless server on the engine-free authority, then multiplayer. Neither exists; the multiplayer screen is a placeholder and there is no networking code.
