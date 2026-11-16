@@ -987,8 +987,8 @@ export const decisions: readonly Decision[] = [
         bg: 'Визуализацията може само да чете света и да иска промени, което означава повече интерфейси за поддръжка.',
       },
       {
-        en: 'The tree system’s 201 tests run headless; the latest full EditMode run had 6,552 tests; 13 failed, all in one fixture with a stale capture hash.',
-        bg: '201-те теста на дърветата минават headless; при последното пълно пускане в EditMode имаше 6552 теста; 13 се провалиха, всичките в един набор с остарял контролен хеш.',
+        en: 'The tree system’s 201 tests run headless; the latest full EditMode run had 7,570 tests; 3 failed, all known first-person clearance cases.',
+        bg: '201-те теста на дърветата минават headless; при последното пълно пускане в EditMode имаше 7570 теста; 3 се провалиха, всичките известни проверки за видимост от първо лице.',
       },
       {
         en: 'Separate the rules from the engine on day one; later it is far harder.',
