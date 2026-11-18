@@ -2,9 +2,10 @@ import type { L } from '@/i18n';
 
 export const music = {
   feature: { en: 'Now on repeat', bg: 'На повторение' },
+  choose: { en: 'Track', bg: 'Песен' },
   open: { en: 'Open YouTube player', bg: 'Отвори плейъра на YouTube' },
   close: { en: 'Close player', bg: 'Затвори плейъра' },
-  official: { en: 'Official music video', bg: 'Официален видеоклип' },
+  selection: { en: 'Synthwave selection', bg: 'Синтуейв селекция' },
   watch: { en: 'Watch on YouTube', bg: 'Гледай в YouTube' },
   privacy: {
     en: 'Opening the player connects to YouTube.',

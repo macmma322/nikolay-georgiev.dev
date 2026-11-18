@@ -1,6 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
+import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
 import Hero from '@/components/home/Hero.astro';
 import MusicExperience from '@/components/music/MusicExperience.astro';
 import ProjectChapter, { type ChapterLayout } from '@/components/home/ProjectChapter.astro';
@@ -31,6 +32,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
 ---
 
 <BaseLayout>
+  <CircuitBackdrop place="footer" slot="footer-circuit" />
   <MusicExperience slot="footer-companion" />
   <Hero />
 
@@ -114,6 +116,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   </section>
 
   <section id="lab" class="container section lab" aria-labelledby="lab-title">
+    <CircuitBackdrop place="accent" />
     <SectionHeader
       label={s.lab.label}
       id="lab-title"

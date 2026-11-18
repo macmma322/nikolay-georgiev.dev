@@ -1,0 +1,128 @@
+---
+import { circuitHeight, circuitWidth, makeCircuitBoard } from '@/lib/circuit-board';
+
+interface Props {
+  place: 'footer' | 'panel' | 'accent';
+}
+
+const { place } = Astro.props;
+const seed = place === 'footer' ? 3219 : 1207;
+const traces = makeCircuitBoard(seed);
+const tones = ['copper', 'amber', 'violet'];
+const banks = tones.map((name, tone) => {
+  const group = traces.filter((trace) => trace.tone === tone);
+  return {
+    name,
+    path: group
+      .map(({ points }) => 'M' + points.map((point) => point.join(',')).join('L'))
+      .join(''),
+    pads: group.map(({ points }) => points.at(-1)!),
+  };
+});
+---
+
+<circuit-field data-place={place} data-seed={seed} aria-hidden="true">
+  <svg
+    viewBox={`0 0 ${circuitWidth} ${circuitHeight}`}
+    preserveAspectRatio="xMidYMid slice"
+    focusable="false"
+  >
+    {banks.map(({ name, path, pads }) => (
+      <g class:list={['bank', name]}>
+        <path d={path} />
+        {pads.map(([x, y]) => (
+          <circle cx={x} cy={y} r="2.8" />
+        ))}
+      </g>
+    ))}
+  </svg>
+  {place !== 'accent' && <canvas></canvas>}
+</circuit-field>
+
+<script>
+  import '@/scripts/circuit-field';
+</script>
+
+<style>
+  circuit-field {
+    position: relative;
+    display: block;
+    isolation: isolate;
+    overflow: clip;
+    pointer-events: none;
+  }
+
+  circuit-field[data-place='footer'] {
+    height: clamp(6rem, 15vw, 13rem);
+    border-bottom: 1px solid #b583591d;
+    background:
+      radial-gradient(ellipse at 54% 110%, #52342c5e, transparent 64%),
+      radial-gradient(ellipse at 10% 0%, #30223a51, transparent 52%), #0d0b0d;
+  }
+
+  :global([data-stage]) > circuit-field[data-place='footer'] {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 80%;
+    border: 0;
+    background: none;
+    opacity: 0.8;
+    mask-image: linear-gradient(black 4%, black 67%, transparent 92%);
+  }
+
+  circuit-field[data-place='panel'] {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 100%;
+    mask-image: linear-gradient(90deg, transparent 55%, black 100%);
+    opacity: 0.63;
+  }
+
+  circuit-field[data-place='accent'] {
+    height: 2.8rem;
+    margin-bottom: var(--space-s);
+    opacity: 0.42;
+    mask-image: linear-gradient(90deg, transparent 3%, black 29%, black 79%, transparent 100%);
+  }
+
+  svg,
+  canvas {
+    position: absolute;
+    inset: 0;
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  .bank {
+    --trace: #af795b;
+    fill: none;
+    stroke: var(--trace);
+    stroke-width: 0.9;
+  }
+
+  .amber {
+    --trace: #c3915d;
+  }
+
+  .violet {
+    --trace: #8e73ac;
+  }
+
+  .bank path {
+    opacity: 0.34;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .bank circle {
+    fill: #160f13;
+    stroke-width: 1;
+    opacity: 0.64;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    canvas {
+      display: none;
+    }
+  }
+</style>

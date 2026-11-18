@@ -1,4 +1,4 @@
-import { featuredTrack, youtube } from '@/lib/music';
+import { youtube, type Track } from '@/lib/music';
 import type { Locale } from '@/i18n/config';
 
 type Player = {
@@ -108,7 +108,7 @@ function loadYouTubeApi(): Promise<YouTubeApi> {
 export function attachYouTubePlayer(
   host: HTMLElement,
   locale: Locale,
-  title: string,
+  track: Track,
   onStatus: (status: PlaybackStatus, restoreFocus?: boolean) => void,
 ): () => void {
   const lifetime = new AbortController();
@@ -166,7 +166,7 @@ export function attachYouTubePlayer(
   void loadYouTubeApi()
     .then((api) => {
       if (lifetime.signal.aborted) return;
-      const url = new URL(`/embed/${featuredTrack.videoId}`, youtube.embedOrigin);
+      const url = new URL(`/embed/${track.videoId}`, youtube.embedOrigin);
       url.search = new URLSearchParams({
         autoplay: '0',
         controls: '1',
@@ -177,7 +177,7 @@ export function attachYouTubePlayer(
       }).toString();
 
       frame = document.createElement('iframe');
-      frame.title = title;
+      frame.title = `${track.title} — ${track.artist}`;
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
       frame.allow = 'encrypted-media; fullscreen';
       frame.allowFullscreen = true;

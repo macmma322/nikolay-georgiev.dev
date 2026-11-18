@@ -1,9 +1,12 @@
 import { isLocale } from '@/i18n/config';
-import { attachYouTubePlayer, type PlaybackStatus } from './youtube-player';
+import { tracks, youtube, type Track } from '@/lib/music';
+import { publishPlaybackState, type PlaybackState } from './playback-state';
+import { attachYouTubePlayer } from './youtube-player';
 
 class MusicExperience extends HTMLElement {
   #connection: AbortController | undefined;
   #closeSession: (() => void) | undefined;
+  #track: Track = tracks[0];
 
   connectedCallback() {
     if (this.#connection) return;
@@ -13,9 +16,10 @@ class MusicExperience extends HTMLElement {
     const screen = this.querySelector<HTMLElement>('[data-music-screen]');
     const statusLine = this.querySelector<HTMLElement>('[data-music-status]');
     const watch = this.querySelector<HTMLAnchorElement>('[data-watch]');
+    const choose = this.querySelector<HTMLSelectElement>('[data-track-select]');
     const locale = this.dataset['locale'] ?? '';
-    const title = panel?.dataset['videoTitle'];
-    if (!launch || !panel?.showModal || !closeButton || !screen || !statusLine || !title) return;
+    if (!launch || !panel?.showModal || !closeButton || !screen || !statusLine || !watch || !choose)
+      return;
     if (!isLocale(locale)) return;
 
     this.#connection = new AbortController();
@@ -23,25 +27,58 @@ class MusicExperience extends HTMLElement {
     launch.setAttribute('aria-haspopup', 'dialog');
     launch.setAttribute('aria-controls', panel.id);
 
-    const setStatus = (state: PlaybackStatus | 'loading') => {
-      this.dataset['state'] = state;
+    const setStatus = (state: PlaybackState) => {
+      if (state === 'idle') this.removeAttribute('data-state');
+      else this.dataset['state'] = state;
       const text = statusLine.dataset[state] ?? '';
       if (statusLine.textContent !== text) statusLine.textContent = text;
+      publishPlaybackState(state);
+    };
+
+    const selectTrack = (track: Track) => {
+      this.#track = track;
+      choose.value = track.videoId;
+      launch.href = watch.href = youtube.watch(track);
+      for (const title of this.querySelectorAll('[data-track-title]'))
+        title.textContent = track.title;
+      for (const artist of this.querySelectorAll('[data-track-artist]'))
+        artist.textContent = track.artist;
+    };
+
+    const startTrack = () => {
+      this.#closeSession?.();
+      setStatus('loading');
+      const track = this.#track;
+      this.#closeSession = attachYouTubePlayer(screen, locale, track, (state, restoreFocus) => {
+        setStatus(state);
+        if (restoreFocus) watch.focus();
+      });
     };
 
     const close = (restoreFocus: boolean) => {
       const wasOpen = panel.open;
-      // Stop and dispose before allowing the modal to hide the player.
       try {
         this.#closeSession?.();
       } finally {
         this.#closeSession = undefined;
         this.removeAttribute('data-open');
-        this.removeAttribute('data-state');
+        setStatus('idle');
         if (wasOpen) panel.close();
         if (restoreFocus && wasOpen) launch.focus({ preventScroll: true });
       }
     };
+
+    selectTrack(this.#track);
+    choose.addEventListener(
+      'change',
+      () => {
+        const track = tracks.find(({ videoId }) => videoId === choose.value);
+        if (!track || track === this.#track) return;
+        selectTrack(track);
+        if (panel.open) startTrack();
+      },
+      { signal },
+    );
 
     launch.addEventListener(
       'click',
@@ -52,7 +89,6 @@ class MusicExperience extends HTMLElement {
           event.preventDefault();
           return;
         }
-        // If a browser cannot open a dialog, keep the link's normal destination.
         try {
           panel.showModal();
         } catch {
@@ -60,11 +96,7 @@ class MusicExperience extends HTMLElement {
         }
         event.preventDefault();
         this.setAttribute('data-open', '');
-        setStatus('loading');
-        this.#closeSession = attachYouTubePlayer(screen, locale, title, (state, restoreFocus) => {
-          setStatus(state);
-          if (restoreFocus) watch?.focus();
-        });
+        startTrack();
       },
       { signal },
     );

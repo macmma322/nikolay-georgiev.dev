@@ -1,12 +1,14 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
 import { applyYouTubeState } from '../../src/scripts/youtube-player';
+import { createCircuitReactivity } from '../../src/scripts/circuit-reactivity';
 
 const apiUrl = 'https://www.youtube.com/iframe_api';
-const watchUrl = 'https://www.youtube.com/watch?v=s3a4OQR-10M';
-const embedUrl = 'https://www.youtube-nocookie.com/embed/s3a4OQR-10M';
+const watchUrl = 'https://youtu.be/44UaY-AN6ho';
+const embedUrl = 'https://www.youtube-nocookie.com/embed/44UaY-AN6ho';
 const launch = (page: Page) => page.locator('[data-music-launch]');
-const player = (page: Page) => page.getByRole('dialog', { name: 'Loser' });
+const player = (page: Page) =>
+  page.getByRole('dialog').filter({ has: page.locator('[data-music-screen]') });
 const status = (page: Page) => player(page).getByRole('status');
 
 type PlayerMock = {
@@ -24,7 +26,7 @@ declare global {
 }
 
 async function mockPlayer(page: Page) {
-  await page.route(embedUrl + '**', (route) =>
+  await page.route('https://www.youtube-nocookie.com/embed/**', (route) =>
     route.fulfill({
       contentType: 'text/html',
       body: '<!doctype html><html lang="en"><head><title>Test fixture</title></head><body><button>Play video</button></body></html>',
@@ -96,7 +98,7 @@ test('renders the footer entry with no third-party requests before opt-in', asyn
       requests.push(request.url());
   });
   await page.goto('/');
-  await expect(launch(page)).toHaveText(/now on repeat.*loser.*tame impala.*youtube/i);
+  await expect(launch(page)).toHaveText(/now on repeat.*memory reboot.*narvent.*youtube/i);
   await expect(launch(page)).toHaveAttribute('href', watchUrl);
   await expect(launch(page)).toHaveAttribute('aria-haspopup', 'dialog');
   await expect(player(page)).toHaveCount(0);
@@ -109,7 +111,7 @@ test('renders the footer entry with no third-party requests before opt-in', asyn
 
   await openPlayer(page);
   const frame = player(page).locator('iframe');
-  await expect(frame).toHaveAttribute('title', 'Loser — Tame Impala');
+  await expect(frame).toHaveAttribute('title', 'Memory Reboot — VØJ, Narvent');
   await expect.poll(() => requests.length).toBe(2);
   const src = await frame.getAttribute('src');
   const url = new URL(src ?? '');
@@ -276,6 +278,70 @@ test('keeps a usable watch link without JavaScript', async ({ browser, baseURL }
   } finally {
     await context.close();
   }
+});
+
+test('the circuit eases through playback, buffering and decay', () => {
+  const reactivity = createCircuitReactivity();
+  const idle = { ...reactivity.advance(0) };
+  reactivity.setState('playing');
+  expect(reactivity.advance(0)).toEqual(idle);
+  const rising = { ...reactivity.advance(0.8) };
+  const active = { ...reactivity.advance(4) };
+  expect(rising.signals).toBeGreaterThan(idle.signals);
+  expect(active.signals).toBeGreaterThan(rising.signals);
+  reactivity.setState('buffering');
+  const buffering = { ...reactivity.advance(4) };
+  expect(buffering.signals).toBeLessThan(active.signals);
+  expect(buffering.signals).toBeGreaterThan(idle.signals);
+  reactivity.setState('paused');
+  expect(reactivity.advance(0)).toEqual(buffering);
+  expect(reactivity.advance(8).signals).toBeCloseTo(idle.signals, 2);
+});
+
+test('keeping the circuit offscreen or reduced stops rendering', async ({ page }) => {
+  await page.goto('/');
+  const field = page.locator('circuit-field[data-place=footer]');
+  await expect(field).not.toHaveAttribute('data-running');
+  await field.scrollIntoViewIfNeeded();
+  await expect(field).toHaveAttribute('data-running', '');
+  await expect(field).toHaveAttribute('data-playback', 'idle');
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await expect(field).not.toHaveAttribute('data-running');
+  await expect(field.locator('svg')).toBeVisible();
+  await expect(field.locator('canvas')).toBeHidden();
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await expect(field).toHaveAttribute('data-running', '');
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await expect(field).not.toHaveAttribute('data-running');
+});
+
+test('switches among the exact selections and resets the circuit until playback is confirmed', async ({
+  page,
+}) => {
+  await mockPlayer(page);
+  await page.goto('/');
+  await openPlayer(page);
+  const field = player(page).locator('circuit-field[data-place=panel]');
+  await expect(field).toHaveAttribute('data-playback', 'ready');
+  await emit(page, 'onStateChange', 1);
+  await expect(field).toHaveAttribute('data-playback', 'playing');
+
+  for (const id of ['5Kn0Yc56jaw', 'IzTJQiFoNGE', 'JOUELP4mnCQ']) {
+    await player(page).getByRole('combobox').selectOption(id);
+    await expect(status(page)).toHaveText('YouTube player loaded');
+    const src = await player(page).locator('iframe').getAttribute('src');
+    expect(new URL(src ?? '').pathname).toBe('/embed/' + id);
+    await expect(player(page).getByRole('link', { name: 'Watch on YouTube' })).toHaveAttribute(
+      'href',
+      'https://youtu.be/' + id,
+    );
+    await expect(field).toHaveAttribute('data-playback', 'ready');
+  }
+
+  expect(await page.evaluate(() => window.musicMock.destroyed)).toBe(3);
+  await emit(page, 'onError', 150);
+  await expect(field).toHaveAttribute('data-playback', 'unavailable');
+  await expect(player(page).locator('iframe')).toHaveCount(0);
 });
 
 test('the expanded dialog passes an axe scan', async ({ page }) => {

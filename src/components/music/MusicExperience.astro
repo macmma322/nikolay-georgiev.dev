@@ -1,14 +1,17 @@
 ---
 import VinylArtwork from './VinylArtwork.astro';
+import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
 import { useI18n } from '@/i18n';
 import { music } from '@/i18n/ui/music';
-import { featuredTrack, youtube } from '@/lib/music';
+import { tracks, youtube } from '@/lib/music';
 
 const { locale, t } = useI18n(Astro);
 const s = t(music);
-const { title, artist } = featuredTrack;
-const videoTitle = `${title} — ${artist}`;
+const track = tracks[0];
+const { title, artist } = track;
 
+// Explicit sources replace Astro's default. Keep first-party module chunks available.
+Astro.csp?.insertScriptResource("'self'");
 Astro.csp?.insertScriptResource(youtube.api);
 Astro.csp?.insertScriptResource(youtube.widgetScripts);
 Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
@@ -19,7 +22,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     <a
       class="music-card"
       data-music-launch
-      href={youtube.watch}
+      href={youtube.watch(track)}
       aria-labelledby="music-open music-track music-artist"
     >
       <span class="card-art">
@@ -27,7 +30,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
       </span>
       <span class="card-copy">
         <span class="overline">{s.feature}</span>
-        <span class="track" id="music-track" lang="en">
+        <span class="track" id="music-track" lang="en" data-track-title>
           {title}
         </span>
         <span class="artist" lang="en">
@@ -44,23 +47,19 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     </a>
   </section>
 
-  <dialog
-    class="music-panel"
-    id="music-panel"
-    aria-labelledby="music-panel-title"
-    data-video-title={videoTitle}
-  >
+  <dialog class="music-panel" id="music-panel" aria-labelledby="music-panel-title">
     <div class="panel-interior">
       <header class="panel-header">
+        <CircuitBackdrop place="panel" />
         <div class="panel-art">
           <VinylArtwork />
         </div>
         <div class="panel-copy">
-          <p class="overline">{s.official}</p>
-          <h2 class="panel-title" id="music-panel-title" lang="en">
+          <p class="overline">{s.selection}</p>
+          <h2 class="panel-title" id="music-panel-title" lang="en" data-track-title>
             {title}
           </h2>
-          <p class="artist" lang="en">
+          <p class="artist" lang="en" data-track-artist>
             {artist}
           </p>
         </div>
@@ -68,6 +67,17 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
           <span aria-hidden="true"></span>
         </button>
       </header>
+
+      <label class="track-choice">
+        <span>{s.choose}</span>
+        <select data-track-select>
+          {tracks.map((item) => (
+            <option value={item.videoId} lang="en">
+              {item.title} — {item.artist}
+            </option>
+          ))}
+        </select>
+      </label>
 
       <div class="screen" data-music-screen></div>
 
@@ -85,7 +95,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
           data-error={s.status.error}
           data-unavailable={s.status.unavailable}
         ></p>
-        <a class="watch" data-watch href={youtube.watch} target="_blank" rel="noopener">
+        <a class="watch" data-watch href={youtube.watch(track)} target="_blank" rel="noopener">
           {s.watch}
           <span aria-hidden="true">↗</span>
         </a>
@@ -251,7 +261,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
   }
 
   .music-panel::backdrop {
-    background: #08080ae8;
+    background: #08080abf;
   }
 
   .music-panel[open]::backdrop {
@@ -266,6 +276,8 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
   }
 
   .panel-header {
+    position: relative;
+    isolation: isolate;
     display: grid;
     grid-template-columns: clamp(3.7rem, 15vw, 7rem) minmax(0, 1fr) 44px;
     gap: clamp(0.55rem, 2.8vw, 1.3rem);
@@ -315,6 +327,33 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   .panel-close span::after {
     transform: rotate(-45deg);
+  }
+
+  .panel-header > :global(circuit-field) {
+    z-index: -1;
+  }
+
+  .track-choice {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.8rem;
+    color: var(--fg-2);
+    font-size: var(--text-caption);
+  }
+
+  .track-choice select {
+    width: 100%;
+    min-width: 0;
+    min-height: 44px;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid #685343;
+    border-radius: 4px;
+    background: #211b18;
+    color: var(--fg);
+    font: inherit;
+    color-scheme: dark;
   }
 
   .screen {
