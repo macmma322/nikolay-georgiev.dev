@@ -35,8 +35,8 @@ export const contact = {
   },
   workingLanguages: { en: 'English, Bulgarian', bg: 'Английски, български' },
   baseline: {
-    en: 'Built with Astro and TypeScript. No trackers, no cookies.',
-    bg: 'Направен с Astro и TypeScript. Без тракери, без бисквитки.',
+    en: 'Built with Astro and TypeScript.',
+    bg: 'Направен с Astro и TypeScript.',
   },
   /** CopyButton: visible states and the live-region messages. */
   copy: {

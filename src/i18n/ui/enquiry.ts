@@ -181,8 +181,8 @@ export const enquiry = {
     sending: { en: 'Sending…', bg: 'Изпращане…' },
   },
   privacy: {
-    en: 'Your details go by email to my inbox, only so I can reply. The site stores nothing and uses no trackers. If you book a call, Google Calendar handles that booking under Google’s own privacy terms.',
-    bg: 'Данните ви отиват по имейл в моята поща, само за да ви отговоря. Сайтът не пази нищо и не използва тракери. Ако запазите разговор, резервацията се обработва от Google Calendar според условията на Google.',
+    en: 'Your details go by email to my inbox, only so I can reply. If you book a call, Google Calendar handles that booking under Google’s own privacy terms.',
+    bg: 'Данните ви отиват по имейл в моята поща, само за да ви отговоря. Ако запазите разговор, резервацията се обработва от Google Calendar според условията на Google.',
   },
   noscript: {
     en: 'This form needs JavaScript. You can email me directly at the address above.',

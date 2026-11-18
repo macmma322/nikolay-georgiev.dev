@@ -2,6 +2,7 @@
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Hero from '@/components/home/Hero.astro';
+import MusicExperience from '@/components/music/MusicExperience.astro';
 import ProjectChapter, { type ChapterLayout } from '@/components/home/ProjectChapter.astro';
 import Capabilities from '@/components/home/Capabilities.astro';
 import ExperienceBrief from '@/components/home/ExperienceBrief.astro';
@@ -30,6 +31,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
 ---
 
 <BaseLayout>
+  <MusicExperience slot="footer-companion" />
   <Hero />
 
   <section id="work" class="container section work" aria-labelledby="work-title">
