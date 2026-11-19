@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 import StatusBadge from '@/components/ui/StatusBadge.astro';
 import LayerGlyph from '@/components/ui/LayerGlyph.astro';
 import ProjectArt from '@/components/work/ProjectArt.astro';
@@ -73,10 +74,13 @@ const headingId = `chapter-${entry.id}`;
 
   <div class="visual" data-vt-art={entry.id}>
     <ProjectArt slug={entry.id} build />
+    {entry.id === 'caelora' && <AvatarAnchor scene="caelora" pose="sit" />}
+    {entry.id === 'jarvis' && <AvatarAnchor scene="jarvis" pose="lean" />}
   </div>
 </article>
 
 <style>
+  .visual { position: relative; }
   .chapter {
     display: grid;
     gap: var(--space-l);

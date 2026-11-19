@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
@@ -133,6 +134,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   <section id="lab" class="container section lab" aria-labelledby="lab-title">
     <div class="lab-board">
       <CircuitBackdrop place="world" scene="prototype" />
+      <AvatarAnchor scene="lab" pose="inspect" />
     </div>
     <SectionHeader
       label={s.lab.label}
@@ -178,6 +180,7 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   }
 
   .lab-board {
+    position: relative;
     margin-bottom: var(--space-l);
   }
 

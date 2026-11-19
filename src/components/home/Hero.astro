@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 import { site } from '@/data/site';
 import Button from '@/components/ui/Button.astro';
 import LayerStack from '@/components/home/LayerStack.astro';
@@ -89,6 +90,7 @@ const statement = l(site.statement);
   </div>
 
   <div class="container">
+    <div class="hero-ground"><AvatarAnchor scene="hero" pose="walk" /></div>
     <dl class="now">
       {s.now.map((item) => (
         <div class="now-item">
@@ -282,10 +284,13 @@ const statement = l(site.statement);
     right: 0;
   }
 
+  .hero-ground {
+    position: relative;
+    margin-top: var(--space-l);
+  }
   .now {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr));
-    margin-top: var(--space-l);
     border-top: 1px solid var(--line-soft);
   }
 
@@ -327,7 +332,7 @@ const statement = l(site.statement);
   }
 
   @media (min-width: 1000px) and (max-height: 820px) {
-    .now {
+    .hero-ground {
       margin-top: var(--space-m);
     }
   }
