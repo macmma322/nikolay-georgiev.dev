@@ -359,6 +359,7 @@ class CircuitField extends HTMLElement {
     }
     motion.addEventListener('change', sync, { signal });
     document.addEventListener('visibilitychange', sync, { signal });
+    panel?.addEventListener('close', sync, { signal });
     resize.observe(this);
     intersection.observe(this);
 

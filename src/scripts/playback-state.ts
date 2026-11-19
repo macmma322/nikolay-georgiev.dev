@@ -6,11 +6,26 @@ export type PlaybackState =
   | 'paused'
   | 'buffering'
   | 'ended'
+  | 'restricted'
+  | 'unavailable'
   | 'error'
-  | 'unavailable';
+  | 'unsupported';
+
+export function isPlaybackFailure(value: PlaybackState): boolean {
+  return (
+    value === 'restricted' ||
+    value === 'unavailable' ||
+    value === 'error' ||
+    value === 'unsupported'
+  );
+}
 
 let state: PlaybackState = 'idle';
 const listeners = new Set<(state: PlaybackState) => void>();
+
+export function getPlaybackState(): PlaybackState {
+  return state;
+}
 
 export function publishPlaybackState(next: PlaybackState) {
   if (state === next) return;

@@ -3,6 +3,9 @@
     <span class="record">
       <span class="record-label">
         <span>33⅓</span>
+        <span class="catalog" data-track-catalog>
+          A1
+        </span>
       </span>
     </span>
   </span>
@@ -65,20 +68,56 @@
   }
 
   .record-label {
+    --label-hi: #d9a377;
+    --label-mid: #ad704e;
+    --label-lo: #77452f;
+    --label-ring: #edb98c80;
+    --label-stripe: #543126;
     position: relative;
     display: grid;
     width: 42%;
     aspect-ratio: 1;
     place-items: start center;
-    padding-top: 7cqi;
-    border: 1px solid #edb98c80;
+    align-content: space-between;
+    padding-block: 7cqi 6cqi;
+    border: 1px solid var(--label-ring);
     border-radius: 50%;
     background:
-      linear-gradient(168deg, transparent 58%, #543126 59% 63%, transparent 64%),
-      radial-gradient(circle at 29% 15%, #d9a377, #ad704e 57%, #77452f);
+      linear-gradient(168deg, transparent 58%, var(--label-stripe) 59% 63%, transparent 64%),
+      radial-gradient(circle at 29% 15%, var(--label-hi), var(--label-mid) 57%, var(--label-lo));
     color: #271b15;
     font: 800 5cqi/1 var(--font-display);
     letter-spacing: 0.04em;
+  }
+
+  .catalog {
+    font: 700 4.2cqi/1 var(--font-mono);
+    letter-spacing: 0.08em;
+    opacity: 0.82;
+  }
+
+  :global(music-experience[data-track-accent='amber']) .record-label {
+    --label-hi: #e5be7e;
+    --label-mid: #b37c40;
+    --label-lo: #734822;
+    --label-ring: #f2cf9480;
+    --label-stripe: #52351b;
+  }
+
+  :global(music-experience[data-track-accent='violet']) .record-label {
+    --label-hi: #cea8c5;
+    --label-mid: #8e678c;
+    --label-lo: #563a57;
+    --label-ring: #dfb9d680;
+    --label-stripe: #3e2740;
+  }
+
+  :global(music-experience[data-track-accent='ember']) .record-label {
+    --label-hi: #dc9a89;
+    --label-mid: #9f594c;
+    --label-lo: #66332c;
+    --label-ring: #ebb0a080;
+    --label-stripe: #4b231e;
   }
 
   .record-label::after {

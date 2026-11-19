@@ -18,7 +18,7 @@ Astro.csp?.insertScriptResource(youtube.widgetScripts);
 Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 ---
 
-<music-experience class="music-shelf" data-locale={locale}>
+<music-experience class="music-shelf" data-locale={locale} data-track-accent={track.accent}>
   <div class="music-dock">
     <section class="shelf-inner" aria-label={s.feature}>
       <a
@@ -83,7 +83,40 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
         </select>
       </label>
 
-      <div class="screen" data-music-screen></div>
+      <div class="screen" data-music-screen>
+        <div class="player-slot" data-music-player></div>
+        <div
+          class="fallback-card"
+          data-music-fallback
+          hidden
+          data-restricted={s.fallback.restricted}
+          data-config-blocked={s.fallback.configBlocked}
+          data-unavailable={s.fallback.unavailable}
+          data-error={s.fallback.error}
+          data-unsupported={s.fallback.unsupported}
+        >
+          <span class="fallback-disc" aria-hidden="true"></span>
+          <div class="fallback-copy">
+            <p class="fallback-title" lang="en" data-track-title>
+              {title}
+            </p>
+            <p class="fallback-artist" lang="en" data-track-artist>
+              {artist}
+            </p>
+            <p class="fallback-reason" data-fallback-reason></p>
+            <a
+              class="fallback-action"
+              data-fallback-watch
+              href={youtube.watch(track)}
+              target="_blank"
+              rel="noopener"
+            >
+              {s.listen}
+              <span aria-hidden="true">↗</span>
+            </a>
+          </div>
+        </div>
+      </div>
 
       <div class="panel-meta">
         <p
@@ -96,8 +129,10 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
           data-paused={s.status.paused}
           data-buffering={s.status.buffering}
           data-ended={s.status.ended}
-          data-error={s.status.error}
+          data-restricted={s.status.restricted}
           data-unavailable={s.status.unavailable}
+          data-error={s.status.error}
+          data-unsupported={s.status.unsupported}
         ></p>
         <a class="watch" data-watch href={youtube.watch(track)} target="_blank" rel="noopener">
           {s.watch}
@@ -394,8 +429,14 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     width: 100%;
     min-height: 200px;
     aspect-ratio: 16 / 9;
+    overflow: hidden;
     background: #080809;
     box-shadow: 0 0 0 1px #51463d;
+  }
+
+  .player-slot {
+    position: absolute;
+    inset: 0;
   }
 
   .screen :global(iframe) {
@@ -407,10 +448,104 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     border: 0;
   }
 
+  .fallback-card {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: clamp(0.7rem, 3vw, 1.35rem);
+    align-items: center;
+    align-content: center;
+    padding: clamp(0.75rem, 3vw, 1.4rem);
+    overflow: auto;
+    background:
+      radial-gradient(ellipse at 22% 18%, #472e2166, transparent 62%),
+      repeating-linear-gradient(0deg, transparent 0 3px, #ddba9706 4px 5px), #100e0e;
+  }
+
+  .fallback-card[hidden] {
+    display: none;
+  }
+
+  .fallback-disc {
+    width: clamp(3.8rem, 16vw, 7rem);
+    aspect-ratio: 1;
+    border: 1px solid #5a483c;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle, #1d1510 0 6%, #8d5c42 7% 24%, #1b1715 25% 29%, transparent 30%),
+      repeating-radial-gradient(circle, transparent 0 3px, #c0a89d22 3px 4px),
+      conic-gradient(
+        from 40deg,
+        #1b1817,
+        #35302e 17%,
+        #171414 38%,
+        #111012 58%,
+        #39312d 78%,
+        #1b1817
+      );
+    box-shadow: 0 10px 20px #0008;
+  }
+
+  .fallback-copy {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+    justify-items: start;
+  }
+
+  .fallback-title {
+    margin: 0;
+    color: var(--fg);
+    font-family: var(--font-display);
+    font-size: clamp(1rem, 2.8vw, 1.35rem);
+    font-weight: 700;
+    line-height: 1.15;
+  }
+
+  .fallback-artist {
+    margin: 0;
+    color: var(--copper-light);
+    font-size: var(--text-caption);
+    line-height: 1.25;
+  }
+
+  .fallback-reason {
+    margin: 0.15rem 0 0;
+    max-width: 46ch;
+    color: var(--fg-2);
+    font-size: var(--text-caption);
+    line-height: 1.42;
+  }
+
+  .fallback-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    margin-top: 0.35rem;
+    padding-inline: 0.9rem;
+    border: 1px solid #a67856;
+    border-radius: 5px;
+    background: linear-gradient(180deg, #422b20, #2d1d16);
+    color: #f4d3b4;
+    font-size: var(--text-caption);
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      border-color var(--dur-ui) var(--ease-out),
+      background var(--dur-ui) var(--ease-out);
+  }
+
+  .fallback-action:is(:hover, :focus-visible) {
+    border-color: var(--copper-light);
+    background: linear-gradient(180deg, #523628, #37241b);
+  }
+
   .panel-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 1rem;
+    gap: 0.35rem 1rem;
     align-items: center;
     justify-content: space-between;
     margin-block-start: 0.55rem;
@@ -418,13 +553,6 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   .player-status,
   .watch,
-  music-experience:is([data-state='error'], [data-state='unavailable']) .watch {
-    padding-inline: 0.75rem;
-    border: 1px solid var(--copper-line);
-    border-radius: 4px;
-    background: #34251e;
-  }
-
   .privacy {
     font-size: var(--text-caption);
   }
@@ -452,8 +580,8 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     box-shadow: 0 0 8px #ffbf8e70;
   }
 
-  /* Keep the aperture at its playback dimensions even if the connection fails. */
-  .screen:empty {
+  /* Keep the aperture composed while loading before the iframe mounts. */
+  .player-slot:empty {
     display: grid;
     place-items: center;
     overflow: hidden;
@@ -462,7 +590,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
       repeating-linear-gradient(0deg, transparent 0 3px, #ddba9705 4px 5px), #100e0e;
   }
 
-  .screen:empty::before {
+  .player-slot:empty::before {
     width: min(12rem, 58%);
     aspect-ratio: 1;
     border: 1px solid #504035;
@@ -491,13 +619,6 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     color: var(--copper-light);
   }
 
-  music-experience:is([data-state='error'], [data-state='unavailable']) .watch {
-    padding-inline: 0.75rem;
-    border: 1px solid var(--copper-line);
-    border-radius: 4px;
-    background: #34251e;
-  }
-
   .privacy {
     margin: 0;
     padding-block-start: 0.65rem;
@@ -522,6 +643,14 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     .panel-meta {
       display: grid;
     }
+
+    .fallback-card {
+      grid-template-columns: 1fr;
+    }
+
+    .fallback-disc {
+      display: none;
+    }
   }
 
   @media (max-width: 380px) {
@@ -534,7 +663,8 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
   @media (prefers-reduced-motion: reduce) {
     .music-card,
     .play-icon::after,
-    .panel-close {
+    .panel-close,
+    .fallback-action {
       transition: none;
     }
 

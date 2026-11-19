@@ -1,6 +1,6 @@
 import { electricalInput } from './electrical-input';
 import { createLiveCircuitAudio, type AudioSource } from './live-circuit-audio';
-import { observePlaybackState } from './playback-state';
+import { isPlaybackFailure, observePlaybackState } from './playback-state';
 import {
   getQualityPreference,
   observeQualityTier,
@@ -30,6 +30,7 @@ class ElectricityControls extends HTMLElement {
     const { signal } = events;
     let session: ReturnType<typeof createLiveCircuitAudio> | undefined;
     let paused = false;
+    let manualMode = false;
 
     const stop = () => {
       session?.stop();
@@ -103,6 +104,7 @@ class ElectricityControls extends HTMLElement {
       () => {
         stop();
         notice.textContent = '';
+        manualMode = true;
         setMode(mode.value === 'live' || mode.value === 'player' ? mode.value : 'ambient');
       },
       { signal },
@@ -163,6 +165,18 @@ class ElectricityControls extends HTMLElement {
     window.addEventListener('pagehide', () => finish(), { signal });
     const unobserve = observePlaybackState((state) => {
       if (state === 'loading' && session) finish();
+      // Gently energize the living circuitry on confirmed player playback unless
+      // the visitor explicitly chose another reactivity mode or Live Audio is active.
+      if (!manualMode && !session) {
+        if (state === 'playing' && electricalInput.mode === 'ambient') {
+          setMode('player');
+        } else if (
+          (state === 'idle' || isPlaybackFailure(state)) &&
+          electricalInput.mode === 'player'
+        ) {
+          setMode('ambient');
+        }
+      }
     });
     const unobserveQuality = qualitySelect
       ? observeQualityTier(() => {
