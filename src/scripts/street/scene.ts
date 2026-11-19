@@ -168,6 +168,8 @@ export function createStreet(options: StreetOptions): Street {
     if (w === 0 || h === 0) return;
     const ratio = Math.min(window.devicePixelRatio || 1, 2);
     if (w === width && h === height && ratio === dpr) return;
+    // The first real size: until now there was no street to put anyone on.
+    const first = width === 0;
     for (const walker of walkers) {
       if (width > 0) walker.x *= w / width;
       measure(walker, h);
@@ -179,6 +181,7 @@ export function createStreet(options: StreetOptions): Street {
       canvas.width = Math.round(w * dpr);
       canvas.height = Math.round(h * dpr);
     }
+    if (first) populate();
     if (state !== 'running') draw();
   }
 
@@ -204,6 +207,9 @@ export function createStreet(options: StreetOptions): Street {
 
   function laneTarget(index: number): number {
     const total = population();
+    // A stage with no size holds nobody: a figure made there would have a
+    // walk cycle of zero length.
+    if (total === 0) return 0;
     if (index === 4) return total >= 14 ? 1 : 0;
     return Math.max(1, Math.round(total * LANES[index]!.share));
   }
@@ -406,6 +412,7 @@ export function createStreet(options: StreetOptions): Street {
     from + (to - from) * Math.min(1, rate * dt);
 
   function update(dt: number) {
+    if (width === 0) return;
     clock += dt;
 
     for (let lane = 0; lane < LANES.length; lane += 1) {
@@ -677,8 +684,8 @@ export function createStreet(options: StreetOptions): Street {
   watcher.observe(stage);
   document.addEventListener('visibilitychange', sync);
 
+  // Peoples the street as soon as it has a size (now, unless the stage is collapsed).
   resize();
-  populate();
   setState(state);
   draw();
 

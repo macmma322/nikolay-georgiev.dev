@@ -1590,8 +1590,11 @@ function drawDog(g: G, pal: Paint, x: number, size: number, p: number, stand: nu
       -0.8,
       3,
       2.4,
-      shade ? pal.topDark : pal.item,
-      shade ? pal.topDark : pal.item,
+      pal.item,
+      pal.item,
+      // The far pair is in the dog's own shadow, never in its owner's coat colour.
+      shade ? pal.soft : undefined,
+      shade ? pal.soft : undefined,
     );
   };
   paw(-7, 0.5, true);
@@ -1603,7 +1606,7 @@ function drawDog(g: G, pal: Paint, x: number, size: number, p: number, stand: nu
   paw(-8.5, 0, false);
   paw(6, 0.5, false);
   shape(g, [7, -26, 3, 15, -25.5, 3, 19.6, -20.6, 1.8, 15, -17, 3, 8, -17.5, 3], pal, pal.item);
-  shape(g, [8.4, -26.6, 1.2, 11.6, -26.4, 1.2, 9.4, -20.6, 1.4], pal, pal.topDark);
+  shape(g, [8.4, -26.6, 1.2, 11.6, -26.4, 1.2, 9.4, -20.6, 1.4], pal, pal.item);
   g.fillStyle = pal.line;
   g.beginPath();
   g.arc(14.2, -22.6, 0.7, 0, TAU);
