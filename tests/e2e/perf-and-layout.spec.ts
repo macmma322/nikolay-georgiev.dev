@@ -32,7 +32,7 @@ test.describe('floating UI safe-area & collision regressions', () => {
       await page.setViewportSize({ width, height });
       await page.goto('/');
 
-      // On wide screens, the Hero "now" strip clears the bottom-right vinyl dock on initial paint.
+      // On wide screens, the Hero "now" strip clears the bottom-right vinyl dock on initial paint (EN & BG).
       if (width >= 1000) {
         const dockBox = (await page.locator('music-experience').boundingBox())!;
         const lastNow = (await page.locator('.hero .now-item').last().boundingBox())!;
@@ -78,7 +78,38 @@ test.describe('floating UI safe-area & collision regressions', () => {
     });
   }
 
-  test('contact page bare footer clears the vinyl dock on EN and BG', async ({ page }) => {
+  test('Bulgarian hero and electricity controls clear dock and labels at desktop widths', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
+    for (const [width, height] of [
+      [1920, 1080],
+      [1440, 900],
+      [1366, 768],
+    ] as const) {
+      await page.setViewportSize({ width, height });
+      await page.goto('/bg');
+      const dockBox = (await page.locator('music-experience').boundingBox())!;
+      const lastNow = (await page.locator('.hero .now-item').last().boundingBox())!;
+      expect(overlaps(dockBox, lastNow), `/bg hero now overlapped dock at ${width}x${height}`).toBe(
+        false,
+      );
+    }
+
+    await page.locator('electricity-controls summary').click();
+    const settings = page.locator('electricity-controls .setting');
+    const count = await settings.count();
+    expect(count).toBeGreaterThanOrEqual(3);
+    for (let i = 0; i < count; i += 1) {
+      const labelBox = (await settings.nth(i).locator('span').boundingBox())!;
+      const selectBox = (await settings.nth(i).locator('select').boundingBox())!;
+      expect(overlaps(labelBox, selectBox), `BG control label ${i} overlapped select`).toBe(false);
+    }
+  });
+
+  test('contact page bare footer clears the vinyl dock and never overflows at 320px (EN & BG)', async ({
+    page,
+  }) => {
     for (const path of ['/contact', '/bg/contact']) {
       await page.goto(path);
       await page.evaluate(() =>
@@ -88,6 +119,10 @@ test.describe('floating UI safe-area & collision regressions', () => {
       const portalBox = (await page.locator('.site-footer .secret-portal').boundingBox())!;
       expect(overlaps(dockBox, portalBox)).toBe(false);
       expect(await isHitTestable(page, '.site-footer .secret-portal')).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        `${path} overflowed horizontally`,
+      ).toBeLessThanOrEqual(0);
     }
   });
 });

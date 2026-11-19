@@ -166,6 +166,11 @@ export function createStreet(options: StreetOptions): Street {
   const nextSpawn = LANES.map(() => 0);
   const pointer = { x: -1, y: -1, on: false };
   const labels = new Map(options.cast.map((el) => [el.dataset['cast'] ?? '', el]));
+  /** Previous painted bounding box per canvas layer so we clear only dirty regions. */
+  const dirty = [
+    { active: false, minX: 0, minY: 0, maxX: 0, maxY: 0 },
+    { active: false, minX: 0, minY: 0, maxX: 0, maxY: 0 },
+  ];
 
   // ---------- size ----------
   const unit = (lane: Lane) => height * UNIT * lane.scale;
@@ -175,11 +180,12 @@ export function createStreet(options: StreetOptions): Street {
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     if (w === 0 || h === 0) return;
-    const qualityCap = quality === 'low' ? 0.9 : quality === 'balanced' ? 1 : 1.25;
+    const qualityCap = quality === 'low' ? 0.72 : quality === 'balanced' ? 0.85 : 1.25;
+    const areaCap = quality === 'low' ? 200_000 : quality === 'balanced' ? 320_000 : 1_150_000;
     const ratio = Math.min(
       window.devicePixelRatio || 1,
       qualityCap,
-      Math.sqrt(1_150_000 / Math.max(1, w * h)),
+      Math.sqrt(areaCap / Math.max(1, w * h)),
     );
     if (w === width && h === height && Math.abs(ratio - dpr) < 0.01) return;
     // The first real size: until now there was no street to put anyone on.
@@ -191,9 +197,11 @@ export function createStreet(options: StreetOptions): Street {
     width = w;
     height = h;
     dpr = ratio;
-    for (const canvas of canvases) {
+    for (let i = 0; i < canvases.length; i += 1) {
+      const canvas = canvases[i]!;
       canvas.width = Math.max(1, Math.round(w * dpr));
       canvas.height = Math.max(1, Math.round(h * dpr));
+      dirty[i]!.active = false;
     }
     if (first) populate();
     if (state !== 'running') draw();
@@ -215,11 +223,11 @@ export function createStreet(options: StreetOptions): Street {
   /** People the street holds at this width: fewer on a phone, more on a wide screen. */
   function population(): number {
     if (width === 0) return 0;
-    const qualityFactor = quality === 'low' ? 0.65 : quality === 'balanced' ? 0.84 : 1;
+    const qualityFactor = quality === 'low' ? 0.65 : quality === 'balanced' ? 0.82 : 1;
     const full = Math.min(32, Math.max(8, Math.round(width / (height * 0.16))));
     const scaled = Math.round(full * budget * qualityFactor);
     if (width < 500) return Math.min(10, Math.max(5, scaled));
-    return Math.max(quality === 'low' ? 10 : 14, scaled);
+    return Math.max(14, scaled);
   }
 
   function laneTarget(index: number): number {
@@ -538,8 +546,37 @@ export function createStreet(options: StreetOptions): Street {
     for (let layer = 0; layer < 2; layer += 1) {
       const g = contexts[layer];
       if (!g) continue;
+      const box = dirty[layer]!;
+      let hasVisible = false;
+      for (const walker of walkers) {
+        const lane = LANES[walker.lane]!;
+        if (lane.front !== (layer === 1)) continue;
+        if (walker.x >= -walker.half * 2 && walker.x <= width + walker.half * 2) {
+          hasVisible = true;
+          break;
+        }
+      }
+      if (!hasVisible && !box.active) continue;
+
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.clearRect(0, 0, width, height);
+      if (box.active) {
+        const cx = Math.max(0, Math.floor(box.minX - 6));
+        const cy = Math.max(0, Math.floor(box.minY - 6));
+        const cw = Math.min(width, Math.ceil(box.maxX + 6)) - cx;
+        const ch = Math.min(height, Math.ceil(box.maxY + 6)) - cy;
+        if (cw > 0 && ch > 0) g.clearRect(cx, cy, cw, ch);
+      }
+
+      if (!hasVisible) {
+        box.active = false;
+        continue;
+      }
+
+      let minX = width;
+      let minY = height;
+      let maxX = 0;
+      let maxY = 0;
+
       for (const walker of walkers) {
         const lane = LANES[walker.lane]!;
         if (lane.front !== (layer === 1)) continue;
@@ -547,6 +584,14 @@ export function createStreet(options: StreetOptions): Street {
         const ground = lane.y * height + walker.dy;
         const u = unit(lane) * walker.look.h;
         const lit = walker.pose.lit;
+        const padX = Math.max(walker.half * 1.5, u * 36);
+        const topY = ground - walker.tall - 20 * lane.scale - u * 14;
+        const botY = ground + u * 10 + 6;
+        if (walker.x - padX < minX) minX = walker.x - padX;
+        if (walker.x + padX > maxX) maxX = walker.x + padX;
+        if (topY < minY) minY = topY;
+        if (botY > maxY) maxY = botY;
+
         // Where the figure meets the pavement.
         if (ground < height + 4) {
           g.drawImage(shadow, walker.x - u * 21, ground - u * 3.4, u * 42, u * 9);
@@ -562,7 +607,13 @@ export function createStreet(options: StreetOptions): Street {
         g.save();
         g.translate(walker.x, ground);
         g.scale(walker.dir * u, u);
-        drawFigure(g, walker.look, walker.paint, walker.pose, walker.lane >= 1);
+        drawFigure(
+          g,
+          walker.look,
+          walker.paint,
+          walker.pose,
+          walker.lane >= (quality === 'low' ? 2 : 1),
+        );
         g.restore();
         if (lit > 0.02) {
           // A drafting tick over the head, in the project's colour.
@@ -578,12 +629,17 @@ export function createStreet(options: StreetOptions): Street {
           g.globalAlpha = 1;
         }
       }
+      box.active = maxX > minX && maxY > minY;
+      box.minX = minX;
+      box.minY = minY;
+      box.maxX = maxX;
+      box.maxY = maxY;
     }
   }
 
   function frame(now: number) {
     if (state !== 'running') return;
-    const minInterval = quality === 'low' ? 30 : 0;
+    const minInterval = quality === 'low' ? 30 : quality === 'balanced' && cost > 6 ? 24 : 0;
     if (minInterval && now - last < minInterval) return;
     // A long gap is a tab that was away, not a long step.
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));

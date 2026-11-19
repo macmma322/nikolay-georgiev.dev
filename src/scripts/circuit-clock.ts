@@ -98,15 +98,18 @@ export function observeQualityTier(listener: (tier: QualityTier) => void) {
 function monitorFrameBudget(now: number, rawDelta: number) {
   if (preference !== 'auto') return;
   // Ignore tab-resume jumps or inactive pauses.
-  if (rawDelta <= 0 || rawDelta > 150) return;
+  if (rawDelta <= 0 || rawDelta > 250) return;
   meanFrameMs += (rawDelta - meanFrameMs) * 0.08;
   const seconds = rawDelta / 1000;
-  const cooldownMet = now - lastSwitchAt >= 8000;
+  const severe = meanFrameMs > 45;
+  const downCooldownMet = now - lastSwitchAt >= (severe ? 2000 : 8000);
+  const upCooldownMet = now - lastSwitchAt >= 8000;
 
   if (meanFrameMs > 34) {
     slowSeconds += seconds;
     fastSeconds = 0;
-    if (slowSeconds >= 2.5 && cooldownMet) {
+    const threshold = severe ? 1.2 : 2.5;
+    if (slowSeconds >= threshold && downCooldownMet) {
       slowSeconds = 0;
       lastSwitchAt = now;
       if (currentTier === 'high') applyTier('balanced');
@@ -115,7 +118,7 @@ function monitorFrameBudget(now: number, rawDelta: number) {
   } else if (meanFrameMs < 19.5) {
     fastSeconds += seconds;
     slowSeconds = 0;
-    if (fastSeconds >= 6 && cooldownMet) {
+    if (fastSeconds >= 6 && upCooldownMet) {
       fastSeconds = 0;
       lastSwitchAt = now;
       if (currentTier === 'low') applyTier('balanced');

@@ -165,7 +165,7 @@ const statement = l(site.statement);
 
   .hero-statement {
     margin-top: var(--space-m);
-    max-width: 30ch;
+    max-width: 34ch;
     font-family: var(--ff-display);
     font-stretch: var(--wide-1);
     font-weight: var(--w-text);
@@ -333,9 +333,27 @@ const statement = l(site.statement);
     }
   }
 
+  @media (min-width: 1000px) and (max-height: 920px) {
+    .hero {
+      padding-top: var(--space-s);
+    }
+
+    .hero-meta {
+      margin-bottom: var(--space-xs);
+    }
+
+    .hero-name {
+      font-size: min(calc(100cqi / 6.8), 9.2rem);
+    }
+
+    .hero-ground {
+      margin-top: var(--space-s);
+    }
+  }
+
   @media (min-width: 1000px) and (max-height: 820px) {
     .hero {
-      padding-top: var(--space-xs);
+      padding-top: var(--space-2xs);
     }
 
     .hero-meta {
@@ -343,23 +361,28 @@ const statement = l(site.statement);
     }
 
     .hero-name {
-      font-size: min(calc(100cqi / 7.1), 8.2rem);
+      font-size: min(calc(100cqi / 7.5), 7.6rem);
     }
 
     .hero-visual {
-      width: min(100%, 28.5rem);
+      width: min(100%, 26.5rem);
     }
 
     .hero-statement {
-      margin-top: var(--space-xs);
+      margin-top: var(--space-2xs);
+      font-size: clamp(1.15rem, 0.9rem + 1.05vw, 1.55rem);
+    }
+
+    .hero-focus {
+      margin-top: var(--space-2xs);
     }
 
     .hero-actions {
-      margin-top: var(--space-s);
+      margin-top: var(--space-xs);
     }
 
     .hero-ground {
-      margin-top: var(--space-2xs);
+      margin-top: 0;
     }
 
     .now-item {

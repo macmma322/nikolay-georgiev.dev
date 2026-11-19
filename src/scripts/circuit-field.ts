@@ -128,6 +128,11 @@ class CircuitField extends HTMLElement {
     let contact: { x: number; y: number; at: number } | undefined;
 
     const frameInterval = () => {
+      if (footer) {
+        if (quality === 'low') return 220;
+        if (quality === 'balanced') return 120;
+        return 55;
+      }
       if (quality === 'low') return background ? 120 : 90;
       if (quality === 'balanced') return background ? 68 : 50;
       return background ? (mobile ? 76 : 48) : 1000 / 30;
@@ -137,11 +142,28 @@ class CircuitField extends HTMLElement {
       if (!visible || occluded || !width || !height || motion.matches) return;
       mobile = width < 600;
       const qualityCap = quality === 'low' ? 0.8 : quality === 'balanced' ? 1 : mobile ? 1 : 1.25;
-      const areaCap = background ? 650_000 : 750_000;
+      const maxWidth = footer
+        ? quality === 'low'
+          ? 560
+          : quality === 'balanced'
+            ? 720
+            : 1080
+        : background
+          ? 1280
+          : 1440;
+      const areaCap = footer
+        ? quality === 'low'
+          ? 100_000
+          : quality === 'balanced'
+            ? 160_000
+            : 340_000
+        : background
+          ? 650_000
+          : 750_000;
       const density = Math.min(
         window.devicePixelRatio || 1,
         qualityCap,
-        (background ? 1280 : 1440) / width,
+        maxWidth / width,
         Math.sqrt(areaCap / (width * height)),
       );
       const w = Math.max(1, Math.round(width * density));

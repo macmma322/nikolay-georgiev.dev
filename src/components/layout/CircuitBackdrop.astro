@@ -84,6 +84,12 @@ const banks = tones.map((name, tone) => {
   /* Apply masks only to the static SVG (rasterized once), never to the animated canvas. */
   :global([data-stage]) > circuit-field[data-place='footer'] svg {
     mask-image: linear-gradient(black 4%, black 67%, transparent 92%);
+    transform: translateZ(0);
+  }
+
+  :global([data-stage]) > circuit-field[data-place='footer'] canvas,
+  circuit-field[data-place='background'] canvas {
+    transform: translateZ(0);
   }
 
   circuit-field[data-place='background'] {
