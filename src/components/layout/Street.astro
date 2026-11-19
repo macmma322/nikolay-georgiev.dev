@@ -1,0 +1,1015 @@
+---
+/**
+ * The street that closes every page: an evening block still going up, people
+ * walking past, and one figure standing still.
+ *
+ * Without JavaScript, or before the scene loads, this is the backdrop and the
+ * standing figure: a finished picture. The crowd is an enhancement drawn on
+ * two canvases, one behind him and one in front (scripts/street). It runs
+ * only while it is on screen in a visible tab; with reduced motion it is one
+ * still frame.
+ *
+ * The figure is three stacked layers of one illustration
+ * (scripts/street-avatar.mjs): the body, the chest, which breathes, and the
+ * head, which turns by under a degree and blinks.
+ */
+import { Image } from 'astro:assets';
+import body from '@/assets/media/street/nikolay-body.webp';
+import chest from '@/assets/media/street/nikolay-chest.webp';
+import head from '@/assets/media/street/nikolay-head.webp';
+import { nav, site } from '@/data/site';
+import { useI18n } from '@/i18n';
+import { common } from '@/i18n/ui/common';
+import { street } from '@/i18n/ui/street';
+
+const { l, t, href } = useI18n(Astro);
+const s = t(street);
+const c = t(common);
+
+/** Passers-by who carry a project, in the order of the work index. */
+const cast = [
+  { slug: 'caelora', name: 'Caelora', accent: 'caelora' },
+  { slug: 'uss-x-academy', name: 'USS X Academy', accent: 'ussx' },
+  { slug: 'jarvis', name: 'J.A.R.V.I.S.', accent: 'jarvis' },
+  { slug: 'zone-32-19', name: 'Zone 32-19', accent: 'zone' },
+  { slug: 'kobait', name: 'KObait', accent: 'kobait' },
+  { slug: 'malrynth', name: 'Malrynth', accent: 'malrynth' },
+  { slug: 'stemini', name: 'Stemini', accent: 'stemini' },
+] as const;
+
+/*
+ * The block, drawn once at build time from a fixed seed: a far skyline, a row
+ * of buildings with their own windows and shopfronts, lamps, trees and the
+ * pavement. Solid storeys are built; dashed ones are planned, the same
+ * convention as the architecture diagrams. The view box is 2400 wide and
+ * cropped from the centre on narrow screens.
+ */
+const VIEW_W = 2400;
+const VIEW_H = 520;
+const BASE = 364; // where the wall meets the pavement (lane 0 of the scene)
+let seed = 3219;
+const rand = () => {
+  seed = (seed * 1664525 + 1013904223) >>> 0;
+  return seed / 4294967296;
+};
+const between = (lo: number, hi: number) => Math.round(lo + rand() * (hi - lo));
+const chance = (p: number) => rand() < p;
+// The hoarding he stands in front of: no shopfront is drawn behind it.
+const PLOT = { x: 1000, w: 400 };
+
+const far: { x: number; w: number; h: number; mast: boolean }[] = [];
+for (let x = -30; x < VIEW_W;) {
+  const w = between(70, 190);
+  far.push({ x, w, h: between(170, 340), mast: chance(0.25) });
+  x += w + between(-8, 14);
+}
+
+type Pane = 'dark' | 'warm' | 'dim' | 'cool';
+interface Block {
+  x: number;
+  w: number;
+  top: number;
+  tone: number;
+  floor: number;
+  planned: number;
+  panes: { x: number; y: number; w: number; h: number; kind: Pane }[];
+  sills: number[];
+  shop: { awning: number; door: number; lit: boolean } | null;
+  roof: { x: number; w: number; h: number }[];
+  scaffold: boolean;
+}
+const blocks: Block[] = [];
+for (let x = -40; x < VIEW_W;) {
+  const w = between(190, 340);
+  const floor = between(36, 44);
+  const built = between(3, 6);
+  const onPlot = x < PLOT.x + PLOT.w && x + w > PLOT.x;
+  const planned = chance(onPlot ? 1 : 0.4) ? between(1, 3) : 0;
+  const top = BASE - 50 - built * floor;
+  const pw = between(13, 18);
+  const ph = between(18, 25);
+  const bay = pw + between(16, 24);
+  const balcony = chance(0.4);
+  const panes: Block['panes'] = [];
+  const sills: number[] = [];
+  for (let level = 0; level < built; level += 1) {
+    const y = top + level * floor + (floor - ph) / 2;
+    if (balcony) sills.push(y + ph + 4);
+    for (let px = x + 20; px < x + w - 20 - pw; px += bay) {
+      if (chance(0.08)) continue;
+      const roll = rand();
+      const kind: Pane = roll < 0.66 ? 'dark' : roll < 0.82 ? 'warm' : roll < 0.94 ? 'dim' : 'cool';
+      panes.push({ x: px, y, w: pw, h: ph, kind });
+    }
+  }
+  const roof: Block['roof'] = [];
+  if (!planned) {
+    for (let i = 0, n = between(0, 3); i < n; i += 1) {
+      roof.push({ x: x + between(14, w - 60), w: between(18, 44), h: between(8, 22) });
+    }
+  }
+  blocks.push({
+    x,
+    w,
+    top,
+    tone: between(0, 2),
+    floor,
+    planned,
+    panes,
+    sills,
+    shop: onPlot
+      ? null
+      : { awning: between(0, 3), door: x + between(24, w - 60), lit: chance(0.7) },
+    roof,
+    scaffold: planned > 0 && !onPlot && chance(0.5),
+  });
+  x += w + between(0, 22);
+}
+// One tower crane, over the block behind the hoarding.
+const plot =
+  blocks.find((b) => b.x < PLOT.x + PLOT.w / 2 && b.x + b.w > PLOT.x + PLOT.w / 2) ?? blocks[3]!;
+const crane = { x: plot.x + plot.w * 0.64, top: 30 };
+const lamps = [150, 560, 1620, 2040];
+const trees = [330, 820, 1500, 1880, 2280];
+const sizes = '(min-width: 64rem) 126px, 84px';
+const widths = [112, 168, 252, 336, 528];
+---
+
+<section class="street" aria-labelledby="street-title" data-street>
+  <div class="container street-head reveal">
+    <div class="street-say">
+      <p class="label">{s.label}</p>
+      <h2 id="street-title" class="street-title">
+        {s.title.lead} <em>{s.title.em}</em>
+      </h2>
+      <p class="street-support">{s.support}</p>
+    </div>
+    <nav class="street-nav" aria-label={s.navLabel}>
+      <ul role="list">
+        {nav.map((item) => (
+          <li>
+            <a href={href(item.href)}>{l(item.label)}</a>
+          </li>
+        ))}
+        <li>
+          <a href={href(site.cv.page)}>{c.cv}</a>
+        </li>
+      </ul>
+      <a class="to-top" href="#top" data-to-top>
+        {s.toTop}
+        <span class="glyph" aria-hidden="true">
+          ↑
+        </span>
+      </a>
+    </nav>
+  </div>
+
+  <div class="stage" data-stage data-state="static">
+    <svg
+      class="block"
+      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      preserveAspectRatio="xMidYMax slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <radialGradient id="street-glow">
+          <stop offset="0" stop-color="oklch(0.9 0.09 82)" stop-opacity="0.5"></stop>
+          <stop offset="1" stop-color="oklch(0.9 0.09 82)" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="street-pool">
+          <stop offset="0" stop-color="oklch(0.84 0.08 80)" stop-opacity="0.3"></stop>
+          <stop offset="1" stop-color="oklch(0.84 0.08 80)" stop-opacity="0"></stop>
+        </radialGradient>
+        <linearGradient id="street-ground" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="oklch(0.33 0.014 262)"></stop>
+          <stop offset="0.45" stop-color="oklch(0.25 0.012 262)"></stop>
+          <stop offset="1" stop-color="oklch(0.15 0.008 262)"></stop>
+        </linearGradient>
+        <linearGradient id="street-shop" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="oklch(0.8 0.1 80)"></stop>
+          <stop offset="1" stop-color="oklch(0.62 0.1 66)"></stop>
+        </linearGradient>
+      </defs>
+
+      <g class="far">
+        {far.map((f) => (
+          <path
+            d={`M${f.x} ${BASE}V${BASE - f.h}h${f.w}V${BASE}${f.mast ? `M${f.x + f.w * 0.4} ${BASE - f.h}v-26` : ''}`}
+          />
+        ))}
+      </g>
+
+      {blocks.map((b) => (
+        <g class:list={['building', `tone-${b.tone}`]}>
+          <rect class="wall" x={b.x} y={b.top} width={b.w} height={BASE - b.top} />
+          <rect class="cornice" x={b.x - 3} y={b.top - 5} width={b.w + 6} height="6" />
+          {b.roof.map((r) => (
+            <rect class="roof" x={r.x} y={b.top - 5 - r.h} width={r.w} height={r.h} />
+          ))}
+          {b.planned > 0 && (
+            <path
+              class="planned"
+              d={`M${b.x} ${b.top - 5}v${-b.planned * b.floor}h${b.w}v${b.planned * b.floor}${Array.from(
+                { length: b.planned - 1 },
+                (_, i) => `M${b.x} ${b.top - 5 - (i + 1) * b.floor}h${b.w}`,
+              ).join('')}`}
+            />
+          )}
+          {b.panes.map((p) => (
+            <rect class:list={['pane', p.kind]} x={p.x} y={p.y} width={p.w} height={p.h} />
+          ))}
+          {b.sills.length > 0 && (
+            <path class="sill" d={b.sills.map((y) => `M${b.x + 12} ${y}h${b.w - 24}`).join('')} />
+          )}
+          {b.shop && (
+            <g class:list={['shop', { lit: b.shop.lit }]}>
+              <rect class="glass" x={b.x + 14} y={BASE - 40} width={b.w - 28} height="34" />
+              <path
+                class="mullion"
+                d={`M${b.x + 14 + (b.w - 28) / 3} ${BASE - 40}v34M${b.x + 14 + ((b.w - 28) * 2) / 3} ${BASE - 40}v34`}
+              />
+              <rect class="door" x={b.shop.door} y={BASE - 40} width="20" height="40" />
+              <path
+                class:list={['awning', `awning-${b.shop.awning}`]}
+                d={`M${b.x + 8} ${BASE - 50}h${b.w - 16}l8 12h${-b.w}z`}
+              />
+              {b.shop.lit && (
+                <ellipse class="spill" cx={b.x + b.w / 2} cy={BASE + 22} rx={b.w * 0.52} ry="30" />
+              )}
+            </g>
+          )}
+          {b.scaffold && (
+            <path
+              class="scaffold"
+              d={`${Array.from({ length: Math.floor(b.w / 38) + 1 }, (_, i) => `M${b.x + i * 38} ${BASE - 50}V${b.top - 5 - b.floor}`).join('')}${Array.from(
+                { length: Math.floor((BASE - 50 - b.top) / b.floor) + 2 },
+                (_, i) => `M${b.x} ${BASE - 50 - i * b.floor}h${b.w}`,
+              ).join('')}`}
+            />
+          )}
+        </g>
+      ))}
+
+      <g class="crane">
+        <path
+          d={`M${crane.x} ${plot.top}V${crane.top}M${crane.x - 150} ${crane.top + 16}H${crane.x + 300}M${crane.x} ${crane.top}L${crane.x + 300} ${crane.top + 16}M${crane.x} ${crane.top}L${crane.x - 150} ${crane.top + 16}`}
+        />
+        <path class="cable" d={`M${crane.x + 214} ${crane.top + 16}v84`} />
+        <rect x={crane.x + 207} y={crane.top + 100} width="14" height="10" />
+        <rect x={crane.x - 142} y={crane.top + 18} width="34" height="18" />
+      </g>
+
+      {/* The pavement, with its joints running to one vanishing point. */}
+      <rect class="ground" x="0" y={BASE} width={VIEW_W} height={VIEW_H - BASE} />
+      <path
+        class="joint"
+        d={`M0 ${BASE + 34}H${VIEW_W}M0 ${BASE + 76}H${VIEW_W}M0 ${BASE + 126}H${VIEW_W}${Array.from(
+          { length: 41 },
+          (_, i) => `M${i * 60} ${BASE + 9}L${1200 + (i * 60 - 1200) * 1.55} ${VIEW_H}`,
+        ).join('')}`}
+      />
+      <rect class="kerb" x="0" y={BASE} width={VIEW_W} height="9" />
+
+      {trees.map((x, i) => (
+        <g class="tree">
+          <path class="trunk" d={`M${x} ${BASE + 4}v-74`} />
+          <circle cx={x - 16} cy={BASE - 96 - (i % 2) * 8} r="30" />
+          <circle cx={x + 18} cy={BASE - 104} r="34" />
+          <circle cx={x + 2} cy={BASE - 132 - (i % 3) * 6} r="30" />
+        </g>
+      ))}
+
+      {lamps.map((x) => (
+        <g class="lamp">
+          <ellipse class="pool" cx={x + 14} cy={BASE + 30} rx="170" ry="40" />
+          <circle class="halo" cx={x + 22} cy={BASE - 150} r="64" />
+          <path d={`M${x} ${BASE + 5}V${BASE - 152}h18`} />
+          <rect x={x + 12} y={BASE - 153} width="20" height="6" />
+        </g>
+      ))}
+
+      {/* The site hoarding: the lit board he stands in front of. */}
+      <g class="hoarding">
+        <ellipse class="pool" cx="1200" cy={BASE + 34} rx="330" ry="52" />
+        <path class="cone" d="M1088 196 L1000 364 H1210 Z" />
+        <path class="cone" d="M1312 196 L1190 364 H1400 Z" />
+        <rect class="board" x={PLOT.x} y="212" width={PLOT.w} height="152" />
+        <path class="seam" d="M1100 212v152M1200 212v152M1300 212v152M1000 230h400M1000 352h400" />
+        <path class="post" d="M1088 212v-22h-16M1312 212v-22h16" />
+        <rect class="head" x="1062" y="186" width="16" height="6" />
+        <rect class="head" x="1322" y="186" width="16" height="6" />
+        <text class="stencil" x="1016" y="254">
+          {s.sign}
+        </text>
+      </g>
+    </svg>
+
+    <canvas class="layer back" data-layer="back" aria-hidden="true"></canvas>
+
+    <button class="me" type="button" data-me aria-label={s.me}>
+      <span class="me-figure">
+        <Image
+          src={body}
+          alt=""
+          widths={widths}
+          sizes={sizes}
+          quality={88}
+          loading="lazy"
+          decoding="async"
+        />
+        <span class="me-chest">
+          <Image
+            src={chest}
+            alt=""
+            widths={widths}
+            sizes={sizes}
+            quality={88}
+            loading="lazy"
+            decoding="async"
+          />
+        </span>
+        <span class="me-rise">
+          <span class="me-head">
+            <Image
+              src={head}
+              alt=""
+              widths={widths}
+              sizes={sizes}
+              quality={88}
+              loading="lazy"
+              decoding="async"
+            />
+            <svg class="me-lids" viewBox="0 0 528 1520" aria-hidden="true" focusable="false">
+              <path d="M240 118q14-11 29-1q-14 9-29 1z"></path>
+              <path d="M296 111q12-11 26-2q-12 9-26 2z"></path>
+            </svg>
+          </span>
+        </span>
+      </span>
+    </button>
+    <p class="me-tag label" aria-hidden="true">
+      <span class="me-pin"></span>
+      {site.name}
+    </p>
+
+    <canvas class="layer front" data-layer="front" aria-hidden="true"></canvas>
+    <p class="visually-hidden">{s.description}</p>
+  </div>
+
+  <div class="container street-foot">
+    <p class="label">{s.castLabel}</p>
+    <ul class="cast" role="list">
+      {cast.map((member) => (
+        <li>
+          <a
+            href={href(`/work/${member.slug}`)}
+            data-cast={member.slug}
+            data-accent={member.accent}
+          >
+            <span class="role">{s.cast[member.slug]}</span>
+            <span class="of">{member.name}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+    <p class="tally label" aria-hidden="true">
+      {s.passed} <span data-street-count>000</span>
+    </p>
+  </div>
+</section>
+
+<script>
+  // The scene is a separate chunk, fetched only when the footer is near.
+  const root = document.querySelector<HTMLElement>('[data-street]');
+  const stage = root?.querySelector<HTMLElement>('[data-stage]');
+  const back = root?.querySelector<HTMLCanvasElement>('[data-layer="back"]');
+  const front = root?.querySelector<HTMLCanvasElement>('[data-layer="front"]');
+
+  if (
+    root &&
+    stage &&
+    back &&
+    front &&
+    'IntersectionObserver' in window &&
+    'ResizeObserver' in window
+  ) {
+    const near = new IntersectionObserver(
+      (entries) => {
+        if (!entries.some((entry) => entry.isIntersecting)) return;
+        near.disconnect();
+        let testing = false;
+        let seed: number | undefined;
+        try {
+          // The e2e suite asks for a fixed street and a handle to step it.
+          const flag = localStorage.getItem('ng-street:test');
+          testing = flag !== null;
+          if (flag && /^\d+$/.test(flag)) seed = Number(flag);
+        } catch {
+          // Storage is blocked: the street runs as for anyone else.
+        }
+        import('@/scripts/street/scene')
+          .then(({ createStreet }) => {
+            const street = createStreet({
+              stage,
+              back,
+              front,
+              avatar: root.querySelector<HTMLElement>('[data-me]'),
+              counter: root.querySelector<HTMLElement>('[data-street-count]'),
+              cast: Array.from(root.querySelectorAll<HTMLElement>('[data-cast]')),
+              reduce: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+              ...(seed === undefined ? {} : { seed }),
+            });
+            root.dataset['ready'] = '';
+            if (testing) (window as unknown as { __street?: typeof street }).__street = street;
+          })
+          .catch(() => {
+            // The picture without the crowd is still the footer.
+          });
+      },
+      { rootMargin: '600px 0px' },
+    );
+    near.observe(stage);
+  }
+</script>
+
+<style>
+  .street {
+    position: relative;
+    border-top: 1px solid var(--line-soft);
+  }
+
+  /* ---------- What the street says, and the way back ---------- */
+  .street-head {
+    display: grid;
+    gap: var(--space-l);
+    padding-block: var(--space-xl) var(--space-l);
+  }
+
+  .street-say {
+    display: grid;
+    gap: var(--space-s);
+  }
+
+  .street-title {
+    font-family: var(--ff-display);
+    font-size: var(--step-3);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-semibold);
+    letter-spacing: var(--track-heading);
+    line-height: 1.06;
+    text-wrap: balance;
+    color: var(--fg-2);
+  }
+
+  .street-title em {
+    font-style: normal;
+    color: var(--fg);
+  }
+
+  .street-support {
+    font-size: var(--step-1);
+    line-height: 1.45;
+    color: var(--fg-3);
+    max-width: 34ch;
+  }
+
+  .street-nav {
+    display: grid;
+    gap: var(--space-s);
+    align-content: end;
+  }
+
+  .street-nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.6rem;
+  }
+
+  .street-nav a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 44px;
+    font-family: var(--ff-display);
+    font-stretch: var(--wide-1);
+    font-weight: var(--w-medium);
+    text-decoration: none;
+    color: var(--fg-2);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .street-nav a:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+
+  .street-nav .to-top {
+    justify-self: start;
+    color: var(--fg);
+  }
+
+  .to-top .glyph {
+    display: inline-block;
+    transition: translate var(--dur-ui) var(--ease-out);
+  }
+
+  .to-top:focus-visible .glyph {
+    translate: 0 -3px;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .to-top:hover .glyph {
+      translate: 0 -3px;
+    }
+  }
+
+  @media (min-width: 60rem) {
+    .street-head {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      column-gap: var(--space-xl);
+    }
+    .street-nav {
+      justify-items: end;
+    }
+    .street-nav ul {
+      justify-content: end;
+      max-width: 30rem;
+    }
+    .street-nav .to-top {
+      justify-self: end;
+    }
+  }
+
+  /* ---------- The stage ---------- */
+  /*
+   * One evening scene, one light: warm from the lamps and shop windows, cool
+   * everywhere else. Heights are fractions of the stage (scripts/street/scene.ts
+   * uses the same ones): the wall meets the pavement at 70%.
+   */
+  .stage {
+    --stage-h: clamp(320px, 36vw, 520px);
+    position: relative;
+    height: var(--stage-h);
+    overflow: hidden;
+    isolation: isolate;
+    border-block: 1px solid var(--line-soft);
+    background: linear-gradient(
+      to bottom,
+      oklch(0.13 0.012 262) 0%,
+      oklch(0.17 0.02 266) 34%,
+      oklch(0.23 0.03 276) 58%,
+      oklch(0.29 0.04 300) 70%
+    );
+  }
+
+  /* Grain and a soft vignette over everything: the drawn crowd, the painted
+     figure and the block sit under one surface. */
+  .stage::after {
+    content: '';
+    position: absolute;
+    z-index: 5;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+    opacity: 0.38;
+    box-shadow: inset 0 0 9rem 1rem oklch(0.08 0.01 262 / 0.75);
+  }
+
+  .block {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .block .far {
+    fill: oklch(0.21 0.022 272);
+    stroke: oklch(0.21 0.022 272);
+    stroke-width: 2;
+  }
+
+  .block .wall {
+    fill: oklch(0.2 0.014 262);
+  }
+
+  .block .tone-1 .wall {
+    fill: oklch(0.225 0.018 255);
+  }
+
+  .block .tone-2 .wall {
+    fill: oklch(0.18 0.014 280);
+  }
+
+  .block .cornice,
+  .block .roof {
+    fill: oklch(0.15 0.012 262);
+  }
+
+  .block .planned {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-opacity: 0.55;
+    stroke-dasharray: 5 5;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .block .scaffold {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-opacity: 0.3;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .block .pane.dark {
+    fill: oklch(0.14 0.012 262);
+  }
+
+  .block .pane.dim {
+    fill: oklch(0.42 0.05 78);
+  }
+
+  .block .pane.warm {
+    fill: oklch(0.8 0.1 82);
+  }
+
+  .block .pane.cool {
+    fill: oklch(0.6 0.06 230);
+  }
+
+  .block .sill {
+    fill: none;
+    stroke: oklch(0.13 0.01 262);
+    stroke-width: 3;
+  }
+
+  .block .shop .glass {
+    fill: oklch(0.16 0.012 262);
+  }
+
+  .block .shop.lit .glass {
+    fill: url(#street-shop);
+  }
+
+  .block .shop .mullion {
+    fill: none;
+    stroke: oklch(0.14 0.012 262);
+    stroke-width: 3;
+  }
+
+  .block .shop .door {
+    fill: oklch(0.13 0.01 262);
+  }
+
+  .block .awning {
+    fill: oklch(0.3 0.06 20);
+  }
+
+  .block .awning-1 {
+    fill: oklch(0.3 0.04 200);
+  }
+
+  .block .awning-2 {
+    fill: oklch(0.3 0.04 130);
+  }
+
+  .block .awning-3 {
+    fill: oklch(0.26 0.014 262);
+  }
+
+  .block .spill,
+  .block .pool {
+    fill: url(#street-pool);
+  }
+
+  .block .crane {
+    fill: none;
+    stroke: var(--steel-dim);
+    stroke-opacity: 0.6;
+  }
+
+  .block .crane :global(*) {
+    vector-effect: non-scaling-stroke;
+  }
+
+  .block .crane .cable {
+    stroke-opacity: 0.35;
+  }
+
+  .block .ground {
+    fill: url(#street-ground);
+  }
+
+  .block .joint {
+    fill: none;
+    stroke: oklch(0.1 0.008 262);
+    stroke-opacity: 0.34;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .block .kerb {
+    fill: oklch(0.42 0.014 262);
+  }
+
+  .block .tree circle {
+    fill: oklch(0.2 0.028 160);
+  }
+
+  .block .tree .trunk {
+    fill: none;
+    stroke: oklch(0.14 0.012 60);
+    stroke-width: 7;
+  }
+
+  .block .lamp path {
+    fill: none;
+    stroke: oklch(0.12 0.01 262);
+    stroke-width: 4;
+  }
+
+  .block .lamp rect,
+  .block .hoarding .head {
+    fill: oklch(0.94 0.07 88);
+  }
+
+  .block .halo {
+    fill: url(#street-glow);
+  }
+
+  .block .hoarding .board {
+    fill: oklch(0.47 0.03 78);
+    stroke: oklch(0.14 0.01 262);
+    stroke-width: 2;
+  }
+
+  .block .hoarding .seam {
+    fill: none;
+    stroke: oklch(0.14 0.01 262);
+    stroke-opacity: 0.4;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .block .hoarding .cone {
+    fill: oklch(0.88 0.08 85 / 0.13);
+  }
+
+  .block .hoarding .post {
+    fill: none;
+    stroke: oklch(0.12 0.01 262);
+    stroke-width: 3;
+  }
+
+  .block .hoarding .stencil {
+    fill: oklch(0.16 0.01 262 / 0.66);
+    font-family: var(--ff-mono);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .layer {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .layer.back {
+    z-index: 1;
+  }
+
+  .layer.front {
+    z-index: 3;
+  }
+
+  /* ---------- The one who stands still ---------- */
+  /* The figure is 70% of the stage tall and stands between the third and
+     fourth lanes; its canvas is 528 x 1520. */
+  .me {
+    position: absolute;
+    z-index: 2;
+    left: 50%;
+    bottom: 4.6%;
+    height: 70%;
+    aspect-ratio: 528 / 1520;
+    translate: -50% 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Where he meets the pavement: the same soft shadow everyone else has. */
+  .me::before {
+    content: '';
+    position: absolute;
+    inset: auto -22% -2.6% -14%;
+    height: 7.5%;
+    background: radial-gradient(closest-side, oklch(0.06 0.01 262 / 0.7), transparent);
+  }
+
+  .me:focus-visible {
+    outline: 2px solid var(--fg);
+    outline-offset: 4px;
+    border-radius: var(--radius-s);
+  }
+
+  /* Graded a little toward the night around him. */
+  .me-figure {
+    position: absolute;
+    inset: 0;
+    display: block;
+    filter: brightness(0.93) saturate(0.94) contrast(1.02);
+    transition: filter var(--dur-ui) var(--ease-out);
+  }
+
+  .me-figure :global(img) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+  }
+
+  .me-chest,
+  .me-rise,
+  .me-head {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* The chest layer widens by about one percent; the head rides on it. */
+  .me-chest {
+    transform-origin: 50% 34%;
+  }
+
+  /* The head turns about the base of the neck, by less than a degree. */
+  .me-head {
+    transform-origin: 52.1% 16.8%;
+    transition:
+      rotate 760ms var(--ease-in-out),
+      translate 760ms var(--ease-in-out);
+  }
+
+  .me-lids {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: rgb(126 66 30);
+    visibility: hidden;
+  }
+
+  .me[data-blink] .me-lids {
+    visibility: visible;
+  }
+
+  .me[data-head='left'] .me-head {
+    rotate: -0.9deg;
+    translate: -0.32% 0;
+  }
+
+  .me[data-head='right'] .me-head {
+    rotate: 0.8deg;
+    translate: 0.3% 0;
+  }
+
+  .me[data-head='nod'] .me-head {
+    rotate: 0.7deg;
+    translate: 0 0.14%;
+    transition-duration: 320ms;
+  }
+
+  .me:is(:hover, :focus-visible) .me-figure {
+    filter: brightness(1.04) saturate(1) contrast(1.02);
+  }
+
+  /* His name, pinned beside him like a part label. */
+  .me-tag {
+    position: absolute;
+    z-index: 6;
+    left: calc(50% + var(--stage-h) * 0.115);
+    bottom: 64%;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    white-space: nowrap;
+    color: var(--fg);
+    text-shadow: 0 1px 6px oklch(0.08 0.01 262);
+    pointer-events: none;
+  }
+
+  .me-tag::before {
+    content: '';
+    width: clamp(0.75rem, 2vw, 1.75rem);
+    height: 1px;
+    background: var(--line-strong);
+  }
+
+  .me-pin {
+    order: -1;
+    width: 5px;
+    height: 5px;
+    background: var(--signal);
+  }
+
+  /* Breathing: in for 2.2 s, out for 2.2 s, and only while the street runs. */
+  @media (prefers-reduced-motion: no-preference) {
+    .me[data-state='running'] .me-chest {
+      animation: me-breathe 2200ms ease-in-out infinite alternate;
+    }
+    .me[data-state='running'] .me-rise {
+      animation: me-rise 2200ms ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes me-breathe {
+    to {
+      scale: 1.012 1.005;
+      translate: 0 -0.1%;
+    }
+  }
+
+  @keyframes me-rise {
+    to {
+      translate: 0 -0.13%;
+    }
+  }
+
+  /* ---------- Who else is here ---------- */
+  .street-foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 1.75rem;
+    padding-block: var(--space-m) var(--space-s);
+  }
+
+  .cast {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.5rem;
+    flex: 1 1 24rem;
+  }
+
+  .cast a {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.45rem;
+    min-height: 44px;
+    padding-block: 0.6rem;
+    font-size: var(--text-caption);
+    text-decoration: none;
+    color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .cast .of {
+    color: var(--fg-2);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.25em;
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      text-decoration-color var(--dur-fast) var(--ease-out);
+  }
+
+  /* A label lights with its figure, and the figure with its label. */
+  .cast a:is(:hover, :focus-visible, [data-lit]) {
+    color: var(--fg-2);
+  }
+
+  .cast a:is(:hover, :focus-visible, [data-lit]) .of {
+    color: var(--accent);
+    text-decoration-color: var(--accent);
+  }
+
+  .tally {
+    margin-inline-start: auto;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* The count only means something while people are walking. */
+  .street:not([data-ready]) .tally,
+  .street:has([data-stage][data-state='static']) .tally {
+    visibility: hidden;
+  }
+
+  /* On a phone the label sits over his head: beside him it would leave the screen. */
+  @media (max-width: 40rem) {
+    .me-tag {
+      left: 50%;
+      bottom: 77%;
+      translate: -50% 0;
+    }
+    .me-tag::before {
+      display: none;
+    }
+  }
+</style>
