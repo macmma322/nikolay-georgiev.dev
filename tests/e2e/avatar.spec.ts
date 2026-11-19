@@ -164,3 +164,74 @@ test('missing artwork leaves the plate usable and the footer portrait available'
   await expect(page.locator('[data-me]')).toBeVisible();
   await expect(page.locator(actor)).toHaveCount(0);
 });
+
+test('header boundary hysteresis, spatial occlusion, graceful exit and scroll reversal preserve frame continuity', async ({
+  page,
+  isMobile,
+}) => {
+  test.skip(isMobile, 'Desktop header boundary and hysteresis progression.');
+  await page.goto('/');
+  const anchor = page.locator('[data-avatar-anchor="caelora"]');
+  const runtime = page.locator('avatar-runtime');
+  await center(page, '[data-avatar-anchor="caelora"]');
+  const canvas = anchor.locator('canvas');
+  await expect(canvas).toBeVisible();
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'active', { timeout: 3000 });
+  const settledState = await canvas.getAttribute('data-state');
+  const settledFrame = await canvas.getAttribute('data-frame');
+
+  // 1. Scroll so the top of the avatar passes slightly behind the sticky header (within hysteresis retention).
+  await page.evaluate(() => {
+    const header = document.querySelector('.site-header')!.getBoundingClientRect();
+    const el = document.querySelector('[data-avatar-anchor="caelora"]')!.getBoundingClientRect();
+    // Place top 20px behind headerBottom while >70% remains visible below the header.
+    window.scrollBy({ top: el.top - (header.bottom - 20), behavior: 'instant' });
+  });
+  await page.waitForTimeout(80);
+  // Avatar remains active (no abrupt disappearance) and header stays clickable above it.
+  await expect(canvas).toBeVisible();
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'active');
+  const headerControlsRemainTop = await page.evaluate(() => {
+    const brand = document.querySelector<HTMLElement>('.site-header .brand')!;
+    const r = brand.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !!hit && (hit === brand || brand.contains(hit));
+  });
+  expect(headerControlsRemainTop).toBe(true);
+
+  // 2. Scroll further so <44% of the avatar remains below the header: enters graceful 'exiting' state, not instant removal.
+  await page.evaluate(() => {
+    const header = document.querySelector('.site-header')!.getBoundingClientRect();
+    const el = document.querySelector('[data-avatar-anchor="caelora"]')!.getBoundingClientRect();
+    // Leave ~25% of anchor below headerBottom.
+    const targetTop = header.bottom - el.height * 0.75;
+    window.scrollBy({ top: el.top - targetTop, behavior: 'instant' });
+  });
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'exiting');
+  await expect(canvas).toHaveAttribute('data-exit-dir', 'up');
+
+  // 3. Reverse scroll mid-exit back into the recovery zone: exit cancels and restores smoothly without frame jump.
+  await center(page, '[data-avatar-anchor="caelora"]');
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'active', { timeout: 1000 });
+  await expect(canvas).toBeVisible();
+  expect(await canvas.getAttribute('data-state')).toBe(settledState);
+  expect(await canvas.getAttribute('data-frame')).toBe(settledFrame);
+  await expect(page.locator(actor)).toHaveCount(1);
+
+  // 4. Allow full exit to complete to 'hidden', then scroll backward and verify immediate saved-frame restoration.
+  await page.evaluate(() => {
+    const header = document.querySelector('.site-header')!.getBoundingClientRect();
+    const el = document.querySelector('[data-avatar-anchor="caelora"]')!.getBoundingClientRect();
+    const targetTop = header.bottom - el.height * 0.78;
+    window.scrollBy({ top: el.top - targetTop, behavior: 'instant' });
+  });
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'exiting');
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'hidden', { timeout: 1000 });
+  await expect(page.locator(actor)).toHaveCount(0);
+
+  await center(page, '[data-avatar-anchor="caelora"]');
+  // Should restore immediately (no 350ms blank gap) on the saved frame.
+  await expect(canvas).toBeVisible({ timeout: 250 });
+  expect(await canvas.getAttribute('data-frame')).toBe(settledFrame);
+  await expect(runtime).toHaveAttribute('data-lifecycle', 'active', { timeout: 1000 });
+});
