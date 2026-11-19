@@ -146,10 +146,23 @@ const sizes = '(min-width: 64rem) 126px, 84px';
 const widths = [112, 168, 252, 336, 528];
 ---
 
-<section class="street" aria-labelledby="street-title" data-street>
+<section
+  class="street"
+  aria-labelledby="street-title"
+  data-street
+  data-scene="street"
+  data-label-street={s.label}
+  data-label-cafe={s.cafeLabel}
+  data-me-street={s.me}
+  data-me-cafe={s.meCafe}
+  data-desc-street={s.description}
+  data-desc-cafe={s.cafeDescription}
+>
   <div class="container street-head reveal">
     <div class="street-say">
-      <p class="label">{s.label}</p>
+      <p class="label" data-scene-eyebrow>
+        {s.label}
+      </p>
       <h2 id="street-title" class="street-title">
         {s.title.lead} <em>{s.title.em}</em>
       </h2>
@@ -291,12 +304,28 @@ const widths = [112, 168, 252, 336, 528];
 
       {trees.map((x, i) => (
         <g class="tree">
-          <path class="trunk" d={`M${x} ${BASE + 4}v-74`} />
+          <path
+            class="trunk"
+            d={`M${x} ${BASE + 4}v-74M${x} ${BASE - 44}l-12 -18M${x} ${BASE - 50}l14 -16`}
+          />
           <circle cx={x - 16} cy={BASE - 96 - (i % 2) * 8} r="30" />
           <circle cx={x + 18} cy={BASE - 104} r="34" />
           <circle cx={x + 2} cy={BASE - 132 - (i % 3) * 6} r="30" />
+          <ellipse class="canopy-rim" cx={x + 4} cy={BASE - 138 - (i % 3) * 6} rx="24" ry="10" />
         </g>
       ))}
+
+      {/* Street furniture: architectural benches and bike stands along the kerb. */}
+      <g class="furniture">
+        <path
+          class="bench"
+          d={`M430 ${BASE - 12}h56M426 ${BASE - 5}h64M436 ${BASE - 12}v16M478 ${BASE - 12}v16M1730 ${BASE - 12}h56M1726 ${BASE - 5}h64M1736 ${BASE - 12}v16M1778 ${BASE - 12}v16`}
+        />
+        <path
+          class="bollard"
+          d={`M710 ${BASE + 3}v-18M742 ${BASE + 3}v-18M1560 ${BASE + 3}v-18M1592 ${BASE + 3}v-18`}
+        />
+      </g>
 
       {lamps.map((x) => (
         <g class="lamp">
@@ -321,6 +350,271 @@ const widths = [112, 168, 252, 336, 528];
           {s.sign}
         </text>
       </g>
+    </svg>
+
+    {/* Scenario B: Evening Café architectural interior & street-view windows. */}
+    <svg
+      class="cafe-room"
+      viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+      preserveAspectRatio="xMidYMax slice"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <defs>
+        <radialGradient id="cafe-pendant-glow">
+          <stop offset="0" stop-color="oklch(0.88 0.11 78)" stop-opacity="0.58"></stop>
+          <stop offset="0.5" stop-color="oklch(0.78 0.1 72)" stop-opacity="0.2"></stop>
+          <stop offset="1" stop-color="oklch(0.78 0.1 72)" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="cafe-floor-pool">
+          <stop offset="0" stop-color="oklch(0.82 0.1 76)" stop-opacity="0.34"></stop>
+          <stop offset="0.6" stop-color="oklch(0.72 0.08 70)" stop-opacity="0.12"></stop>
+          <stop offset="1" stop-color="oklch(0.72 0.08 70)" stop-opacity="0"></stop>
+        </radialGradient>
+        <linearGradient id="cafe-floor" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="oklch(0.24 0.018 56)"></stop>
+          <stop offset="0.45" stop-color="oklch(0.19 0.014 52)"></stop>
+          <stop offset="1" stop-color="oklch(0.13 0.008 255)"></stop>
+        </linearGradient>
+        <linearGradient id="cafe-walnut" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="oklch(0.29 0.036 56)"></stop>
+          <stop offset="1" stop-color="oklch(0.19 0.024 50)"></stop>
+        </linearGradient>
+        <linearGradient id="cafe-window" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="oklch(0.15 0.016 262 / 0.72)"></stop>
+          <stop offset="0.7" stop-color="oklch(0.21 0.025 270 / 0.56)"></stop>
+          <stop offset="1" stop-color="oklch(0.27 0.035 72 / 0.42)"></stop>
+        </linearGradient>
+      </defs>
+
+      {/* Interior dark charcoal & brick back wall */}
+      <rect x="0" y="0" width={VIEW_W} height={BASE} fill="oklch(0.17 0.012 258)" />
+      <rect x="0" y="0" width={VIEW_W} height="36" fill="oklch(0.13 0.01 258)" />
+      <path
+        d={`M0 36H${VIEW_W}M0 ${BASE - 24}H${VIEW_W}`}
+        stroke="oklch(0.28 0.02 62)"
+        stroke-width="2"
+      />
+
+      {/* Left picture window bay looking out onto the evening street (x: 110..930, y: 64..340) */}
+      <g class="cafe-window-bay">
+        <rect x="104" y="58" width="832" height="286" fill="oklch(0.12 0.01 258)" />
+        <rect x="110" y="64" width="820" height="276" fill="url(#cafe-window)" />
+        {/* Distant city silhouettes outside the café window */}
+        <path
+          d="M110 340V170h95v170M205 340V135h130v205M335 340V185h110v155M445 340V120h145v220M590 340V165h120v175M710 340V145h115v195M825 340V178h105v162"
+          fill="oklch(0.17 0.018 264 / 0.65)"
+        />
+        {/* Warm distant windows outside */}
+        <path
+          d="M230 165h10v14h-10zM262 195h10v14h-10zM475 152h12v16h-12zM515 184h12v16h-12zM630 198h10v14h-10zM748 174h11v15h-11z"
+          fill="oklch(0.78 0.1 80 / 0.45)"
+        />
+        {/* Industrial steel window mullions & transom */}
+        <path
+          d="M110 142H930M315 64V340M520 64V340M725 64V340"
+          stroke="oklch(0.22 0.014 258)"
+          stroke-width="7"
+        />
+        <path
+          d="M110 142H930M315 64V340M520 64V340M725 64V340"
+          stroke="oklch(0.38 0.025 68 / 0.45)"
+          stroke-width="1.5"
+        />
+        {/* Soft diagonal amber window reflections */}
+        <path
+          d="M145 330L265 74h28L173 330zM545 330L665 74h22L567 330zM755 330L865 74h18L773 330z"
+          fill="oklch(0.86 0.08 80 / 0.065)"
+        />
+        {/* Window-side walnut counter ledge & two empty barstools */}
+        <rect
+          x="96"
+          y="336"
+          width="848"
+          height="10"
+          fill="url(#cafe-walnut)"
+          stroke="oklch(0.45 0.05 62)"
+          stroke-width="1"
+        />
+        <path
+          d="M245 364v-54m-16 54l16-54l16 54M410 364v-54m-16 54l16-54l16 54"
+          stroke="oklch(0.2 0.012 258)"
+          stroke-width="4"
+          stroke-linecap="round"
+        />
+        <rect
+          x="225"
+          y="304"
+          width="40"
+          height="8"
+          rx="3"
+          fill="url(#cafe-walnut)"
+          stroke="oklch(0.54 0.07 64)"
+          stroke-width="1"
+        />
+        <rect
+          x="390"
+          y="304"
+          width="40"
+          height="8"
+          rx="3"
+          fill="url(#cafe-walnut)"
+          stroke="oklch(0.54 0.07 64)"
+          stroke-width="1"
+        />
+      </g>
+
+      {/* Central Café Alcove behind Nikolay (x: 960..1440) */}
+      <g class="cafe-alcove">
+        <rect
+          x="976"
+          y="58"
+          width="448"
+          height="306"
+          fill="oklch(0.19 0.02 54)"
+          stroke="oklch(0.34 0.035 58)"
+          stroke-width="2"
+        />
+        {/* Slatted dark walnut acoustic panelling */}
+        <path
+          d={Array.from({ length: 21 }, (_, i) => `M${996 + i * 20} 68v272`).join('')}
+          stroke="oklch(0.14 0.012 48)"
+          stroke-width="6"
+        />
+        <path
+          d={Array.from({ length: 21 }, (_, i) => `M${1002 + i * 20} 68v272`).join('')}
+          stroke="oklch(0.32 0.04 58 / 0.45)"
+          stroke-width="1.5"
+        />
+        {/* Recessed brass/copper architectural plaque */}
+        <rect
+          x="1076"
+          y="102"
+          width="248"
+          height="34"
+          rx="3"
+          fill="oklch(0.15 0.012 258)"
+          stroke="oklch(0.58 0.09 66 / 0.7)"
+          stroke-width="1.5"
+        />
+        <text class="cafe-plaque" x="1200" y="124" text-anchor="middle">
+          {s.cafeSign}
+        </text>
+        {/* Warm light cones from twin copper pendant lamps */}
+        <path d="M1105 144 L990 364 H1220 Z" fill="oklch(0.86 0.09 80 / 0.11)" />
+        <path d="M1295 144 L1180 364 H1410 Z" fill="oklch(0.86 0.09 80 / 0.11)" />
+        <circle cx="1105" cy="148" r="78" fill="url(#cafe-pendant-glow)" />
+        <circle cx="1295" cy="148" r="78" fill="url(#cafe-pendant-glow)" />
+        {/* Pendant cords & brushed copper dome shades */}
+        <path d="M1105 36v92M1295 36v92" stroke="oklch(0.12 0.01 258)" stroke-width="2.5" />
+        <path
+          d="M1081 144c0-14 48-14 48 0zM1271 144c0-14 48-14 48 0z"
+          fill="oklch(0.56 0.095 62)"
+          stroke="oklch(0.22 0.02 52)"
+          stroke-width="1.5"
+        />
+        <ellipse cx="1105" cy="145" rx="18" ry="3.5" fill="oklch(0.95 0.08 86)" />
+        <ellipse cx="1295" cy="145" rx="18" ry="3.5" fill="oklch(0.95 0.08 86)" />
+      </g>
+
+      {/* Right Espresso Bar & Technical Shelving (x: 1470..1970) */}
+      <g class="cafe-bar">
+        {/* Backlit walnut shelving unit */}
+        <rect
+          x="1484"
+          y="72"
+          width="468"
+          height="196"
+          fill="oklch(0.15 0.014 52)"
+          stroke="oklch(0.32 0.035 58)"
+          stroke-width="2"
+        />
+        <rect x="1492" y="132" width="452" height="6" fill="url(#cafe-walnut)" />
+        <rect x="1492" y="196" width="452" height="6" fill="url(#cafe-walnut)" />
+        {/* Warm shelf strip lights */}
+        <path d="M1496 139h444M1496 203h444" stroke="oklch(0.86 0.1 80 / 0.55)" stroke-width="2" />
+        {/* Coffee canisters, carafes, cups & technical volumes on shelves */}
+        <path
+          d="M1518 104h18v28h-18zM1544 108h16v24h-16zM1568 104h18v28h-18zM1640 100h10v32h-10zM1654 96h12v36h-12zM1670 102h9v30h-9zM1760 110h22v22h-22zM1790 106h20v26h-20zM1860 98h14v34h-14zM1878 104h12v28h-12z"
+          fill="oklch(0.35 0.04 64)"
+        />
+        <path
+          d="M1524 170h22v26h-22zM1556 174h18v22h-18zM1620 166h28v30h-28zM1710 176h14v20h-14zM1730 176h14v20h-14zM1750 176h14v20h-14zM1830 164h12v32h-12zM1846 168h14v28h-14zM1864 162h11v34h-11z"
+          fill="oklch(0.42 0.055 68)"
+        />
+        {/* Two-group brushed-copper & graphite espresso machine on the counter */}
+        <rect
+          x="1540"
+          y="220"
+          width="136"
+          height="54"
+          rx="4"
+          fill="oklch(0.24 0.016 258)"
+          stroke="oklch(0.58 0.09 64)"
+          stroke-width="1.8"
+        />
+        <rect x="1552" y="232" width="112" height="16" fill="oklch(0.52 0.085 62)" />
+        <circle cx="1576" cy="240" r="4.5" fill="oklch(0.9 0.05 85)" />
+        <circle cx="1640" cy="240" r="4.5" fill="oklch(0.9 0.05 85)" />
+        {/* Espresso grinder beside machine */}
+        <rect
+          x="1702"
+          y="228"
+          width="32"
+          height="46"
+          rx="3"
+          fill="oklch(0.21 0.014 258)"
+          stroke="oklch(0.44 0.03 60)"
+          stroke-width="1.2"
+        />
+        <path
+          d="M1706 206h24l-4 22h-16z"
+          fill="oklch(0.65 0.06 78 / 0.45)"
+          stroke="oklch(0.5 0.04 68)"
+          stroke-width="1"
+        />
+        {/* Walnut & copper service counter */}
+        <rect
+          x="1470"
+          y="274"
+          width="496"
+          height="90"
+          fill="url(#cafe-walnut)"
+          stroke="oklch(0.42 0.05 60)"
+          stroke-width="1.5"
+        />
+        <rect x="1464" y="270" width="508" height="8" rx="2" fill="oklch(0.56 0.085 64)" />
+        <path
+          d={Array.from({ length: 24 }, (_, i) => `M${1486 + i * 20} 282v76`).join('')}
+          stroke="oklch(0.15 0.015 48 / 0.65)"
+          stroke-width="3"
+        />
+        <ellipse cx="1718" cy={BASE + 18} rx="245" ry="26" fill="url(#cafe-floor-pool)" />
+      </g>
+
+      {/* Far-right window bay (x: 2010..2310, y: 64..340) */}
+      <g class="cafe-window-right">
+        <rect x="2004" y="58" width="312" height="286" fill="oklch(0.12 0.01 258)" />
+        <rect x="2010" y="64" width="300" height="276" fill="url(#cafe-window)" />
+        <path d="M2010 142H2310M2160 64V340" stroke="oklch(0.22 0.014 258)" stroke-width="7" />
+        <path d="M2045 330L2155 74h22L2067 330z" fill="oklch(0.86 0.08 80 / 0.06)" />
+      </g>
+
+      {/* Café tiled perspective floor & warm amber light pools */}
+      <rect x="0" y={BASE} width={VIEW_W} height={VIEW_H - BASE} fill="url(#cafe-floor)" />
+      <path
+        class="cafe-tile-grid"
+        d={`M0 ${BASE + 28}H${VIEW_W}M0 ${BASE + 64}H${VIEW_W}M0 ${BASE + 108}H${VIEW_W}${Array.from(
+          { length: 41 },
+          (_, i) => `M${i * 60} ${BASE}L${1200 + (i * 60 - 1200) * 1.52} ${VIEW_H}`,
+        ).join('')}`}
+        stroke="oklch(0.11 0.008 258 / 0.45)"
+        stroke-width="1"
+        fill="none"
+      />
+      <rect x="0" y={BASE - 4} width={VIEW_W} height="6" fill="oklch(0.32 0.035 58)" />
+      <ellipse cx="520" cy={BASE + 34} rx="340" ry="44" fill="url(#cafe-floor-pool)" />
+      <ellipse cx="1200" cy={BASE + 46} rx="360" ry="58" fill="url(#cafe-floor-pool)" />
     </svg>
 
     <canvas class="layer back" data-layer="back" aria-hidden="true"></canvas>
@@ -372,7 +666,9 @@ const widths = [112, 168, 252, 336, 528];
     </p>
 
     <canvas class="layer front" data-layer="front" aria-hidden="true"></canvas>
-    <p class="visually-hidden">{s.description}</p>
+    <p class="visually-hidden" data-scene-desc>
+      {s.description}
+    </p>
   </div>
 
   <div class="container street-foot">
@@ -398,11 +694,20 @@ const widths = [112, 168, 252, 336, 528];
 </section>
 
 <script>
-  // The scene is a separate chunk, fetched only when the footer is near.
+  import {
+    observeFooterScenario,
+    resolveInitialScenario,
+    type FooterScenario,
+  } from '@/scripts/street/scenario';
+  import type { Street } from '@/scripts/street/scene';
+
   const root = document.querySelector<HTMLElement>('[data-street]');
   const stage = root?.querySelector<HTMLElement>('[data-stage]');
   const back = root?.querySelector<HTMLCanvasElement>('[data-layer="back"]');
   const front = root?.querySelector<HTMLCanvasElement>('[data-layer="front"]');
+  const eyebrow = root?.querySelector<HTMLElement>('[data-scene-eyebrow]');
+  const meBtn = root?.querySelector<HTMLElement>('[data-me]');
+  const desc = root?.querySelector<HTMLElement>('[data-scene-desc]');
 
   if (
     root &&
@@ -412,42 +717,127 @@ const widths = [112, 168, 252, 336, 528];
     'IntersectionObserver' in window &&
     'ResizeObserver' in window
   ) {
+    const initial = resolveInitialScenario();
+    let currentScenario: FooterScenario = initial.scenario;
+    let activeInstance: Street | undefined;
+    let nearReached = false;
+    let mountToken = 0;
+
+    function syncStaticMeta(scenario: FooterScenario) {
+      root!.dataset['scene'] = scenario;
+      stage!.dataset['scene'] = scenario;
+      if (eyebrow) {
+        eyebrow.textContent =
+          scenario === 'cafe'
+            ? (root!.dataset['labelCafe'] ?? eyebrow.textContent)
+            : (root!.dataset['labelStreet'] ?? eyebrow.textContent);
+      }
+      if (meBtn) {
+        meBtn.setAttribute(
+          'aria-label',
+          scenario === 'cafe'
+            ? (root!.dataset['meCafe'] ?? meBtn.getAttribute('aria-label') ?? '')
+            : (root!.dataset['meStreet'] ?? meBtn.getAttribute('aria-label') ?? ''),
+        );
+      }
+      if (desc) {
+        desc.textContent =
+          scenario === 'cafe'
+            ? (root!.dataset['descCafe'] ?? desc.textContent)
+            : (root!.dataset['descStreet'] ?? desc.textContent);
+      }
+    }
+
+    syncStaticMeta(currentScenario);
+
+    async function mountScenario(scenario: FooterScenario, withDissolve: boolean) {
+      const token = ++mountToken;
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      // 1. Stop and release previous scene resources before switching.
+      if (activeInstance) {
+        activeInstance.destroy();
+        activeInstance = undefined;
+      }
+
+      const opts = {
+        stage: stage!,
+        back: back!,
+        front: front!,
+        avatar: meBtn ?? null,
+        counter: root!.querySelector<HTMLElement>('[data-street-count]'),
+        cast: Array.from(root!.querySelectorAll<HTMLElement>('[data-cast]')),
+        reduce,
+        ...(initial.seed === undefined ? {} : { seed: initial.seed }),
+      };
+
+      // 2. Prepare and decode incoming scene module & assets.
+      if (scenario === 'cafe') {
+        const mod = await import('@/scripts/street/cafe');
+        if (withDissolve) {
+          await mod.loadCafeAtlas().catch(() => null);
+        }
+        if (token !== mountToken) return;
+        syncStaticMeta('cafe');
+        if (withDissolve && !reduce) {
+          stage!.animate([{ opacity: 0.22 }, { opacity: 1 }], {
+            duration: 220,
+            easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+          });
+        }
+        const cafe = mod.createCafe(opts);
+        activeInstance = cafe;
+        root!.dataset['ready'] = '';
+        const win = window as unknown as {
+          __street?: Street;
+          __cafe?: typeof cafe;
+        };
+        if (initial.testing) win.__street = cafe;
+        win.__cafe = cafe;
+      } else {
+        const mod = await import('@/scripts/street/scene');
+        if (token !== mountToken) return;
+        syncStaticMeta('street');
+        if (withDissolve && !reduce) {
+          stage!.animate([{ opacity: 0.22 }, { opacity: 1 }], {
+            duration: 220,
+            easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+          });
+        }
+        const street = mod.createStreet(opts);
+        activeInstance = street;
+        root!.dataset['ready'] = '';
+        const win = window as unknown as {
+          __street?: Street;
+          __cafe?: undefined;
+        };
+        if (initial.testing) win.__street = street;
+        delete win.__cafe;
+      }
+    }
+
     const near = new IntersectionObserver(
       (entries) => {
         if (!entries.some((entry) => entry.isIntersecting)) return;
         near.disconnect();
-        let testing = false;
-        let seed: number | undefined;
-        try {
-          // The e2e suite asks for a fixed street and a handle to step it.
-          const flag = localStorage.getItem('ng-street:test');
-          testing = flag !== null;
-          if (flag && /^\d+$/.test(flag)) seed = Number(flag);
-        } catch {
-          // Storage is blocked: the street runs as for anyone else.
-        }
-        import('@/scripts/street/scene')
-          .then(({ createStreet }) => {
-            const street = createStreet({
-              stage,
-              back,
-              front,
-              avatar: root.querySelector<HTMLElement>('[data-me]'),
-              counter: root.querySelector<HTMLElement>('[data-street-count]'),
-              cast: Array.from(root.querySelectorAll<HTMLElement>('[data-cast]')),
-              reduce: window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-              ...(seed === undefined ? {} : { seed }),
-            });
-            root.dataset['ready'] = '';
-            if (testing) (window as unknown as { __street?: typeof street }).__street = street;
-          })
-          .catch(() => {
-            // The picture without the crowd is still the footer.
-          });
+        nearReached = true;
+        void mountScenario(currentScenario, false).catch(() => {
+          // Static backdrop remains usable if chunk loading fails.
+        });
       },
       { rootMargin: '600px 0px' },
     );
     near.observe(stage);
+
+    observeFooterScenario((nextScenario) => {
+      if (nextScenario === currentScenario) return;
+      currentScenario = nextScenario;
+      if (!nearReached) {
+        syncStaticMeta(nextScenario);
+        return;
+      }
+      void mountScenario(nextScenario, true).catch(() => {});
+    });
   }
 </script>
 
@@ -605,7 +995,8 @@ const widths = [112, 168, 252, 336, 528];
     box-shadow: inset 0 0 9rem 1rem oklch(0.08 0.01 262 / 0.75);
   }
 
-  .block {
+  .block,
+  .cafe-room {
     position: absolute;
     inset: 0;
     width: 100%;
@@ -613,6 +1004,20 @@ const widths = [112, 168, 252, 336, 528];
     pointer-events: none;
     contain: strict;
     transform: translateZ(0);
+  }
+
+  .stage:not([data-scene='cafe']) .cafe-room,
+  .stage[data-scene='cafe'] .block {
+    display: none;
+  }
+
+  .cafe-room .cafe-plaque {
+    fill: oklch(0.84 0.08 78 / 0.85);
+    font-family: var(--ff-mono);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .block .far {
@@ -747,10 +1152,29 @@ const widths = [112, 168, 252, 336, 528];
     fill: oklch(0.2 0.028 160);
   }
 
+  .block .tree .canopy-rim {
+    fill: oklch(0.32 0.04 148 / 0.35);
+  }
+
   .block .tree .trunk {
     fill: none;
     stroke: oklch(0.14 0.012 60);
     stroke-width: 7;
+    stroke-linecap: round;
+  }
+
+  .block .furniture .bench {
+    fill: none;
+    stroke: oklch(0.26 0.025 58);
+    stroke-width: 3.5;
+    stroke-linecap: round;
+  }
+
+  .block .furniture .bollard {
+    fill: none;
+    stroke: oklch(0.24 0.014 258);
+    stroke-width: 4.5;
+    stroke-linecap: round;
   }
 
   .block .lamp path {
@@ -921,6 +1345,26 @@ const widths = [112, 168, 252, 336, 528];
     filter: brightness(1.04) saturate(1) contrast(1.02);
   }
 
+  /* In the café scenario, Nikolay and his table are drawn on the front canvas;
+     the button stays over him as the accessible focus and click target. */
+  .stage[data-scene='cafe'] .me {
+    bottom: 3.2%;
+    height: 74%;
+    aspect-ratio: 224 / 378;
+    z-index: 4;
+  }
+
+  .stage[data-scene='cafe'] .me::before,
+  .stage[data-scene='cafe'] .me-figure {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .stage[data-scene='cafe'] .me-tag {
+    left: calc(50% + var(--stage-h) * 0.145);
+    bottom: 66%;
+  }
+
   /* His name, pinned beside him like a part label. */
   .me-tag {
     position: absolute;
@@ -1035,9 +1479,10 @@ const widths = [112, 168, 252, 336, 528];
 
   /* On a phone the label sits over his head: beside him it would leave the screen. */
   @media (max-width: 40rem) {
-    .me-tag {
+    .me-tag,
+    .stage[data-scene='cafe'] .me-tag {
       left: 50%;
-      bottom: 77%;
+      bottom: 78%;
       translate: -50% 0;
     }
     .me-tag::before {

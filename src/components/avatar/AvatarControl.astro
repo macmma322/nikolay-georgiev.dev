@@ -4,15 +4,37 @@ import { avatar } from '@/i18n/ui/avatar';
 const copy = useI18n(Astro).t(avatar);
 ---
 
-<avatar-runtime data-dismiss={copy.dismiss} data-music={copy.lines.music}>
+<avatar-runtime
+  data-dismiss={copy.dismiss}
+  data-music={copy.lines.music}
+  data-scene-street={copy.sceneStreet}
+  data-scene-cafe={copy.sceneCafe}
+  data-switch-cafe={copy.switchToCafe}
+  data-switch-street={copy.switchToStreet}
+>
   <button type="button" data-avatar-toggle aria-pressed="true" hidden>
     {copy.motion}
+  </button>
+  <button
+    type="button"
+    class="scene-switch"
+    data-scene-toggle
+    aria-label={copy.switchToCafe}
+    hidden
+  >
+    {copy.sceneStreet}
   </button>
 </avatar-runtime>
 <script>
   import '@/scripts/avatar/runtime';
 </script>
 <style>
+  avatar-runtime {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.2rem 1.15rem;
+  }
   button {
     padding: 0.5rem 0;
     min-height: 44px;
@@ -22,8 +44,12 @@ const copy = useI18n(Astro).t(avatar);
     font: inherit;
     font-size: var(--text-caption);
     cursor: pointer;
+    transition: color var(--dur-fast) var(--ease-out);
   }
-  button::before {
+  button:is(:hover, :focus-visible) {
+    color: var(--fg);
+  }
+  [data-avatar-toggle]::before {
     content: '';
     display: inline-block;
     width: 0.48em;
@@ -32,8 +58,19 @@ const copy = useI18n(Astro).t(avatar);
     border: 1px solid currentColor;
     border-radius: 50%;
   }
-  button[aria-pressed='true']::before {
+  [data-avatar-toggle][aria-pressed='true']::before {
     background: currentColor;
+  }
+  .scene-switch::before {
+    content: '◈';
+    display: inline-block;
+    margin-inline-end: 0.45em;
+    font-size: 0.85em;
+    color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+  .scene-switch:is(:hover, :focus-visible)::before {
+    color: var(--fg);
   }
   button:disabled {
     cursor: default;

@@ -199,19 +199,31 @@ test('header boundary hysteresis, spatial occlusion, graceful exit and scroll re
   });
   expect(headerControlsRemainTop).toBe(true);
 
-  // 2. Scroll further so <44% of the avatar remains below the header: enters graceful 'exiting' state, not instant removal.
-  await page.evaluate(() => {
+  // 2 & 3. Scroll further so <44% of the avatar remains below the header (entering 'exiting'),
+  // then reverse scroll mid-exit back into the recovery zone within the 180ms exit window.
+  const midExitSnapshot = await page.evaluate(async () => {
+    const rt = document.querySelector('avatar-runtime')!;
+    const cv = document.querySelector('[data-avatar-anchor="caelora"] canvas')!;
     const header = document.querySelector('.site-header')!.getBoundingClientRect();
-    const el = document.querySelector('[data-avatar-anchor="caelora"]')!.getBoundingClientRect();
-    // Leave ~25% of anchor below headerBottom.
+    const anchorEl = document.querySelector<HTMLElement>('[data-avatar-anchor="caelora"]')!;
+    const el = anchorEl.getBoundingClientRect();
     const targetTop = header.bottom - el.height * 0.75;
     window.scrollBy({ top: el.top - targetTop, behavior: 'instant' });
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const lifecycleDuringExit = rt.getAttribute('data-lifecycle');
+    const exitDir = cv.getAttribute('data-exit-dir');
+    // Reverse scroll mid-exit before the 180ms exit timer completes.
+    anchorEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return {
+      lifecycleDuringExit,
+      exitDir,
+      lifecycleAfterReverse: rt.getAttribute('data-lifecycle'),
+    };
   });
-  await expect(runtime).toHaveAttribute('data-lifecycle', 'exiting');
-  await expect(canvas).toHaveAttribute('data-exit-dir', 'up');
-
-  // 3. Reverse scroll mid-exit back into the recovery zone: exit cancels and restores smoothly without frame jump.
-  await center(page, '[data-avatar-anchor="caelora"]');
+  expect(midExitSnapshot.lifecycleDuringExit).toBe('exiting');
+  expect(midExitSnapshot.exitDir).toBe('up');
+  expect(['entering', 'active']).toContain(midExitSnapshot.lifecycleAfterReverse);
   await expect(runtime).toHaveAttribute('data-lifecycle', 'active', { timeout: 1000 });
   await expect(canvas).toBeVisible();
   expect(await canvas.getAttribute('data-state')).toBe(settledState);

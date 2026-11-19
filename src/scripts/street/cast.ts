@@ -139,18 +139,27 @@ export function paintFor(look: Look, haze: number, wall: C3, lw: number): Paint 
     return css([l + (target[0] - l) * t * k, ch + (target[1] - ch) * t * k, c[2]]);
   };
   const dark = (c: C3): C3 => [c[0] * 0.81, c[1] * 1.05, c[2]];
+  const light = (c: C3): C3 => [Math.min(0.95, c[0] * 1.12 + 0.035), c[1] * 0.96 + 0.01, c[2]];
   return {
     line: at(OUTLINE, 0.7),
-    soft: `oklch(0.1 0.012 40 / ${(0.5 * (1 - t * 0.5)).toFixed(2)})`,
+    soft: `oklch(0.1 0.012 40 / ${(0.52 * (1 - t * 0.45)).toFixed(2)})`,
+    rim: `oklch(0.84 0.085 78 / ${(0.3 * (1 - t * 0.65)).toFixed(2)})`,
     skin: at(look.skin),
     skinDark: at([look.skin[0] * 0.82, look.skin[1] * 1.1, look.skin[2] - 6]),
+    skinLight: at([
+      Math.min(0.95, look.skin[0] * 1.07 + 0.02),
+      look.skin[1] * 0.95,
+      look.skin[2] + 3,
+    ]),
     hair: at(look.hair),
     hairLight: at([Math.min(0.92, look.hair[0] + 0.16), look.hair[1], look.hair[2]]),
     sole: at([0.86, 0.01, 85]),
     top: at(look.top),
     topDark: at(dark(look.top)),
+    topLight: at(light(look.top)),
     bottom: at(look.bottom),
     bottomDark: at(dark(look.bottom)),
+    bottomLight: at(light(look.bottom)),
     shoe: at(look.shoe),
     item: at(look.item ?? ITEM),
     under: at(look.under ?? UNDER),

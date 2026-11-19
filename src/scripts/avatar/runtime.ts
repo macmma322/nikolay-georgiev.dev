@@ -2,6 +2,7 @@ import { clips, loadClip, type CharacterState, type Clip } from './clips';
 import { idleCycle, sequence, type Pose } from './choreography';
 import { observePlaybackState } from '../playback-state';
 import { getQualityTier, observeQualityTier, type QualityTier } from '../circuit-clock';
+import { observeFooterScenario, toggleFooterScenario } from '../street/scenario';
 
 const preference = 'nikolay.avatar.motion';
 type Anchor = { element: HTMLElement; pose: Pose };
@@ -59,6 +60,7 @@ class AvatarRuntime extends HTMLElement {
   connectedCallback() {
     if (this.#cleanup) return;
     const toggle = this.querySelector<HTMLButtonElement>('[data-avatar-toggle]');
+    const sceneToggle = this.querySelector<HTMLButtonElement>('[data-scene-toggle]');
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx || !toggle || !('IntersectionObserver' in window) || !('ResizeObserver' in window))
@@ -186,8 +188,7 @@ class AvatarRuntime extends HTMLElement {
       if (anchor === lastBoundaryAnchor && savedStates.has(anchor)) {
         const recoverVisible = rect.height * (ACTIVE_MIN_VISIBLE_RATIO + 0.1);
         return (
-          rect.bottom >= headerBottom + recoverVisible &&
-          rect.top <= innerHeight - recoverVisible
+          rect.bottom >= headerBottom + recoverVisible && rect.top <= innerHeight - recoverVisible
         );
       }
       const topSlack = Math.min(14, rect.height * ENTER_TOP_SLACK_RATIO);
@@ -664,6 +665,28 @@ class AvatarRuntime extends HTMLElement {
       quality = tier;
       if (tier === 'low') delete canvas.dataset['idleBreathe'];
     });
+    const unwatchScenario = observeFooterScenario((scenario) => {
+      if (!sceneToggle) return;
+      sceneToggle.hidden = false;
+      sceneToggle.dataset['scene'] = scenario;
+      sceneToggle.textContent =
+        scenario === 'cafe'
+          ? (this.dataset['sceneCafe'] ?? 'Scene: Café')
+          : (this.dataset['sceneStreet'] ?? 'Scene: Street');
+      sceneToggle.setAttribute(
+        'aria-label',
+        scenario === 'cafe'
+          ? (this.dataset['switchStreet'] ?? 'Change footer scene to Street')
+          : (this.dataset['switchCafe'] ?? 'Change footer scene to Café'),
+      );
+    });
+    sceneToggle?.addEventListener(
+      'click',
+      () => {
+        toggleFooterScenario();
+      },
+      { signal },
+    );
     bubble.addEventListener('click', dismiss, { signal });
     document.addEventListener(
       'keydown',
@@ -702,6 +725,7 @@ class AvatarRuntime extends HTMLElement {
       resize.disconnect();
       unwatch();
       unwatchQuality();
+      unwatchScenario();
       cancel();
       cancelAnimationFrame(pending);
     };
