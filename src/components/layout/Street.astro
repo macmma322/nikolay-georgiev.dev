@@ -164,7 +164,10 @@ const widths = [112, 168, 252, 336, 528];
     </nav>
   </div>
 
+  <slot name="handoff" />
+
   <div class="stage" data-stage data-state="static">
+    <slot name="circuit" />
     <svg
       class="block"
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}

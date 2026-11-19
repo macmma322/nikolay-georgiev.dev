@@ -23,9 +23,11 @@ const year = new Date().getFullYear();
   aria-labelledby={bare ? undefined : 'contact-title'}
 >
   {!bare && <ContactFinale variant="footer" />}
-  <slot name="circuit" />
 
-  <Street />
+  <Street>
+    <slot name="circuit" slot="handoff" />
+    <slot name="stage-circuit" slot="circuit" />
+  </Street>
 
   <div class="container baseline">
     <a class="signature" href={href('/')}>

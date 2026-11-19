@@ -105,7 +105,7 @@ test('renders the footer entry with no third-party requests before opt-in', asyn
   await expect(page.locator('iframe')).toHaveCount(0);
   await launch(page).scrollIntoViewIfNeeded();
   await expect(page.locator('footer#contact')).toBeVisible();
-  await expect(page.locator('footer#contact a[href="/open-source"]')).toBeVisible();
+  await expect(page.locator('footer#contact .baseline a[href="/open-source"]')).toBeVisible();
   await expect(page.locator('footer#contact a[href^="mailto:"]')).toHaveCount(1);
   expect(requests).toEqual([]);
 
