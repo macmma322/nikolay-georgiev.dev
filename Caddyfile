@@ -51,6 +51,9 @@
 	# old CV carried personal data; its URL now serves the redacted CV. First
 	# match wins; unmatched paths leave {legacy} unset.
 	map {path} {legacy} {
+		/bg/index /bg
+		/bg/index.html /bg
+		/bg/index/ /bg
 		/cv-nikolay-georgiev.pdf /Nikolay-Georgiev-CV.pdf
 		/projects /work
 		/resume /cv
@@ -65,7 +68,7 @@
 		~^/(?:projects|work)/nikolay-runtime-(?:portfolio|interface)$ /lab#lab-this-site
 		~^/(?:projects|work)/cyber-ui-experiments$ /lab
 		# Current slugs keep their page; any other old project URL goes to the index.
-		~^/projects/(zone-32-19|jarvis|uss-x-academy|kobait|malrynth|stemini)$ /work/${1}
+		~^/projects/(zone-32-19|jarvis|uss-x-academy|kobait|malrynth|stemini|caelora)$ /work/${1}
 		~^/projects/ /work
 	}
 

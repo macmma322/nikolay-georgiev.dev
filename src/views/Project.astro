@@ -404,6 +404,11 @@ const media = p.media.map((m, i) => {
               </li>
             ))}
           </ul>
+          <p class="stack-experience">
+            <a class="text-link" href={href('/about#capabilities')}>
+              {w.relatedExperience}
+            </a>
+          </p>
           {credits && (
             <div class="credits-block reveal">
               <h3 class="label credits-title">{o.builtWith}</h3>
@@ -1394,6 +1399,10 @@ const media = p.media.map((m, i) => {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
     gap: 0.9rem 1.5rem;
+  }
+
+  .stack-experience {
+    margin-top: var(--space-s);
   }
 
   /* ---------- Next ---------- */

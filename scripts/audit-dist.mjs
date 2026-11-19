@@ -154,18 +154,20 @@ const exists = (urlPath) => {
   );
 };
 
+const normalizedText = (value) =>
+  typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : undefined;
 const decode = (s) =>
-  s
-    .replace(/<[^>]+>/g, '')
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#39;', "'")
-    .replaceAll('&#x27;', "'")
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>')
-    .replaceAll('&nbsp;', ' ')
-    .replaceAll('&amp;', '&')
-    .replace(/\s+/g, ' ')
-    .trim();
+  normalizedText(
+    s
+      .replace(/<[^>]+>/g, '')
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#39;', "'")
+      .replaceAll('&#x27;', "'")
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&nbsp;', ' ')
+      .replaceAll('&amp;', '&'),
+  );
 const meta = (html, attr, key) => {
   const m = html.match(new RegExp(`<meta ${attr}="${key}" content="([^"]*)"`));
   return m ? decode(m[1]) : undefined;
@@ -192,9 +194,12 @@ for (const [file, html] of htmlPages) {
   const titles = [...html.matchAll(/<title>([^<]+)<\/title>/g)].map((m) => decode(m[1]));
   if (titles.length !== 1) fail(file, `expected one <title>, found ${titles.length}`);
   const title = titles[0] ?? '';
-  const description = meta(html, 'name', 'description') ?? '';
-  if (description.length < 50 || description.length > 170)
-    fail(file, `meta description is ${description.length} characters (50–170)`);
+  const description = meta(head, 'name', 'description') ?? '';
+  const descriptions = [...head.matchAll(/<meta name="description"(?=\s|>)/g)];
+  if (descriptions.length !== 1)
+    fail(file, `expected one meta description, found ${descriptions.length}`);
+  if (description.length < 50 || description.length > 160)
+    fail(file, `meta description is ${description.length} characters (50–160)`);
   if (!/<meta http-equiv="content-security-policy"/i.test(html)) fail(file, 'missing CSP meta');
   if (!html.includes(`<html lang="${lang}"`)) fail(file, `missing lang="${lang}"`);
   if (/<meta name="keywords"/i.test(html)) fail(file, 'meta keywords');
@@ -246,6 +251,12 @@ for (const [file, html] of htmlPages) {
   const body = html
     .slice(html.indexOf('<body'))
     .replace(/<(script|style|svg)\b[\s\S]*?<\/\1>/g, '');
+  // Search-critical headings belong in the static main region.
+  const main = body.match(/<main\b[^>]*>([\s\S]*?)<\/main>/)?.[1] ?? '';
+  const headings = [...main.matchAll(/<h([1-6])\b/g)].map((m) => Number(m[1]));
+  if (headings[0] !== 1 || headings.some((level, i) => i > 0 && level > headings[i - 1] + 1))
+    fail(file, 'main heading levels are missing or skipped');
+
   // Tags become spaces so the text of neighbouring elements never runs together.
   const words = (markup) => decode(markup.replace(/<[^>]+>/g, ' '));
   const text = words(body);
@@ -307,12 +318,11 @@ for (const [file, html] of htmlPages) {
     fail(file, 'localhost or railway.app in a card URL');
 
   const canonicals = [...head.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map((m) => m[1]);
-  const alternates = Object.fromEntries(
-    [...head.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]*)"/g)].map((m) => [
-      m[1],
-      m[2],
-    ]),
-  );
+  const alternateTags = [
+    ...head.matchAll(/<link rel="alternate" hreflang="([^"]+)" href="([^"]*)"/g),
+  ];
+  const alternates = Object.fromEntries(alternateTags.map(([, lang, href]) => [lang, href]));
+  if (alternateTags.length !== Object.keys(alternates).length) fail(file, 'duplicate hreflang');
   const noindex = /<meta name="robots" content="[^"]*noindex/.test(head);
   const blocks = [
     ...html.matchAll(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/g),
@@ -408,7 +418,10 @@ const REQUIRED = {
 const isRef = (v) =>
   v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).join() === '@id';
 
-for (const [url, { file, rel, lang, graph }] of pages) {
+const personId = `${ORIGIN}/#person`;
+const websiteId = `${ORIGIN}/#website`;
+
+for (const [url, { file, rel, lang, title, description, graph }] of pages) {
   const ids = new Set();
   for (const node of graph) {
     const type = node['@type'];
@@ -451,16 +464,38 @@ for (const [url, { file, rel, lang, graph }] of pages) {
   if (!pageNode) fail(file, 'JSON-LD: no page node with the canonical URL as @id');
   else if (pageNode.inLanguage !== lang)
     fail(file, `JSON-LD: page inLanguage ${pageNode.inLanguage}`);
-  if (byType('Person').length !== 1) fail(file, 'JSON-LD: expected one Person');
+  if (
+    pageNode?.url !== url ||
+    normalizedText(pageNode.name) !== title ||
+    normalizedText(pageNode.description) !== description
+  )
+    fail(file, 'JSON-LD: page URL, name or description does not match its head');
+  if (pageNode?.isPartOf?.['@id'] !== websiteId)
+    fail(file, 'JSON-LD: page isPartOf must be WebSite');
+  const people = byType('Person');
+  if (people.length !== 1 || people[0]['@id'] !== personId || people[0].url !== `${ORIGIN}/`)
+    fail(file, 'JSON-LD: expected one Person with the site-wide ID and homepage URL');
   const home = section === '' || section === 'index';
-  if (home !== (byType('WebSite').length === 1))
-    fail(file, 'JSON-LD: WebSite belongs on home pages only');
-  if (section === 'about' && pageNode?.['@type'] !== 'ProfilePage')
-    fail(file, 'JSON-LD: /about is not a ProfilePage');
+  const websites = byType('WebSite');
+  if (home ? websites.length !== 1 || websites[0]['@id'] !== websiteId : websites.length !== 0)
+    fail(file, 'JSON-LD: expected the site-wide WebSite on each home page only');
+  if (
+    section === 'about' &&
+    (pageNode?.['@type'] !== 'ProfilePage' || pageNode.mainEntity?.['@id'] !== personId)
+  )
+    fail(file, 'JSON-LD: About must be a ProfilePage for Person');
   if (section === 'contact' && pageNode?.['@type'] !== 'ContactPage')
     fail(file, 'JSON-LD: /contact is not a ContactPage');
   if (!home) {
-    const crumbs = byType('BreadcrumbList')[0]?.itemListElement ?? [];
+    const breadcrumbs = byType('BreadcrumbList');
+    const breadcrumbId = `${url}#breadcrumb`;
+    if (
+      breadcrumbs.length !== 1 ||
+      breadcrumbs[0]['@id'] !== breadcrumbId ||
+      pageNode?.breadcrumb?.['@id'] !== breadcrumbId
+    )
+      fail(file, 'JSON-LD: page must reference its own BreadcrumbList');
+    const crumbs = breadcrumbs[0]?.itemListElement ?? [];
     if (crumbs.at(-1)?.item !== url) fail(file, 'JSON-LD: breadcrumb does not end at this page');
     crumbs.forEach((c, i) => {
       if (c.position !== i + 1 || !c.name || !pages.has(c.item))
@@ -472,18 +507,62 @@ for (const [url, { file, rel, lang, graph }] of pages) {
   if (section.startsWith('work/')) {
     const project = graph.find((n) => n['@id'] === `${url}#project`);
     if (!project) fail(file, 'JSON-LD: case study without its #project node');
-    else if (project.mainEntityOfPage?.['@id'] !== url)
-      fail(file, 'JSON-LD: #project mainEntityOfPage');
+    else {
+      if (
+        project.mainEntityOfPage?.['@id'] !== url ||
+        pageNode?.mainEntity?.['@id'] !== project['@id']
+      )
+        fail(file, 'JSON-LD: case study page and project must reference each other');
+      if (
+        project.author?.['@id'] !== personId ||
+        project.inLanguage !== lang ||
+        normalizedText(project.description) !== description
+      )
+        fail(
+          file,
+          'JSON-LD: project author, language or description does not match the case study',
+        );
+    }
   }
 }
 
 // Sitemap: exactly the indexable canonical URLs, with the same alternates.
-if (!existsSync(join(dist, 'sitemap-index.xml'))) failures.push('sitemap-index.xml: missing');
+const sitemapIndex = join(dist, 'sitemap-index.xml');
+const sitemapUrls = existsSync(sitemapIndex)
+  ? [...readFileSync(sitemapIndex, 'utf8').matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1])
+  : [];
+const expectedSitemaps = sitemaps.map(([file]) => `${ORIGIN}/${relOf(file)}`);
+if (
+  !sitemapUrls.length ||
+  sitemapUrls.length !== expectedSitemaps.length ||
+  expectedSitemaps.some((url) => !sitemapUrls.includes(url))
+)
+  fail(sitemapIndex, 'must reference each built sitemap once');
+
+const robots = join(dist, 'robots.txt');
+const rules = existsSync(robots)
+  ? readFileSync(robots, 'utf8')
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+  : [];
+const expectedRules = [
+  'User-agent: *',
+  'Allow: /',
+  'Disallow: /workspace',
+  `Sitemap: ${ORIGIN}/sitemap-index.xml`,
+];
+if (rules.join('\n') !== expectedRules.join('\n'))
+  fail(
+    robots,
+    'expected public crawl access, private workspace exclusion and the canonical sitemap index',
+  );
 const listed = new Set();
 for (const [file, xml] of sitemaps) {
   if (/<lastmod>|<priority>|<changefreq>/.test(xml)) fail(file, 'lastmod, priority or changefreq');
   for (const [, entry] of xml.matchAll(/<url>([\s\S]*?)<\/url>/g)) {
     const loc = entry.match(/<loc>([^<]+)<\/loc>/)?.[1] ?? '';
+    if (listed.has(loc)) fail(file, `duplicate sitemap URL ${loc}`);
     listed.add(loc);
     if (FOREIGN_HOST.test(entry)) fail(file, `localhost or railway.app in ${loc}`);
     const page = pages.get(loc);
@@ -491,9 +570,10 @@ for (const [file, xml] of sitemaps) {
       fail(file, `${loc} is not an indexable page`);
       continue;
     }
-    const links = Object.fromEntries(
-      [...entry.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)].map((m) => [m[1], m[2]]),
-    );
+    const alternateTags = [...entry.matchAll(/hreflang="([^"]+)" href="([^"]+)"/g)];
+    const links = Object.fromEntries(alternateTags.map(([, lang, href]) => [lang, href]));
+    if (alternateTags.length !== Object.keys(links).length)
+      fail(file, `${loc}: duplicate hreflang`);
     if (
       JSON.stringify(links, Object.keys(links).sort()) !==
       JSON.stringify(page.alternates, Object.keys(page.alternates).sort())

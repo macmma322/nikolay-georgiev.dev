@@ -6,7 +6,7 @@ accent: jarvis
 kicker: Local-first AI assistant
 signature: 'On a 79-case adversarial set, the local model made six fluent claims of granted authority or completed changes. None were true; a postcondition now refuses such answers.'
 summary: A private, local-first desktop assistant in which models choose what information helps, but never what the computer executes.
-description: 'Case study of J.A.R.V.I.S.: a desktop assistant with compiled authority tiers, routing between a local Qwen model and frontier CLIs, durable memory and local voice.'
+description: 'J.A.R.V.I.S. is a local-first desktop assistant with compiled authority tiers, local Qwen and frontier CLI routing, persistent memory and on-device voice.'
 seoTitle: 'J.A.R.V.I.S.: local-first AI assistant'
 status: active
 statusNote: Private, single user, not released

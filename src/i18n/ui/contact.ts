@@ -15,6 +15,10 @@ export const contact = {
     en: 'I put the second list in code and tests.',
     bg: 'Втория списък превръщам в код и тестове.',
   },
+  pageSupport: {
+    en: 'Get in touch about software engineering roles in Varna or remote work from Bulgaria.',
+    bg: 'Свържете се с мен за позиции в софтуерната разработка във Варна или дистанционна работа от България.',
+  },
   copyEmail: { en: 'Copy email address', bg: 'Копирайте имейла' },
   copyEmailAlt: { en: 'Copy second email address', bg: 'Копирайте втория имейл' },
   /** Visually hidden before the second address. */

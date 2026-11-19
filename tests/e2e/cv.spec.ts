@@ -335,7 +335,11 @@ test('a role-aimed CV downloads as its own PDF and states only verified skills',
 
 test('the home page names the role, stack and place for search', async ({ page }) => {
   await page.goto('/');
-  await expect(page).toHaveTitle(/Software Engineer, React and Node\.js/);
+  await expect(page).toHaveTitle(/Software Engineer in Varna, Bulgaria/);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    'content',
+    /React, Next\.js, TypeScript, Node\.js and PostgreSQL/,
+  );
   await expect(page.locator('.hero-focus')).toContainText('React, Next.js, TypeScript, Node.js');
   const ld = JSON.parse((await page.locator('script[type="application/ld+json"]').textContent())!);
   const person = ld['@graph'].find((n: { '@type': string }) => n['@type'] === 'Person');
