@@ -3,15 +3,18 @@ import { useI18n } from '@/i18n';
 import { avatar } from '@/i18n/ui/avatar';
 const copy = useI18n(Astro).t(avatar);
 ---
+
 <avatar-runtime data-dismiss={copy.dismiss} data-music={copy.lines.music}>
-  <button type="button" data-avatar-toggle aria-pressed="true" hidden>{copy.motion}</button>
+  <button type="button" data-avatar-toggle aria-pressed="true" hidden>
+    {copy.motion}
+  </button>
 </avatar-runtime>
 <script>
   import '@/scripts/avatar/runtime';
 </script>
 <style>
   button {
-    padding: .5rem 0;
+    padding: 0.5rem 0;
     min-height: 44px;
     background: transparent;
     border: 0;
@@ -23,12 +26,16 @@ const copy = useI18n(Astro).t(avatar);
   button::before {
     content: '';
     display: inline-block;
-    width: .48em;
-    height: .48em;
-    margin-inline-end: .55em;
+    width: 0.48em;
+    height: 0.48em;
+    margin-inline-end: 0.55em;
     border: 1px solid currentColor;
     border-radius: 50%;
   }
-  button[aria-pressed='true']::before { background: currentColor; }
-  button:disabled { cursor: default; }
+  button[aria-pressed='true']::before {
+    background: currentColor;
+  }
+  button:disabled {
+    cursor: default;
+  }
 </style>

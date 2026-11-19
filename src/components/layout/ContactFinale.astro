@@ -167,7 +167,7 @@ const linkedinMark =
   <dl class="facts">
     <div>
       <dt class="label">{s.facts.based}</dt>
-      <dd>{l(site.location)}<AvatarAnchor scene="contact" pose="sit" /></dd>
+      <dd>{l(site.location)}</dd>
     </div>
     <div>
       <dt class="label">{s.facts.time}</dt>
@@ -175,6 +175,7 @@ const linkedinMark =
         <time data-local-time data-tz={site.timeZone}>
           {site.timeZone}
         </time>
+        <AvatarAnchor scene="contact" pose="sit" />
       </dd>
     </div>
     <div>
@@ -467,6 +468,7 @@ const linkedinMark =
   }
 
   .facts > div {
+    position: relative;
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;

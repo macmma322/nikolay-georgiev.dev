@@ -7,6 +7,7 @@ export const avatar = {
     hero: { en: 'Back at the bench.', bg: 'Пак на работната маса.' },
     caelora: { en: 'Just one more valley.', bg: 'Само още една долина.' },
     jarvis: { en: 'Let me read that again.', bg: 'Я да го прочета пак.' },
+    kobait: { en: 'Still on the bench.', bg: 'Още е на стенда.' },
     lab: { en: 'It worked locally.', bg: 'При мен си работеше.' },
     setup: { en: 'The cables can wait.', bg: 'Кабелите могат да почакат.' },
     contact: { en: 'One second.', bg: 'Секунда само.' },
