@@ -208,12 +208,20 @@ class CircuitField extends HTMLElement {
     });
     const events = new AbortController();
     const { signal } = events;
-    this.addEventListener('avatar-contact', (event) => {
-      if (!visible || motion.matches || !frame) return;
-      const { x, y } = (event as CustomEvent<{ x: number; y: number }>).detail;
-      const box = this.getBoundingClientRect();
-      contact = { x: (x-box.left)/box.width, y: (y-box.top)/box.height, at: performance.now() };
-    }, { signal });
+    this.addEventListener(
+      'avatar-contact',
+      (event) => {
+        if (!visible || motion.matches || !frame) return;
+        const { x, y } = (event as CustomEvent<{ x: number; y: number }>).detail;
+        const box = this.getBoundingClientRect();
+        contact = {
+          x: (x - box.left) / box.width,
+          y: (y - box.top) / box.height,
+          at: performance.now(),
+        };
+      },
+      { signal },
+    );
     motion.addEventListener('change', sync, { signal });
     document.addEventListener('visibilitychange', sync, { signal });
     resize.observe(this);
