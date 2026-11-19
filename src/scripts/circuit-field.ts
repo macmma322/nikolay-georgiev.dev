@@ -1,6 +1,10 @@
 import { circuitHeight, circuitWidth, makeCircuitBoard, type Trace } from '@/lib/circuit-board';
 import { createCircuitReactivity } from './circuit-reactivity';
-import { observePlaybackState } from './playback-state';
+import { observePlaybackState, type PlaybackState } from './playback-state';
+import { machineTraces, type SceneId } from '@/lib/machine-board';
+import { watchCircuitClock } from './circuit-clock';
+import { circuitScroll, watchCircuitScroll } from './circuit-scroll';
+import { electricalInput } from './electrical-input';
 
 const palette = ['214,143,94', '239,179,99', '167,135,214'] as const;
 const interval = 1000 / 30;
@@ -48,27 +52,67 @@ class CircuitField extends HTMLElement {
     if (!canvas || !context || !('IntersectionObserver' in window) || !('ResizeObserver' in window))
       return;
 
-    const traces = makeCircuitBoard(Number(this.dataset['seed'])).map(measureTrace);
+    const seed = Number(this.dataset['seed']);
+    const scene = this.dataset['scene'] as SceneId | undefined;
+    const traces = (scene ? machineTraces(scene, seed) : makeCircuitBoard(seed)).map(measureTrace);
+    const unwatchScroll = scene ? watchCircuitScroll() : undefined;
+    let playback: PlaybackState = 'idle';
+    let top = 0;
+    let activation = -1;
     const reactivity = createCircuitReactivity();
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const panel = this.closest('dialog');
     let visible = false;
-    let frame = 0;
+    let frame: (() => void) | undefined;
     let last = 0;
     let time = 0;
     let mobile = false;
     let scale = 1;
     let offsetX = 0;
     let offsetY = 0;
+    let width = 0;
+    let height = 0;
+    let nodeLight = -1;
+
+    const sizeBuffer = () => {
+      if (!visible || !width || !height || motion.matches) return;
+      mobile = width < 600;
+      const density = Math.min(
+        window.devicePixelRatio || 1,
+        mobile ? 1 : 1.5,
+        (scene ? 1440 : 1800) / width,
+      );
+      const w = Math.round(width * density);
+      const h = Math.round(height * density);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+      scale = Math.max(w / circuitWidth, h / circuitHeight);
+      offsetX = (w - circuitWidth * scale) / 2;
+      offsetY = (h - circuitHeight * scale) / 2;
+    };
 
     const tick = (now: number) => {
-      frame = requestAnimationFrame(tick);
       const elapsed = now - last;
-      if (elapsed < interval) return;
+      if (elapsed < (mobile && scene ? 64 : interval)) return;
       last = now;
       const step = Math.min(elapsed / 1000, 0.08);
-      const energy = reactivity.advance(step);
-      time += step * (0.62 + energy.signals * 0.82);
+      const { mode, strength, audio } = electricalInput;
+      reactivity.setState(mode === 'player' ? playback : 'idle');
+      const energy = reactivity.advance(step, mode === 'live' ? audio : undefined, strength);
+      const progress = scene ? circuitScroll.progress(top) : 1;
+      if (scene && Math.abs(progress - activation) >= 0.015) {
+        activation = progress;
+        this.style.setProperty('--pcb-activation', progress.toFixed(2));
+        this.dataset['progress'] = progress.toFixed(2);
+      }
+      if (scene && Math.abs(nodeLight - energy.nodes) >= 0.025) {
+        nodeLight = energy.nodes;
+        this.style.setProperty('--pcb-nodes', nodeLight.toFixed(2));
+      }
+      if (this.dataset['reactivity'] !== mode) this.dataset['reactivity'] = mode;
+      time += step * (0.57 + energy.wave * 0.38 + energy.signals * 0.82);
 
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
@@ -77,12 +121,14 @@ class CircuitField extends HTMLElement {
       // A diffuse envelope, short moving trace segments and small terminal lights.
       const bank = circuitWidth * (0.5 + Math.sin(time * 0.27) * 0.34);
       const wash = context.createRadialGradient(bank, 145, 0, bank, 145, 225);
-      wash.addColorStop(0, `rgba(176,100,88,${0.1 * energy.wave})`);
+      wash.addColorStop(0, `rgba(176,100,88,${0.18 * energy.wave * (0.45 + progress * 0.55)})`);
       wash.addColorStop(1, 'rgba(176,100,88,0)');
       context.fillStyle = wash;
       context.fillRect(bank - 225, 0, 450, circuitHeight);
 
-      const count = Math.round((mobile ? 3 : 5) + energy.signals * (mobile ? 5 : 11));
+      const count = Math.round(
+        (mobile ? 3 : 5) + energy.signals * (mobile ? 5 : 11) * (0.5 + progress * 0.5),
+      );
       context.lineCap = 'round';
       for (let index = 0; index < count; index++) {
         const trace = traces[(index * 7 + Math.floor(time / 12) * 3) % traces.length]!;
@@ -98,7 +144,7 @@ class CircuitField extends HTMLElement {
           context.lineTo(x, y);
         }
         context.lineTo(head.x, head.y);
-        context.lineWidth = 4;
+        context.lineWidth = 2.4 + energy.wave * 3;
         context.strokeStyle = `rgba(${tone},${fade * (0.1 + energy.wave * 0.14)})`;
         context.stroke();
         context.lineWidth = 1.15;
@@ -120,33 +166,34 @@ class CircuitField extends HTMLElement {
       const running = visible && !document.hidden && !motion.matches && (panel?.open ?? true);
       this.toggleAttribute('data-running', running);
       if (running && !frame) {
+        sizeBuffer();
         last = performance.now();
-        frame = requestAnimationFrame(tick);
+        frame = watchCircuitClock(tick);
       } else if (!running && frame) {
-        cancelAnimationFrame(frame);
-        frame = 0;
+        frame();
+        frame = undefined;
+        canvas.width = 1;
+        canvas.height = 1;
       }
     };
 
     const resize = new ResizeObserver(([entry]) => {
       if (!entry) return;
-      const { width, height } = entry.contentRect;
-      if (!width || !height) return;
-      const density = Math.min(window.devicePixelRatio || 1, 1.5, 1800 / width);
-      canvas.width = Math.round(width * density);
-      canvas.height = Math.round(height * density);
-      scale = Math.max(canvas.width / circuitWidth, canvas.height / circuitHeight);
-      offsetX = (canvas.width - circuitWidth * scale) / 2;
-      offsetY = (canvas.height - circuitHeight * scale) / 2;
-      mobile = width < 600;
+      width = entry.contentRect.width;
+      height = entry.contentRect.height;
+      sizeBuffer();
     });
-    const intersection = new IntersectionObserver(([entry]) => {
-      visible = entry?.isIntersecting ?? false;
-      sync();
-    });
+    const intersection = new IntersectionObserver(
+      ([entry]) => {
+        visible = entry?.isIntersecting ?? false;
+        if (scene && entry) top = entry.boundingClientRect.top + circuitScroll.position();
+        sync();
+      },
+      { threshold: [0, 0.25, 0.5, 1] },
+    );
     const unobserve = observePlaybackState((state) => {
       this.dataset['playback'] = state;
-      reactivity.setState(state);
+      playback = state;
     });
     const events = new AbortController();
     const { signal } = events;
@@ -156,7 +203,8 @@ class CircuitField extends HTMLElement {
     intersection.observe(this);
 
     this.#dispose = () => {
-      cancelAnimationFrame(frame);
+      frame?.();
+      unwatchScroll?.();
       events.abort();
       resize.disconnect();
       intersection.disconnect();

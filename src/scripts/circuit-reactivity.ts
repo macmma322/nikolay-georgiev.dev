@@ -18,11 +18,17 @@ export function createCircuitReactivity() {
     setState(state: PlaybackState) {
       target = levels[state] ?? idle;
     },
-    advance(seconds: number): Readonly<CircuitEnergy> {
-      const blend = 1 - Math.exp(-seconds / (target === idle ? 1.4 : 0.8));
-      energy.wave += (target.wave - energy.wave) * blend;
-      energy.signals += (target.signals - energy.signals) * blend;
-      energy.nodes += (target.nodes - energy.nodes) * blend;
+    advance(seconds: number, audio?: CircuitEnergy, strength = 1): Readonly<CircuitEnergy> {
+      const blend = 1 - Math.exp(-seconds / (audio ? 0.07 : target === idle ? 1.4 : 0.8));
+      const level = (base: number, selected: number, amplitude?: number) =>
+        Math.min(
+          0.92,
+          base + strength * (amplitude === undefined ? selected - base : amplitude * (0.92 - base)),
+        );
+      energy.wave += (level(idle.wave, target.wave, audio?.wave) - energy.wave) * blend;
+      energy.signals +=
+        (level(idle.signals, target.signals, audio?.signals) - energy.signals) * blend;
+      energy.nodes += (level(idle.nodes, target.nodes, audio?.nodes) - energy.nodes) * blend;
       return energy;
     },
   };

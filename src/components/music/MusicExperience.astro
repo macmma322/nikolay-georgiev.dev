@@ -1,5 +1,6 @@
 ---
 import VinylArtwork from './VinylArtwork.astro';
+import ElectricityControls from './ElectricityControls.astro';
 import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
 import { useI18n } from '@/i18n';
 import { music } from '@/i18n/ui/music';
@@ -46,6 +47,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
       </span>
     </a>
   </section>
+  <ElectricityControls />
 
   <dialog class="music-panel" id="music-panel" aria-labelledby="music-panel-title">
     <div class="panel-interior">

@@ -20,8 +20,8 @@ const year = new Date().getFullYear();
   id={bare ? undefined : 'contact'}
   aria-labelledby={bare ? undefined : 'contact-title'}
 >
-  <slot name="circuit" />
   {!bare && <ContactFinale variant="footer" />}
+  <slot name="circuit" />
 
   <div class="container baseline">
     <a class="signature" href={href('/')}>

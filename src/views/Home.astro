@@ -15,6 +15,7 @@ import LabCard from '@/components/work/LabCard.astro';
 import { useI18n } from '@/i18n';
 import { home } from '@/i18n/ui/home';
 import { getProjects } from '@/lib/projects';
+import { projectScenes } from '@/lib/machine-board';
 
 const { locale, t, href } = useI18n(Astro);
 const s = t(home);
@@ -32,9 +33,15 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
 ---
 
 <BaseLayout>
-  <CircuitBackdrop place="footer" slot="footer-circuit" />
+  <Fragment slot="footer-circuit">
+    <CircuitBackdrop place="world" scene="transmission" />
+    <CircuitBackdrop place="footer" />
+  </Fragment>
   <MusicExperience slot="footer-companion" />
-  <Hero />
+  <div class="runtime-hero">
+    <Hero />
+    <CircuitBackdrop place="world" scene="processor" />
+  </div>
 
   <section id="work" class="container section work" aria-labelledby="work-title">
     <span id="projects" class="anchor-alias"></span>
@@ -47,7 +54,12 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
       class="reveal"
     />
     {featured.map((entry, i) => (
-      <ProjectChapter entry={entry} index={i + 1} layout={rhythm[i % rhythm.length] ?? 'open'} />
+      <Fragment>
+        <ProjectChapter entry={entry} index={i + 1} layout={rhythm[i % rhythm.length] ?? 'open'} />
+        <div class="subsystem">
+          <CircuitBackdrop place="world" scene={projectScenes[entry.id] ?? 'services'} />
+        </div>
+      </Fragment>
     ))}
 
     {more.length > 0 && (
@@ -83,6 +95,9 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   </section>
 
   <section id="capabilities" class="container section rail" aria-labelledby="caps-title">
+    <div class="architecture-board">
+      <CircuitBackdrop place="world" scene="architecture" />
+    </div>
     <div class="rail-head">
       <span id="skills" class="anchor-alias"></span>
       <SectionHeader
@@ -116,7 +131,9 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   </section>
 
   <section id="lab" class="container section lab" aria-labelledby="lab-title">
-    <CircuitBackdrop place="accent" />
+    <div class="lab-board">
+      <CircuitBackdrop place="world" scene="prototype" />
+    </div>
     <SectionHeader
       label={s.lab.label}
       id="lab-title"
@@ -142,6 +159,28 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
 </BaseLayout>
 
 <style>
+  :global(body:has(.runtime-hero) .atmosphere) {
+    background: radial-gradient(80vmax 45vmax at 83% 6%, #33262c46, transparent 68%), #0d0d11;
+  }
+
+  .runtime-hero {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .subsystem {
+    margin-block: calc(var(--space-s) * -1) var(--space-l);
+  }
+
+  .architecture-board {
+    grid-column: 1 / -1;
+    margin-bottom: var(--space-s);
+  }
+
+  .lab-board {
+    margin-bottom: var(--space-l);
+  }
+
   /*
    * Rhythm: the widest breath before the work, related sections closer together.
    * Margins, not padding, so an in-page jump lands on the section's rule, not on the gap.

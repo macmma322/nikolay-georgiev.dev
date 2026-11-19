@@ -1,0 +1,190 @@
+---
+import { useI18n } from '@/i18n';
+import { electricity } from '@/i18n/ui/electricity';
+const { t } = useI18n(Astro);
+const s = t(electricity);
+interface Props {
+  sources?: readonly { label: string; url: string }[];
+}
+const { sources = [] } = Astro.props;
+// Only repository-configured, HTTPS or same-origin media can be offered here.
+const approved = sources.filter(({ url }) => {
+  const parsed = new URL(url, Astro.url);
+  return parsed.origin === Astro.url.origin || parsed.protocol === 'https:';
+});
+const origins = [...new Set(approved.map(({ url }) => new URL(url, Astro.url).origin))].filter(
+  (origin) => origin !== Astro.url.origin,
+);
+Astro.csp?.insertDirective(
+  `media-src 'self' blob:${origins.length ? ' ' + origins.join(' ') : ''}`,
+);
+---
+
+<electricity-controls
+  class="container electricity"
+  data-running={s.running}
+  data-paused={s.paused}
+  data-pause={s.pause}
+  data-resume={s.resume}
+  data-unavailable={s.unavailable}
+  data-ended={s.ended}
+  hidden
+>
+  <details>
+    <summary>{s.label}</summary>
+    <div class="controls">
+      <label class="setting">
+        <span>{s.mode}</span>
+        <select data-mode aria-describedby="electricity-player-help">
+          <option value="ambient">{s.ambient}</option>
+          <option value="player">{s.player}</option>
+          <option value="live">{s.live}</option>
+        </select>
+      </label>
+      <label class="setting">
+        <span>{s.strength}</span>
+        <select data-intensity>
+          <option value="0.65">{s.low}</option>
+          <option value="1" selected>
+            {s.medium}
+          </option>
+          <option value="1.25">{s.high}</option>
+        </select>
+      </label>
+      <p id="electricity-player-help">{s.playerHelp}</p>
+      <div class="sources" data-live-sources hidden>
+        <p>{s.sourceHelp}</p>
+        <button data-demo type="button">
+          {s.demo}
+        </button>
+        <label>
+          <span>{s.file}</span>
+          <input data-local-file type="file" accept="audio/*" />
+        </label>
+      </div>
+    </div>
+  </details>
+  <p class="notice" data-audio-notice role="status"></p>
+  <div class="audio-dock" data-audio-dock hidden>
+    <span data-active-audio>{s.running}</span>
+    <button type="button" data-audio-toggle>
+      {s.pause}
+    </button>
+    <button type="button" data-audio-stop>
+      {s.stop}
+    </button>
+  </div>
+</electricity-controls>
+
+<script>
+  import '@/scripts/electricity-controls';
+</script>
+
+<style>
+  .electricity {
+    display: grid;
+    justify-items: end;
+    padding-bottom: var(--space-l);
+    color: var(--fg-2);
+  }
+
+  [hidden] {
+    display: none !important;
+  }
+
+  details {
+    width: min(100%, 23rem);
+    border-block-start: 1px solid #6e53455e;
+    background: #151214;
+    border-radius: 4px;
+  }
+
+  summary {
+    padding: 0.7rem;
+    cursor: pointer;
+    color: #e6b894;
+    font-size: var(--text-caption);
+  }
+
+  .controls,
+  .sources,
+  .sources label {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .controls {
+    padding: 0 0.7rem 0.7rem;
+  }
+
+  .setting {
+    display: grid;
+    grid-template-columns: 5.2rem minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: center;
+    font-size: var(--text-caption);
+  }
+
+  select,
+  button,
+  input::file-selector-button {
+    border: 1px solid #795a46;
+    border-radius: 4px;
+    color: var(--fg);
+    background: #302320;
+    font: inherit;
+    min-height: 38px;
+    padding: 0.35rem 0.55rem;
+  }
+
+  select,
+  input {
+    min-width: 0;
+    max-width: 100%;
+    color-scheme: dark;
+  }
+
+  button,
+  input::file-selector-button {
+    cursor: pointer;
+  }
+
+  p,
+  .sources {
+    margin: 0;
+    font-size: var(--text-caption);
+  }
+
+  .notice {
+    color: #e6b894;
+    padding-top: 0.25rem;
+  }
+
+  .notice:empty {
+    padding: 0;
+  }
+
+  .audio-dock {
+    position: fixed;
+    z-index: 5;
+    inset: auto max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom))
+      auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    width: max-content;
+    max-width: calc(100vw - 1.5rem);
+    padding: 0.4rem;
+    border: 1px solid #947159;
+    border-radius: 6px;
+    background: #191417;
+    box-shadow: 0 4px 22px #0008;
+    font-size: var(--text-caption);
+  }
+
+  .audio-dock span {
+    padding-inline: 0.4rem;
+    color: #e6b894;
+  }
+</style>
