@@ -108,6 +108,7 @@ const banks = tones.map((name, tone) => {
       linear-gradient(90deg, transparent 36%, #0004 58%, black 86%, #000b),
       linear-gradient(180deg, transparent, black 22%, black 71%, transparent);
     mask-composite: intersect;
+    animation: processor-boot 760ms ease-out both;
   }
 
   circuit-field[data-scene='transmission'] {
@@ -174,7 +175,16 @@ const banks = tones.map((name, tone) => {
     opacity: 0.64;
   }
 
+  @keyframes processor-boot {
+    from {
+      opacity: 0.22;
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
+    circuit-field[data-scene='processor'] {
+      animation: none;
+    }
     canvas {
       display: none;
     }

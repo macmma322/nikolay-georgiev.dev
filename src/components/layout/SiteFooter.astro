@@ -1,6 +1,7 @@
 ---
 import { site } from '@/data/site';
 import ContactFinale from '@/components/layout/ContactFinale.astro';
+import Street from '@/components/layout/Street.astro';
 import Mark from '@/components/ui/Mark.astro';
 import { useI18n } from '@/i18n';
 import { common } from '@/i18n/ui/common';
@@ -21,7 +22,11 @@ const year = new Date().getFullYear();
   aria-labelledby={bare ? undefined : 'contact-title'}
 >
   {!bare && <ContactFinale variant="footer" />}
-  <slot name="circuit" />
+
+  <Street>
+    <slot name="circuit" slot="handoff" />
+    <slot name="stage-circuit" slot="circuit" />
+  </Street>
 
   <div class="container baseline">
     <a class="signature" href={href('/')}>

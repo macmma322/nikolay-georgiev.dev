@@ -9,9 +9,9 @@ packages and buses are illustrative hardware rather than project specifications.
   inference, services, embedded radio and firmware component layouts.
 - Capabilities shows a processor, memory banks and copper buses. The Lab adds
   a prototype board with headers, surface-mount parts and an RF section.
-- The contact node feeds into the street. In a combined checkout, the existing
-  footer field mounts before the skyline through `[data-street] [data-stage]`.
-  The street remains responsible for its ground, walking figures and portrait.
+- The contact node feeds into the street. The layout renders the transmission
+  board immediately before the stage and the footer circuit before the skyline.
+  Both are placed at build time. The street owns its ground, walkers and portrait.
 
 `machine-board.ts` defines component placements and their trace endpoints.
 Astro renders the board and metallic packages as SVG. A shared frame clock
@@ -64,6 +64,6 @@ or microphone capture route.
 Build the site and run `tests/e2e/living-machine.spec.ts` and
 `tests/e2e/music.spec.ts` against the production preview. Browser tests use
 generated tones and WAV files to verify bass, treble, silence and teardown.
-The combined preview uses a snapshot of the independent street checkout.
+The dedicated integration branch includes the independent street commit. Its handoff slot places the transmission board immediately before the stage.
 Mocked YouTube state verification and measured Web Audio verification are
 separate exercises.

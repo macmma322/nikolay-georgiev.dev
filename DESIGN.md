@@ -148,10 +148,51 @@ moves things between two resting states (view transitions, line draws), and
 - The contact finale has one soft, static signal-red light; it breathes in
   once with the statement. Particles and looping light were considered and
   left out: they never stop, and nothing here is decoration.
+- The street under it is the one scene that keeps moving, by the owner's
+  decision (November 2026). Its rules are in "The street" below.
 - `prefers-reduced-motion: reduce` removes all movement and keeps short colour
   and opacity changes. Diagram packets and view transitions are off.
 - There is no loader, no fake terminal, no scroll hijacking, and no animation
-  library. WebGL appears on `/setup` only (below).
+  library. WebGL appears on `/setup` only (below); the street is Canvas 2D.
+
+## The street
+
+The footer of every page ends on an evening street (`components/layout/Street.astro`,
+`scripts/street`): a block that is still going up, people walking past, and the
+owner standing still in front of a lit site hoarding. "The page ends. The
+building doesn't."
+
+- **One world.** The standing figure is the owner's approved illustration; the
+  rest is drawn to meet it, not the other way round. Passers-by are drawn in
+  code (profiles, tapered limbs, two-tone shading, a dark warm outline), the
+  block is an SVG built at build time, and one light, one grain and one
+  vignette lie over all three. Dashed storeys are planned, as in the diagrams.
+- **The figure** is three stacked layers of one image, cut by
+  `scripts/street-avatar.mjs` from `src/assets/media/street/source`: body,
+  chest and head. The chest widens by about 1% on a 4.4 s breath, the head
+  rides on it, turns by under a degree toward whoever passes, and blinks every
+  4 to 8 s. The artwork is never redrawn or warped. Replace the source and
+  re-run the script to change him; the polygons in it follow the new art.
+- **The crowd** is 45 people described as data (`cast.ts`), each with a real
+  walk cycle: feet are planted by inverse kinematics, so they do not slide.
+  Five lanes; two canvases sandwich the figure, so the near lanes pass in
+  front of him and the far ones behind. Nobody is on the street twice.
+  Seven of them carry something from a project and are cast rarely.
+- **Text lights its drawing, again.** The seven labels under the scene are
+  links to the case studies. Pointing at or focusing one brings its figure on
+  and lights it in the project's colour; pointing at the figure lights the
+  label.
+- **It runs only when it should.** The scene's code is a separate chunk fetched
+  as the footer nears. The loop exists only while the stage is on screen in a
+  visible tab; off screen or in a background tab nothing is scheduled. A
+  device that cannot keep up gets fewer people, once. Phones get about half
+  the crowd of a desktop.
+- **Reduced motion:** one composed still frame, no breathing, no count.
+  **No JavaScript:** the block and the figure, which is a finished picture.
+- The canvases are hidden from assistive technology; a written description of
+  the scene is not. The figure is a button; the project figures are reachable
+  through their labels. Nothing in the scene takes the wheel, a drag or a
+  touch away from the page.
 
 ## 3D on /setup
 

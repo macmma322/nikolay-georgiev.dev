@@ -37,7 +37,7 @@ const s = t(common);
     <SEO title={title} description={description} noindex={noindex} />
     <slot name="head" />
   </head>
-  <body data-accent={accent}>
+  <body id="top" data-accent={accent}>
     <a class="skip-link" href="#main">
       {s.skipLink}
     </a>
@@ -48,6 +48,7 @@ const s = t(common);
     </main>
     <SiteFooter>
       <slot name="footer-circuit" slot="circuit" />
+      <slot name="footer-stage-circuit" slot="stage-circuit" />
     </SiteFooter>
     <slot name="footer-companion" />
     <script>

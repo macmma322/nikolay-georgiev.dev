@@ -38,15 +38,6 @@ class CircuitField extends HTMLElement {
 
   connectedCallback() {
     if (this.#dispose) return;
-    // The independently developed footer owns its skyline, avatar and crowd.
-    // Move only this decorative layer to the back of the stage when it exists.
-    if (this.dataset['place'] === 'footer') {
-      const stage = this.closest('footer')?.querySelector('[data-street] [data-stage]');
-      if (stage && this.parentElement !== stage) {
-        stage.prepend(this);
-        return;
-      }
-    }
     const canvas = this.querySelector('canvas');
     const context = canvas?.getContext('2d');
     if (!canvas || !context || !('IntersectionObserver' in window) || !('ResizeObserver' in window))
@@ -73,6 +64,7 @@ class CircuitField extends HTMLElement {
     let width = 0;
     let height = 0;
     let nodeLight = -1;
+    let powerLight = -1;
 
     const sizeBuffer = () => {
       if (!visible || !width || !height || motion.matches) return;
@@ -110,6 +102,10 @@ class CircuitField extends HTMLElement {
       if (scene && Math.abs(nodeLight - energy.nodes) >= 0.025) {
         nodeLight = energy.nodes;
         this.style.setProperty('--pcb-nodes', nodeLight.toFixed(2));
+      }
+      if (scene && Math.abs(powerLight - energy.wave) >= 0.035) {
+        powerLight = energy.wave;
+        this.style.setProperty('--pcb-power', powerLight.toFixed(2));
       }
       if (this.dataset['reactivity'] !== mode) this.dataset['reactivity'] = mode;
       time += step * (0.57 + energy.wave * 0.38 + energy.signals * 0.82);
