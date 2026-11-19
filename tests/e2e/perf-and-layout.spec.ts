@@ -110,6 +110,7 @@ test.describe('floating UI safe-area & collision regressions', () => {
   test('contact page bare footer clears the vinyl dock and never overflows at 320px (EN & BG)', async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 320, height: 740 });
     for (const path of ['/contact', '/bg/contact']) {
       await page.goto(path);
       await page.evaluate(() =>
@@ -144,10 +145,10 @@ test.describe('adaptive quality, occlusion & long-session stability', () => {
 
     await select.selectOption('high');
     await expect(page.locator('html')).toHaveAttribute('data-quality', 'high');
+    const bgField = page.locator('circuit-field[data-place="background"]');
+    await expect(bgField).toHaveAttribute('data-running', '');
     await page.emulateMedia({ reducedMotion: 'reduce' });
-    await expect(page.locator('circuit-field[data-place="background"]')).not.toHaveAttribute(
-      'data-running',
-    );
+    await expect(bgField).not.toHaveAttribute('data-running');
   });
 
   test('background circuit suspends drawing buffer while opaque street stage fills view', async ({
@@ -200,12 +201,13 @@ test.describe('adaptive quality, occlusion & long-session stability', () => {
       }),
     );
 
-    await page.goto('/');
-    const origin = new URL(page.url()).origin;
+    let origin = '';
     page.on('request', (req) => {
       const host = new URL(req.url()).origin;
-      if (host !== origin && !/youtube/.test(host)) thirdParty.push(req.url());
+      if (!origin && req.isNavigationRequest()) origin = host;
+      if (origin && host !== origin && !/youtube/.test(host)) thirdParty.push(req.url());
     });
+    await page.goto('/');
 
     const initialNodes = await page.evaluate(() => document.querySelectorAll('*').length);
     const launch = page.locator('[data-music-launch]');

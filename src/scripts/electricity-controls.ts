@@ -3,6 +3,7 @@ import { createLiveCircuitAudio, type AudioSource } from './live-circuit-audio';
 import { observePlaybackState } from './playback-state';
 import {
   getQualityPreference,
+  observeQualityTier,
   setQualityPreference,
   type QualityPreference,
 } from './circuit-clock';
@@ -163,9 +164,15 @@ class ElectricityControls extends HTMLElement {
     const unobserve = observePlaybackState((state) => {
       if (state === 'loading' && session) finish();
     });
+    const unobserveQuality = qualitySelect
+      ? observeQualityTier(() => {
+          qualitySelect.value = getQualityPreference();
+        })
+      : undefined;
     this.#dispose = () => {
       events.abort();
       unobserve();
+      unobserveQuality?.();
       stop();
       electricalInput.mode = 'ambient';
     };

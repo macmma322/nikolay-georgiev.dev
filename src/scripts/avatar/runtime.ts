@@ -421,11 +421,19 @@ class AvatarRuntime extends HTMLElement {
       },
       { signal },
     );
-    document.addEventListener('toggle', schedule, { capture: true, signal });
+    document.addEventListener(
+      'toggle',
+      () => {
+        clearance = new WeakMap<Anchor, boolean>();
+        schedule();
+      },
+      { capture: true, signal },
+    );
     motion.addEventListener('change', syncPreference, { signal });
     const unwatch = observePlaybackState((state) => {
       const started = !playing && state === 'playing';
       playing = state === 'playing';
+      if (!playing) activeMusic = false;
       // React live when music starts while the avatar is seated on Caelora/Contact.
       if (
         started &&

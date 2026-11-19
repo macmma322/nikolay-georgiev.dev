@@ -228,6 +228,15 @@ const widths = [112, 168, 252, 336, 528];
               ).join('')}`}
             />
           )}
+        </g>
+      ))}
+
+      {paneBatches.map(({ kind, d }) => (
+        <path class:list={['pane', kind]} d={d} />
+      ))}
+
+      {blocks.map((b) => (
+        <g class:list={['building', `tone-${b.tone}`]}>
           {b.sills.length > 0 && (
             <path class="sill" d={b.sills.map((y) => `M${b.x + 12} ${y}h${b.w - 24}`).join('')} />
           )}
@@ -258,10 +267,6 @@ const widths = [112, 168, 252, 336, 528];
             />
           )}
         </g>
-      ))}
-
-      {paneBatches.map(({ kind, d }) => (
-        <path class:list={['pane', kind]} d={d} />
       ))}
 
       <g class="crane">

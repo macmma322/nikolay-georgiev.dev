@@ -59,6 +59,16 @@ function syncRootAttribute() {
 
 syncRootAttribute();
 
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event) => {
+    if (event.key !== QUALITY_KEY) return;
+    preference = readPreference();
+    slowSeconds = 0;
+    fastSeconds = 0;
+    applyTier(preference === 'auto' ? detectInitialTier() : preference);
+  });
+}
+
 function applyTier(next: QualityTier) {
   if (next === currentTier) return;
   currentTier = next;
@@ -137,12 +147,20 @@ function frame(now: number) {
   const dt = Math.min(0.05, Math.max(0, rawDelta / 1000));
   monitorFrameBudget(now, rawDelta);
 
-  for (const priority of ORDER) {
-    for (const entry of entries) {
-      if (entry.priority === priority) entry.task(now, dt);
+  try {
+    for (const priority of ORDER) {
+      for (const entry of entries) {
+        if (entry.priority !== priority) continue;
+        try {
+          entry.task(now, dt);
+        } catch {
+          // Isolate one subscriber's error so other visual subsystems keep running.
+        }
+      }
     }
+  } finally {
+    if (entries.size && !request) request = requestAnimationFrame(frame);
   }
-  if (entries.size && !request) request = requestAnimationFrame(frame);
 }
 
 /**
@@ -176,7 +194,7 @@ let scrollImpulse = 0;
 let scrollOffset = 0;
 
 function onScroll() {
-  const y = window.scrollY;
+  const y = Math.max(0, window.scrollY);
   const delta = Math.abs(y - lastScrollY);
   lastScrollY = y;
   scrollOffset = y;
@@ -187,11 +205,14 @@ function onScroll() {
 
 export function watchScrollEnergy() {
   if (scrollUsers++ === 0 && typeof window !== 'undefined') {
-    lastScrollY = window.scrollY;
+    lastScrollY = Math.max(0, window.scrollY);
     scrollOffset = lastScrollY;
     window.addEventListener('scroll', onScroll, { passive: true });
   }
+  let active = true;
   return () => {
+    if (!active) return;
+    active = false;
     if (--scrollUsers === 0 && typeof window !== 'undefined') {
       window.removeEventListener('scroll', onScroll);
       scrollImpulse = 0;

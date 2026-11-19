@@ -236,8 +236,10 @@ class CircuitField extends HTMLElement {
       const nodeAlphaFactor = 0.22 + nodeEnergy * 0.58;
 
       context.lineCap = 'round';
+      const traceCount = traces.length;
       for (let index = 0; index < count; index++) {
-        const trace = traces[(index * 7 + traceShift) % traces.length]!;
+        const traceIndex = (((index * 7 + traceShift) % traceCount) + traceCount) % traceCount;
+        const trace = traces[traceIndex]!;
         const progress =
           (time * (0.085 + (index % 4) * 0.021) + index * 0.217 + scrollPhase * 0.25) % 1;
         const fade = Math.sin(Math.PI * progress);
