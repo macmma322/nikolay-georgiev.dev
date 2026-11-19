@@ -726,6 +726,7 @@ const widths = [112, 168, 252, 336, 528];
     function syncStaticMeta(scenario: FooterScenario) {
       root!.dataset['scene'] = scenario;
       stage!.dataset['scene'] = scenario;
+      root!.dataset['sceneReady'] = '';
       if (eyebrow) {
         eyebrow.textContent =
           scenario === 'cafe'
@@ -825,7 +826,7 @@ const widths = [112, 168, 252, 336, 528];
           // Static backdrop remains usable if chunk loading fails.
         });
       },
-      { rootMargin: '600px 0px' },
+      { rootMargin: '240px 0px' },
     );
     near.observe(stage);
 
@@ -1354,10 +1355,14 @@ const widths = [112, 168, 252, 336, 528];
     z-index: 4;
   }
 
-  .stage[data-scene='cafe'] .me::before,
-  .stage[data-scene='cafe'] .me-figure {
+  .stage[data-scene='cafe'] .me::before {
     opacity: 0;
     pointer-events: none;
+  }
+
+  :global(html[data-js]) .street:not([data-scene-ready]) .me-figure,
+  .stage[data-scene='cafe'] .me-figure {
+    display: none;
   }
 
   .stage[data-scene='cafe'] .me-tag {

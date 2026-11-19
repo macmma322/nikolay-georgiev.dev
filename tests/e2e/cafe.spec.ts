@@ -215,21 +215,42 @@ test.describe('café scenario: environment, character choreography & physical in
   test('street scenario never downloads cafe.webp, and café pauses offscreen and under reduced motion', async ({
     page,
   }) => {
-    const cafeRequests: string[] = [];
+    const requestedUrls: string[] = [];
     page.on('request', (req) => {
-      if (req.url().includes('/avatar/cafe.webp')) cafeRequests.push(req.url());
+      requestedUrls.push(req.url());
     });
 
-    // When street is selected, cafe.webp is never fetched
+    // 1. Initial load above the fold: neither footer scene chunk nor footer artwork is fetched
     await page.addInitScript(() => sessionStorage.setItem('nikolay.footer.scene', 'street'));
+    await page.goto('/');
+    await page.waitForTimeout(250);
+    expect(requestedUrls.filter((u) => u.includes('/avatar/cafe.webp'))).toEqual([]);
+    expect(requestedUrls.filter((u) => /\/_astro\/cafe\.[^/]+\.js/.test(u))).toEqual([]);
+    expect(requestedUrls.filter((u) => /\/_astro\/nikolay-(body|chest|head)\./.test(u))).toEqual(
+      [],
+    );
+
+    // 2. When street is scrolled into view, cafe.webp and cafe.js remain unloaded
+    await page
+      .locator('[data-stage]')
+      .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
+    expect(requestedUrls.filter((u) => u.includes('/avatar/cafe.webp'))).toEqual([]);
+    expect(requestedUrls.filter((u) => /\/_astro\/cafe\.[^/]+\.js/.test(u))).toEqual([]);
+
+    // 3. When café is selected from the start, street portrait layers (nikolay-body/chest/head) are never fetched
+    requestedUrls.length = 0;
+    await page.addInitScript(() => sessionStorage.setItem('nikolay.footer.scene', 'cafe'));
     await page.goto('/about');
     await page
       .locator('[data-stage]')
       .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
-    expect(cafeRequests).toEqual([]);
+    expect(requestedUrls.filter((u) => /\/_astro\/nikolay-(body|chest|head)\./.test(u))).toEqual(
+      [],
+    );
 
-    // Reduced motion in Café mode paints one static frame and schedules zero frames
+    // 4. Reduced motion in Café mode paints one static frame and schedules zero frames
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await openCafe(page, '/about');
     await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'static');
