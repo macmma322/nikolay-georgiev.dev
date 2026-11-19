@@ -1,6 +1,12 @@
 import { electricalInput } from './electrical-input';
 import { createLiveCircuitAudio, type AudioSource } from './live-circuit-audio';
 import { observePlaybackState } from './playback-state';
+import {
+  getQualityPreference,
+  observeQualityTier,
+  setQualityPreference,
+  type QualityPreference,
+} from './circuit-clock';
 
 class ElectricityControls extends HTMLElement {
   #dispose: (() => void) | undefined;
@@ -11,6 +17,7 @@ class ElectricityControls extends HTMLElement {
     const summary = details.querySelector('summary')!;
     const mode = this.querySelector<HTMLSelectElement>('[data-mode]')!;
     const strength = this.querySelector<HTMLSelectElement>('[data-intensity]')!;
+    const qualitySelect = this.querySelector<HTMLSelectElement>('[data-quality]');
     const sources = this.querySelector<HTMLElement>('[data-live-sources]')!;
     const file = this.querySelector<HTMLInputElement>('[data-local-file]')!;
     const demo = this.querySelector<HTMLButtonElement>('[data-demo]')!;
@@ -78,6 +85,19 @@ class ElectricityControls extends HTMLElement {
 
     setMode('ambient');
     this.hidden = false;
+    if (qualitySelect) {
+      qualitySelect.value = getQualityPreference();
+      qualitySelect.addEventListener(
+        'change',
+        () => {
+          const value = qualitySelect.value;
+          const next: QualityPreference =
+            value === 'high' || value === 'balanced' || value === 'low' ? value : 'auto';
+          setQualityPreference(next);
+        },
+        { signal },
+      );
+    }
     mode.addEventListener(
       'change',
       () => {
@@ -144,9 +164,15 @@ class ElectricityControls extends HTMLElement {
     const unobserve = observePlaybackState((state) => {
       if (state === 'loading' && session) finish();
     });
+    const unobserveQuality = qualitySelect
+      ? observeQualityTier(() => {
+          qualitySelect.value = getQualityPreference();
+        })
+      : undefined;
     this.#dispose = () => {
       events.abort();
       unobserve();
+      unobserveQuality?.();
       stop();
       electricalInput.mode = 'ambient';
     };

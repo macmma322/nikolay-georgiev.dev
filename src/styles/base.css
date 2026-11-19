@@ -15,7 +15,7 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-h) + 1rem);
-  --music-dock-clearance: calc(5rem + env(safe-area-inset-bottom, 0px));
+  --music-dock-clearance: calc(5.25rem + env(safe-area-inset-bottom, 0px));
   scroll-padding-bottom: var(--music-dock-clearance);
   background: var(--ink-0);
   hanging-punctuation: first last;
@@ -30,7 +30,6 @@ html {
 body {
   min-height: 100dvh;
   isolation: isolate;
-  padding-bottom: var(--music-dock-clearance);
   background: var(--ink-0);
   color: var(--fg);
   font-family: var(--ff-body);
@@ -389,24 +388,31 @@ html:active-view-transition-type(lang)::view-transition-new(*.art) {
   }
 }
 
-/* ---------- Page atmosphere: one cool wash and near-invisible grain ---------- */
+/* ---------- Page atmosphere: deep wash with static vignette (no blend readback) ---------- */
 .atmosphere {
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
+  contain: strict;
   background:
     radial-gradient(ellipse at 52% 48%, #311820 0%, #14121b 42%, transparent 74%),
     linear-gradient(140deg, #070e17, #0c111a 57%, #08111a);
 }
 
+/* Soft edge framing over the background circuitry without per-frame mask-image
+   or SVG feTurbulence mix-blend-mode readback. */
 .atmosphere::after {
   content: '';
   position: absolute;
   inset: 0;
-  opacity: 0.07;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse 100% 82% at 50% 53%,
+    transparent 24%,
+    rgb(8 14 23 / 0.36) 62%,
+    rgb(7 13 22 / 0.86) 94%
+  );
 }
 
 /* ---------- Layout primitives ---------- */

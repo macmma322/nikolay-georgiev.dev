@@ -78,3 +78,52 @@ export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[
       ];
   }
 }
+
+/**
+ * Restrained ambient follow-up cycles while a cameo stays on screen, using only
+ * registered sprite keyframes so proportions and physical contacts stay locked.
+ */
+export function idleCycle(pose: Pose, music: boolean): { pauseMs: number; frames: Frame[] } | null {
+  switch (pose) {
+    case 'sit':
+      if (music) {
+        return {
+          pauseMs: 2800,
+          frames: frames('listen', 'phone', [3, 4, 3, 4, 3], [900, 300, 950, 300, 0]),
+        };
+      }
+      return {
+        pauseMs: 5600,
+        frames: [...frames('phone', 'phone', [1, 0, 3, 0], [320, 820, 340, 0])],
+      };
+    case 'lean':
+      return {
+        pauseMs: 7800,
+        frames: [
+          ...frames(
+            'lean-phone',
+            'phone',
+            [1, 2, 3, 4, 3, 2, 1],
+            [170, 160, 1400, 900, 240, 170, 150],
+          ),
+          ...frames('lean-phone', 'lean', [0], [0]),
+        ],
+      };
+    case 'typing':
+      return {
+        pauseMs: 4200,
+        frames: frames('typing', 'typing', [1, 2, 3, 1, 2, 0], [160, 240, 180, 170, 210, 0]),
+      };
+    case 'inspect':
+      return {
+        pauseMs: 6800,
+        frames: [
+          ...frames('inspect', 'inspect', [3], [480]),
+          ...frames('inspect', 'interact', [1], [240]),
+          ...frames('inspect', 'react', [0, 2, 0], [340, 360, 0]),
+        ],
+      };
+    default:
+      return null;
+  }
+}

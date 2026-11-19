@@ -28,7 +28,6 @@ Astro.csp?.insertDirective(
   data-resume={s.resume}
   data-unavailable={s.unavailable}
   data-ended={s.ended}
-  hidden
 >
   <details>
     <summary title={s.label}>
@@ -67,6 +66,17 @@ Astro.csp?.insertDirective(
           <option value="1.25">{s.high}</option>
         </select>
       </label>
+      <label class="setting">
+        <span>{s.quality}</span>
+        <select data-quality>
+          <option value="auto" selected>
+            {s.qualityAuto}
+          </option>
+          <option value="high">{s.qualityHigh}</option>
+          <option value="balanced">{s.qualityBalanced}</option>
+          <option value="low">{s.qualityLow}</option>
+        </select>
+      </label>
       <p id="electricity-player-help">{s.playerHelp}</p>
       <div class="sources" data-live-sources hidden>
         <p>{s.sourceHelp}</p>
@@ -102,6 +112,10 @@ Astro.csp?.insertDirective(
     position: relative;
     flex: 0 0 44px;
     color: var(--fg-2);
+  }
+
+  :global(html:not([data-js])) .electricity {
+    display: none;
   }
 
   [hidden] {
@@ -144,7 +158,7 @@ Astro.csp?.insertDirective(
   .controls {
     position: absolute;
     inset: auto 0 var(--controls-bottom) auto;
-    width: min(18rem, calc(100vw - 1.5rem));
+    width: min(19.5rem, calc(100vw - 1.5rem));
     max-height: max(5rem, calc(100dvh - var(--header-h) - var(--music-dock-clearance) - 2rem));
     overflow: auto;
     padding: 0.7rem;
@@ -164,8 +178,8 @@ Astro.csp?.insertDirective(
 
   .setting {
     display: grid;
-    grid-template-columns: 5.2rem minmax(0, 1fr);
-    gap: 0.45rem;
+    grid-template-columns: minmax(5.2rem, max-content) minmax(0, 1fr);
+    gap: 0.55rem;
     align-items: center;
     font-size: var(--text-caption);
   }

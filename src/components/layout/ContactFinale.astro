@@ -26,6 +26,7 @@ const c = t(common);
 const s = t(contact);
 
 const [emailUser, emailDomain] = site.email.split('@');
+const [emailAltUser, emailAltDomain] = site.emailAlt.split('@');
 const githubMark = iconFor('github')?.path;
 // simple-icons no longer ships LinkedIn; its mark on the same 24px grid.
 const linkedinMark =
@@ -80,7 +81,10 @@ const linkedinMark =
           <path d="M2.5 4h11v8h-11zM2.5 4.5 8 9l5.5-4.5" />
         </svg>
         <span class="visually-hidden">{s.emailAlt}</span>
-        <span>{site.emailAlt}</span>
+        <span>
+          {emailAltUser}
+          <wbr />@{emailAltDomain}
+        </span>
       </a>
       <CopyButton value={site.emailAlt} label={s.copyEmailAlt} />
     </div>
@@ -224,6 +228,7 @@ const linkedinMark =
   .finale {
     padding-block: var(--space-2xl) var(--space-xl);
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     gap: var(--space-l);
   }
 
@@ -344,12 +349,15 @@ const linkedinMark =
     display: inline-flex;
     align-items: center;
     gap: 0.5em;
+    min-width: 0;
+    max-width: 100%;
     min-height: 44px;
     font-weight: var(--w-semibold);
     /* Small enough on a phone to keep its copy button on the same line. */
     font-size: clamp(1.2rem, 0.9rem + 1.3vw, 1.95rem);
     letter-spacing: -0.01em;
     font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
     color: var(--fg-2);
   }
 

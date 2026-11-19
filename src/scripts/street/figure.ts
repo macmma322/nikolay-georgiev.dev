@@ -193,7 +193,10 @@ const HALF = Math.PI / 2;
 /** A tapered capsule from A to B, added to the current path. */
 function capsule(g: G, ax: number, ay: number, bx: number, by: number, ra: number, rb: number) {
   const a = Math.atan2(by - ay, bx - ax);
-  g.moveTo(ax + Math.cos(a + HALF) * ra, ay + Math.sin(a + HALF) * ra);
+  const sinA = Math.sin(a);
+  const cosA = Math.cos(a);
+  // cos(a + π/2) = -sin(a), sin(a + π/2) = cos(a)
+  g.moveTo(ax - sinA * ra, ay + cosA * ra);
   g.arc(ax, ay, ra, a + HALF, a + 3 * HALF);
   g.arc(bx, by, rb, a - HALF, a + HALF);
   g.closePath();
@@ -295,7 +298,20 @@ function box(
   r: number,
   fill: string,
 ) {
-  shape(g, [x, y, r, x + w, y, r, x + w, y + h, r, x, y + h, r], pal, fill);
+  const x2 = x + w;
+  const y2 = y + h;
+  g.beginPath();
+  g.moveTo(x, (y + y2) * 0.5);
+  g.arcTo(x, y, x2, y, r);
+  g.arcTo(x2, y, x2, y2, r);
+  g.arcTo(x2, y2, x, y2, r);
+  g.arcTo(x, y2, x, y, r);
+  g.closePath();
+  g.fillStyle = fill;
+  g.fill();
+  g.strokeStyle = pal.line;
+  g.lineWidth = pal.lw;
+  g.stroke();
 }
 
 function wheel(g: G, pal: Paint, x: number, y: number, r: number, turn: number, spokes: boolean) {
@@ -372,21 +388,49 @@ function leg(
   return { kx, ky, ax: kx + Math.sin(b) * SHIN, ay: ky + Math.cos(b) * SHIN, pitch };
 }
 
-function shoe(g: G, pal: Paint, l: Leg, k: Look) {
+function shoe(g: G, pal: Paint, l: Leg, k: Look, detail: boolean) {
   const s = Math.sin(l.pitch);
   const c = Math.cos(l.pitch);
-  const at = (x: number, y: number) => [l.ax + x * c - y * s, l.ay + x * s + y * c] as const;
+  const ax = l.ax;
+  const ay = l.ay;
   const boot = k.topStyle === 'leather' || k.topStyle === 'cloak' ? 1.6 : 0;
-  const [x0, y0] = at(-3.4, -1.6 - boot);
-  const [x1, y1] = at(3, -2.2 - boot);
-  const [x2, y2] = at(8.4, 1);
-  const [x3, y3] = at(8.2, ANKLE);
-  const [x4, y4] = at(-3.4, ANKLE);
-  shape(g, [x0, y0, 1, x1, y1, 1.2, x2, y2, 1.4, x3, y3, 0.6, x4, y4, 0.9], pal, pal.shoe);
-  if (boot === 0) {
-    const [sx0, sy0] = at(-3, ANKLE - 0.75);
-    const [sx1, sy1] = at(7.9, ANKLE - 0.75);
-    stroke(g, pal.sole, 1.1, [sx0, sy0, sx1, sy1]);
+  const yTop0 = -1.6 - boot;
+  const yTop1 = -2.2 - boot;
+  const x0 = ax + -3.4 * c - yTop0 * s;
+  const y0 = ay + -3.4 * s + yTop0 * c;
+  const x1 = ax + 3 * c - yTop1 * s;
+  const y1 = ay + 3 * s + yTop1 * c;
+  const x2 = ax + 8.4 * c - s;
+  const y2 = ay + 8.4 * s + c;
+  const x3 = ax + 8.2 * c - ANKLE * s;
+  const y3 = ay + 8.2 * s + ANKLE * c;
+  const x4 = ax + -3.4 * c - ANKLE * s;
+  const y4 = ay + -3.4 * s + ANKLE * c;
+
+  g.beginPath();
+  g.moveTo((x4 + x0) * 0.5, (y4 + y0) * 0.5);
+  g.arcTo(x0, y0, x1, y1, 1);
+  g.arcTo(x1, y1, x2, y2, 1.2);
+  g.arcTo(x2, y2, x3, y3, 1.4);
+  g.arcTo(x3, y3, x4, y4, 0.6);
+  g.arcTo(x4, y4, x0, y0, 0.9);
+  g.closePath();
+  g.fillStyle = pal.shoe;
+  g.fill();
+  g.strokeStyle = pal.line;
+  g.lineWidth = pal.lw;
+  g.stroke();
+
+  if (detail && boot === 0) {
+    const sy = ANKLE - 0.75;
+    g.beginPath();
+    g.moveTo(ax + -3 * c - sy * s, ay + -3 * s + sy * c);
+    g.lineTo(ax + 7.9 * c - sy * s, ay + 7.9 * s + sy * c);
+    g.strokeStyle = pal.sole;
+    g.lineWidth = 1.1;
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.stroke();
   }
 }
 
@@ -434,7 +478,7 @@ const HANG = new Set<Hand>(['tote', 'helmet', 'case', 'bags', 'spool', 'pad', 'u
  * Draws one figure. The context is already at the figure's ground point,
  * scaled to units and mirrored for its direction.
  */
-export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
+export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): void {
   const run = !!k.run;
   const duty = run ? 0.36 : 0.5;
   const rolling = k.roll !== undefined;
@@ -561,7 +605,10 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
       g.beginPath();
       capsule(g, shX + ox, shY, mx, my, armW * 0.6, armW * 0.56);
       g.fill();
-    } else if (top === 'hoodie' || top === 'puffer' || top === 'jacket' || top === 'leather') {
+    } else if (
+      detail &&
+      (top === 'hoodie' || top === 'puffer' || top === 'jacket' || top === 'leather')
+    ) {
       // A cuff.
       const qx = ex + (wx - ex) * 0.86;
       const qy = ey + (wy - ey) * 0.86;
@@ -614,7 +661,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
       shade ? undefined : thighBare ? pal.skinDark : pal.bottomDark,
       shade ? undefined : bare ? pal.skinDark : pal.bottomDark,
     );
-    if (!bare) {
+    if (detail && !bare) {
       // The hem above the shoe.
       const qx = l.kx + ox + (l.ax - l.kx) * 0.9;
       const qy = l.ky + (l.ay - l.ky) * 0.9;
@@ -630,7 +677,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
     }
     g.save();
     g.translate(ox, 0);
-    shoe(g, pal, l, k);
+    shoe(g, pal, l, k, detail);
     g.restore();
   };
 

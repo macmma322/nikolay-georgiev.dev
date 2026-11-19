@@ -61,6 +61,7 @@ const banks = tones.map((name, tone) => {
     isolation: isolate;
     overflow: clip;
     pointer-events: none;
+    contain: layout paint style;
   }
 
   circuit-field[data-place='footer'] {
@@ -78,12 +79,25 @@ const banks = tones.map((name, tone) => {
     border: 0;
     background: none;
     opacity: 0.8;
+  }
+
+  /* Apply masks only to the static SVG (rasterized once), never to the animated canvas. */
+  :global([data-stage]) > circuit-field[data-place='footer'] svg {
     mask-image: linear-gradient(black 4%, black 67%, transparent 92%);
+    transform: translateZ(0);
+  }
+
+  :global([data-stage]) > circuit-field[data-place='footer'] canvas,
+  circuit-field[data-place='background'] canvas {
+    transform: translateZ(0);
   }
 
   circuit-field[data-place='background'] {
     position: absolute;
     inset: 0;
+  }
+
+  circuit-field[data-place='background'] svg {
     mask-image: radial-gradient(
       ellipse 100% 82% at 50% 53%,
       black 10%,

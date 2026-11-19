@@ -78,6 +78,7 @@ const year = new Date().getFullYear();
 <style>
   .site-footer {
     margin-top: var(--space-3xl);
+    padding-bottom: var(--music-dock-clearance);
     border-top: 1px solid var(--line-soft);
     background: var(--ink-deep);
   }
@@ -95,11 +96,23 @@ const year = new Date().getFullYear();
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.25rem 2rem;
+    gap: 0.25rem 1.75rem;
     padding-block: var(--space-s) var(--space-l);
     border-top: 1px solid var(--line-soft);
     font-size: var(--text-caption);
     color: var(--fg-3);
+  }
+
+  /* Reserve the bottom-right floating dock and popover lane on wide viewports
+     so the copyright line and portal indicator stay clear even when electricity
+     controls or the live audio dock are expanded. */
+  @media (min-width: 60rem) {
+    .baseline {
+      padding-inline-end: max(
+        0px,
+        calc(21.5rem - (100vw - min(100vw - 2 * var(--gutter), var(--max))) / 2)
+      );
+    }
   }
 
   .bare .baseline {
