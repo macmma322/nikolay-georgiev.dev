@@ -1,7 +1,7 @@
 import { isLocale } from '@/i18n/config';
 import { tracks, youtube, type Track } from '@/lib/music';
-import { publishPlaybackState, type PlaybackState } from './playback-state';
-import { attachYouTubePlayer } from './youtube-player';
+import { isPlaybackFailure, publishPlaybackState, type PlaybackState } from './playback-state';
+import { attachYouTubePlayer, type StatusDetail } from './youtube-player';
 
 class MusicExperience extends HTMLElement {
   #connection: AbortController | undefined;
@@ -14,44 +14,85 @@ class MusicExperience extends HTMLElement {
     const panel = this.querySelector<HTMLDialogElement>('dialog');
     const closeButton = this.querySelector<HTMLButtonElement>('[data-music-close]');
     const screen = this.querySelector<HTMLElement>('[data-music-screen]');
+    const playerSlot = this.querySelector<HTMLElement>('[data-music-player]') ?? screen;
+    const fallbackCard = this.querySelector<HTMLElement>('[data-music-fallback]');
+    const fallbackReason = this.querySelector<HTMLElement>('[data-fallback-reason]');
+    const fallbackWatch = this.querySelector<HTMLAnchorElement>('[data-fallback-watch]');
     const statusLine = this.querySelector<HTMLElement>('[data-music-status]');
     const watch = this.querySelector<HTMLAnchorElement>('[data-watch]');
     const choose = this.querySelector<HTMLSelectElement>('[data-track-select]');
     const locale = this.dataset['locale'] ?? '';
-    if (!launch || !panel?.showModal || !closeButton || !screen || !statusLine || !watch || !choose)
+    if (
+      !launch ||
+      !panel ||
+      !closeButton ||
+      !screen ||
+      !playerSlot ||
+      !statusLine ||
+      !watch ||
+      !choose
+    )
       return;
     if (!isLocale(locale)) return;
 
     this.#connection = new AbortController();
     const { signal } = this.#connection;
-    launch.setAttribute('aria-haspopup', 'dialog');
-    launch.setAttribute('aria-controls', panel.id);
+    const canShowModal = typeof panel.showModal === 'function';
+    if (canShowModal) {
+      launch.setAttribute('aria-haspopup', 'dialog');
+      launch.setAttribute('aria-controls', panel.id);
+    }
 
-    const setStatus = (state: PlaybackState) => {
+    const setStatus = (state: PlaybackState, detail?: StatusDetail) => {
       if (state === 'idle') this.removeAttribute('data-state');
       else this.dataset['state'] = state;
+
+      if (detail?.errorCode !== undefined) this.dataset['errorCode'] = String(detail.errorCode);
+      else this.removeAttribute('data-error-code');
+
       const text = statusLine.dataset[state] ?? '';
       if (statusLine.textContent !== text) statusLine.textContent = text;
+
+      if (fallbackCard) {
+        const failed = isPlaybackFailure(state);
+        fallbackCard.hidden = !failed;
+        if (failed && fallbackReason) {
+          const reasonKey = detail?.fallbackReason ?? state;
+          const explanation =
+            fallbackCard.dataset[reasonKey] ?? fallbackCard.dataset['unavailable'] ?? text;
+          if (fallbackReason.textContent !== explanation) fallbackReason.textContent = explanation;
+        }
+      }
+
       publishPlaybackState(state);
     };
 
     const selectTrack = (track: Track) => {
       this.#track = track;
+      this.dataset['trackAccent'] = track.accent;
       choose.value = track.videoId;
-      launch.href = watch.href = youtube.watch(track);
+      const watchHref = youtube.watch(track);
+      launch.href = watch.href = watchHref;
+      if (fallbackWatch) fallbackWatch.href = watchHref;
       for (const title of this.querySelectorAll('[data-track-title]'))
         title.textContent = track.title;
       for (const artist of this.querySelectorAll('[data-track-artist]'))
         artist.textContent = track.artist;
+      for (const catalog of this.querySelectorAll('[data-track-catalog]'))
+        catalog.textContent = track.catalog;
     };
 
     const startTrack = () => {
       this.#closeSession?.();
+      this.#closeSession = undefined;
       setStatus('loading');
       const track = this.#track;
-      this.#closeSession = attachYouTubePlayer(screen, locale, track, (state, restoreFocus) => {
-        setStatus(state);
-        if (restoreFocus) watch.focus();
+      this.#closeSession = attachYouTubePlayer(playerSlot, locale, track, (state, detail) => {
+        setStatus(state, detail);
+        if (detail?.restoreFocus) {
+          if (fallbackWatch && !fallbackCard?.hidden) fallbackWatch.focus();
+          else watch.focus();
+        }
       });
     };
 
@@ -85,6 +126,7 @@ class MusicExperience extends HTMLElement {
       (event) => {
         if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey)
           return;
+        if (!canShowModal) return;
         if (panel.open) {
           event.preventDefault();
           return;

@@ -30,7 +30,40 @@ declare global {
 }
 
 export type PlaybackStatus =
-  'ready' | 'playing' | 'paused' | 'buffering' | 'ended' | 'error' | 'unavailable';
+  | 'ready'
+  | 'playing'
+  | 'paused'
+  | 'buffering'
+  | 'ended'
+  | 'restricted'
+  | 'unavailable'
+  | 'error'
+  | 'unsupported';
+
+export type FallbackReason =
+  'restricted' | 'configBlocked' | 'unavailable' | 'error' | 'unsupported';
+
+export interface StatusDetail {
+  restoreFocus?: boolean;
+  errorCode?: number;
+  fallbackReason?: FallbackReason;
+}
+
+export function classifyYouTubeError(code: number): {
+  status: 'restricted' | 'unavailable' | 'error';
+  fallbackReason: FallbackReason;
+} {
+  if (code === 101 || code === 150) {
+    return { status: 'restricted', fallbackReason: 'restricted' };
+  }
+  if (code === 153) {
+    return { status: 'unavailable', fallbackReason: 'configBlocked' };
+  }
+  if (code === 5 || code === 100) {
+    return { status: 'unavailable', fallbackReason: 'unavailable' };
+  }
+  return { status: 'error', fallbackReason: 'error' };
+}
 
 export function applyYouTubeState(
   code: number,
@@ -105,11 +138,20 @@ function loadYouTubeApi(): Promise<YouTubeApi> {
   return apiRequest;
 }
 
+export function isYouTubeEmbedSupported(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof window.postMessage === 'function' &&
+    typeof URL === 'function' &&
+    'IntersectionObserver' in window
+  );
+}
+
 export function attachYouTubePlayer(
   host: HTMLElement,
   locale: Locale,
   track: Track,
-  onStatus: (status: PlaybackStatus, restoreFocus?: boolean) => void,
+  onStatus: (status: PlaybackStatus, detail?: StatusDetail) => void,
 ): () => void {
   const lifetime = new AbortController();
   let player: Player | undefined;
@@ -117,6 +159,18 @@ export function attachYouTubePlayer(
   let readyTimeout: number | undefined;
   let frameVisible = true;
   let isReady = false;
+
+  if (!isYouTubeEmbedSupported()) {
+    queueMicrotask(() => {
+      if (!lifetime.signal.aborted) {
+        onStatus('unsupported', { fallbackReason: 'unsupported' });
+      }
+    });
+    return () => {
+      lifetime.abort();
+      host.replaceChildren();
+    };
+  }
 
   const dispose = () => {
     if (lifetime.signal.aborted) return;
@@ -139,11 +193,17 @@ export function attachYouTubePlayer(
     }
   };
 
-  const fail = (reason: 'error' | 'unavailable') => {
+  const fail = (
+    reason: 'restricted' | 'unavailable' | 'error' | 'unsupported',
+    fallbackReason: FallbackReason = reason,
+    errorCode?: number,
+  ) => {
     if (lifetime.signal.aborted) return;
     const hadFocus = host.contains(document.activeElement);
     dispose();
-    onStatus(reason, hadFocus);
+    const detail: StatusDetail = { restoreFocus: hadFocus, fallbackReason };
+    if (errorCode !== undefined) detail.errorCode = errorCode;
+    onStatus(reason, detail);
   };
 
   const pauseIfHidden = (activePlayer = player) => {
@@ -172,6 +232,7 @@ export function attachYouTubePlayer(
         controls: '1',
         enablejsapi: '1',
         playsinline: '1',
+        rel: '0',
         origin: window.location.origin,
         hl: locale,
       }).toString();
@@ -179,33 +240,47 @@ export function attachYouTubePlayer(
       frame = document.createElement('iframe');
       frame.title = `${track.title} — ${track.artist}`;
       frame.referrerPolicy = 'strict-origin-when-cross-origin';
-      frame.allow = 'encrypted-media; fullscreen';
-      frame.allowFullscreen = true;
-      frame.src = url.href;
-      frame.addEventListener('error', () => fail('error'), { signal: lifetime.signal });
-      host.append(frame);
-      readyTimeout = window.setTimeout(() => fail('error'), TIMEOUT_MS);
+      frame.allow = youtube.allow;
 
-      player = new api.Player(frame, {
-        events: {
-          onReady() {
-            if (lifetime.signal.aborted) return;
-            window.clearTimeout(readyTimeout);
-            isReady = true;
-            onStatus('ready');
-            pauseIfHidden();
-          },
-          onStateChange({ data, target }) {
-            if (lifetime.signal.aborted || !isReady) return;
-            applyYouTubeState(data, document.hidden || !frameVisible, onStatus, () => {
-              pauseIfHidden(target);
-            });
-          },
-          onError({ data }) {
-            fail([5, 100, 101, 150, 153].includes(data) ? 'unavailable' : 'error');
-          },
-        },
+      const attach = () => {
+        if (lifetime.signal.aborted || !frame || player) return;
+        try {
+          player = new api.Player(frame, {
+            events: {
+              onReady() {
+                if (lifetime.signal.aborted) return;
+                window.clearTimeout(readyTimeout);
+                isReady = true;
+                onStatus('ready');
+                pauseIfHidden();
+              },
+              onStateChange({ data, target }) {
+                if (lifetime.signal.aborted || !isReady) return;
+                applyYouTubeState(data, document.hidden || !frameVisible, onStatus, () => {
+                  pauseIfHidden(target);
+                });
+              },
+              onError({ data }) {
+                const classified = classifyYouTubeError(data);
+                fail(classified.status, classified.fallbackReason, data);
+              },
+            },
+          });
+        } catch {
+          fail('error');
+        }
+      };
+
+      // Wait for the embed document to load before binding the IFrame API so
+      // YouTube's initial postMessage never races against an about:blank origin.
+      frame.addEventListener('load', attach, { once: true, signal: lifetime.signal });
+      frame.addEventListener('error', () => fail('error'), {
+        once: true,
+        signal: lifetime.signal,
       });
+      frame.src = url.href;
+      host.replaceChildren(frame);
+      readyTimeout = window.setTimeout(() => fail('error'), TIMEOUT_MS);
     })
     .catch(() => fail('error'));
 

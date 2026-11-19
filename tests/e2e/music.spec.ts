@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
-import { applyYouTubeState } from '../../src/scripts/youtube-player';
+import { applyYouTubeState, classifyYouTubeError } from '../../src/scripts/youtube-player';
 import { createCircuitReactivity } from '../../src/scripts/circuit-reactivity';
 
 const apiUrl = 'https://www.youtube.com/iframe_api';
@@ -120,6 +120,35 @@ test('renders the vinyl dock with no third-party requests before opt-in', async 
   expect(url.searchParams.get('controls')).toBe('1');
   expect(url.searchParams.get('origin')).toBe(new URL(page.url()).origin);
   await expect(frame).toHaveAttribute('referrerpolicy', 'strict-origin-when-cross-origin');
+  await expect(frame).toHaveAttribute('allow', /encrypted-media.*fullscreen/);
+  await expect(frame).not.toHaveAttribute('allowfullscreen');
+});
+
+test('classifies YouTube error codes accurately (101/150 vs 153 vs 100/5 vs network/2)', () => {
+  expect(classifyYouTubeError(150)).toEqual({
+    status: 'restricted',
+    fallbackReason: 'restricted',
+  });
+  expect(classifyYouTubeError(101)).toEqual({
+    status: 'restricted',
+    fallbackReason: 'restricted',
+  });
+  expect(classifyYouTubeError(153)).toEqual({
+    status: 'unavailable',
+    fallbackReason: 'configBlocked',
+  });
+  expect(classifyYouTubeError(100)).toEqual({
+    status: 'unavailable',
+    fallbackReason: 'unavailable',
+  });
+  expect(classifyYouTubeError(5)).toEqual({
+    status: 'unavailable',
+    fallbackReason: 'unavailable',
+  });
+  expect(classifyYouTubeError(2)).toEqual({
+    status: 'error',
+    fallbackReason: 'error',
+  });
 });
 
 test('opens by keyboard, shows visible focus, closes by Escape, and restores focus', async ({
@@ -190,7 +219,7 @@ test('offers the official link on script failure and retries on reopening', asyn
   await openPlayer(page);
 });
 
-test('replaces a restricted embed with the official fallback at the same dimensions', async ({
+test('replaces a restricted embed (error 150) with the polished fallback at the same dimensions', async ({
   page,
 }) => {
   await mockPlayer(page);
@@ -200,8 +229,18 @@ test('replaces a restricted embed with the official fallback at the same dimensi
   const screen = player(page).locator('[data-music-screen]');
   const before = await screen.boundingBox();
   await emit(page, 'onError', 150);
-  await expect(status(page)).toHaveText('YouTube playback is unavailable here.');
+  await expect(page.locator('music-experience')).toHaveAttribute('data-state', 'restricted');
+  await expect(page.locator('music-experience')).toHaveAttribute('data-error-code', '150');
+  await expect(status(page)).toHaveText('Embedded playback is restricted for this track.');
   await expect(player(page).locator('iframe')).toHaveCount(0);
+  const fallback = player(page).locator('[data-music-fallback]');
+  await expect(fallback).toBeVisible();
+  await expect(fallback).toContainText('Memory Reboot');
+  await expect(fallback).toContainText('VØJ, Narvent');
+  await expect(fallback.getByRole('link', { name: 'Listen on YouTube' })).toHaveAttribute(
+    'href',
+    watchUrl,
+  );
   await expect(player(page).getByRole('link', { name: 'Watch on YouTube' })).toHaveAttribute(
     'href',
     watchUrl,
@@ -209,6 +248,85 @@ test('replaces a restricted embed with the official fallback at the same dimensi
   const after = await screen.boundingBox();
   expect(after?.width).toBe(before?.width);
   expect(after?.height).toBe(before?.height);
+
+  // Verify fallback state itself passes WCAG AA contrast and accessibility checks.
+  const axe = await new AxeBuilder({ page })
+    .include('#music-panel')
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  expect(axe.violations).toEqual([]);
+});
+
+test('distinguishes error 153 (referrer/privacy block) from error 150 and keeps vinyl stopped', async ({
+  page,
+}) => {
+  await mockPlayer(page);
+  await page.goto('/');
+  await openPlayer(page);
+  await emit(page, 'onStateChange', 1);
+  await expect(player(page).locator('.record')).toHaveCSS('animation-play-state', 'running');
+  await emit(page, 'onError', 153);
+  await expect(page.locator('music-experience')).toHaveAttribute('data-state', 'unavailable');
+  await expect(page.locator('music-experience')).toHaveAttribute('data-error-code', '153');
+  await expect(status(page)).toHaveText('YouTube playback is unavailable here.');
+  await expect(player(page).locator('.record')).toHaveCSS('animation-play-state', 'paused');
+  await expect(player(page).locator('[data-music-fallback]')).toContainText(/referrer|privacy/i);
+  await expect(player(page).locator('iframe')).toHaveCount(0);
+});
+
+test('handles unsupported browser environments gracefully without creating an iframe', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await page.evaluate(() => {
+    Object.defineProperty(window, 'postMessage', { value: undefined, configurable: true });
+  });
+  await launch(page).click();
+  await expect(player(page)).toBeVisible();
+  await expect(page.locator('music-experience')).toHaveAttribute('data-state', 'unsupported');
+  await expect(status(page)).toHaveText('Embedded playback is not supported in this browser.');
+  await expect(player(page).locator('[data-music-fallback]')).toBeVisible();
+  await expect(player(page).locator('iframe')).toHaveCount(0);
+});
+
+test('engages living circuitry on confirmed playback and returns to ambient on error or close', async ({
+  page,
+}) => {
+  await mockPlayer(page);
+  await page.goto('/');
+  const controls = page.locator('electricity-controls');
+  const bgCircuit = page.locator('circuit-field[data-place="background"]');
+  await expect(controls).toHaveAttribute('data-reactivity', 'ambient');
+
+  await openPlayer(page);
+  // Merely loading the dialog must not claim playback or energize the circuit.
+  await expect(controls).toHaveAttribute('data-reactivity', 'ambient');
+  await expect(bgCircuit).toHaveAttribute('data-playback', 'ready');
+
+  await emit(page, 'onStateChange', 1);
+  await expect(controls).toHaveAttribute('data-reactivity', 'player');
+  await expect(bgCircuit).toHaveAttribute('data-playback', 'playing');
+
+  // Error 150 returns cleanly to ambient without showing a fake reaction.
+  await emit(page, 'onError', 150);
+  await expect(controls).toHaveAttribute('data-reactivity', 'ambient');
+  await expect(bgCircuit).toHaveAttribute('data-playback', 'restricted');
+
+  // Reopen, confirm playing, then close -> returns to ambient and idle.
+  await player(page).getByRole('button', { name: 'Close player' }).click();
+  await openPlayer(page);
+  await emit(page, 'onStateChange', 1);
+  await expect(controls).toHaveAttribute('data-reactivity', 'player');
+  await player(page).getByRole('button', { name: 'Close player' }).click();
+  await expect(controls).toHaveAttribute('data-reactivity', 'ambient');
+  await expect(bgCircuit).toHaveAttribute('data-playback', 'idle');
+
+  // Explicit user choice of Ambient is respected even when music plays.
+  await controls.locator('summary').click();
+  await controls.locator('[data-mode]').selectOption('ambient');
+  await openPlayer(page);
+  await emit(page, 'onStateChange', 1);
+  await expect(controls).toHaveAttribute('data-reactivity', 'ambient');
 });
 
 test('cleans up when the component is detached and reuses the API on reconnect', async ({
@@ -326,9 +444,17 @@ test('switches among the exact selections and resets the circuit until playback 
   await emit(page, 'onStateChange', 1);
   await expect(field).toHaveAttribute('data-playback', 'playing');
 
-  for (const id of ['5Kn0Yc56jaw', 'IzTJQiFoNGE', 'JOUELP4mnCQ']) {
+  const expectedMeta = [
+    ['5Kn0Yc56jaw', 'A2', 'amber'],
+    ['IzTJQiFoNGE', 'B1', 'violet'],
+    ['JOUELP4mnCQ', 'B2', 'ember'],
+  ] as const;
+
+  for (const [id, catalog, accent] of expectedMeta) {
     await player(page).getByRole('combobox').selectOption(id);
     await expect(status(page)).toHaveText('YouTube player loaded');
+    await expect(page.locator('music-experience')).toHaveAttribute('data-track-accent', accent);
+    await expect(player(page).locator('[data-track-catalog]').first()).toHaveText(catalog);
     const src = await player(page).locator('iframe').getAttribute('src');
     expect(new URL(src ?? '').pathname).toBe('/embed/' + id);
     await expect(player(page).getByRole('link', { name: 'Watch on YouTube' })).toHaveAttribute(
@@ -340,7 +466,7 @@ test('switches among the exact selections and resets the circuit until playback 
 
   expect(await page.evaluate(() => window.musicMock.destroyed)).toBe(3);
   await emit(page, 'onError', 150);
-  await expect(field).toHaveAttribute('data-playback', 'unavailable');
+  await expect(field).toHaveAttribute('data-playback', 'restricted');
   await expect(player(page).locator('iframe')).toHaveCount(0);
 });
 

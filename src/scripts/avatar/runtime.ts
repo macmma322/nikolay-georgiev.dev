@@ -1,6 +1,6 @@
 import { clips, loadClip } from './clips';
 import { idleCycle, sequence, type Pose } from './choreography';
-import { observePlaybackState } from '../playback-state';
+import { isPlaybackFailure, observePlaybackState } from '../playback-state';
 import { getQualityTier, observeQualityTier, type QualityTier } from '../circuit-clock';
 
 const preference = 'nikolay.avatar.motion';
@@ -432,8 +432,14 @@ class AvatarRuntime extends HTMLElement {
     motion.addEventListener('change', syncPreference, { signal });
     const unwatch = observePlaybackState((state) => {
       const started = !playing && state === 'playing';
+      const wasMusic = activeMusic;
       playing = state === 'playing';
       if (!playing) activeMusic = false;
+      if (isPlaybackFailure(state) && wasMusic && active) {
+        cancel();
+        schedule();
+        return;
+      }
       // React live when music starts while the avatar is seated on Caelora/Contact.
       if (
         started &&
