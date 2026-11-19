@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 /**
  * The contact block, in two variants:
  *   footer  the finale that closes every page except the contact page
@@ -174,6 +175,7 @@ const linkedinMark =
         <time data-local-time data-tz={site.timeZone}>
           {site.timeZone}
         </time>
+        <AvatarAnchor scene="contact" pose="sit" />
       </dd>
     </div>
     <div>
@@ -459,12 +461,14 @@ const linkedinMark =
   /* One label column for every row, as wide as the longest label needs
      (Bulgarian labels run longer), never narrower than the English sheet. */
   .facts {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(8.5rem, max-content) minmax(0, 1fr);
     column-gap: var(--space-s);
   }
 
   .facts > div {
+    position: relative;
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: subgrid;

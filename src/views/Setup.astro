@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Button from '@/components/ui/Button.astro';
 import SectionHeader from '@/components/ui/SectionHeader.astro';
@@ -41,6 +42,7 @@ const ecoViews = [
 
 <BaseLayout>
   <section class="container intro" aria-labelledby="setup-h1">
+    <AvatarAnchor scene="setup" pose="typing" />
     <p class="label">{u.eyebrow}</p>
     <h1 id="setup-h1" class="title" data-vt-lang="title">
       {u.title}
@@ -329,6 +331,8 @@ const ecoViews = [
   }
 
   .intro {
+    position: relative;
+    border-bottom: 1px solid var(--line-soft);
     padding-top: var(--space-2xl);
     padding-bottom: var(--space-l);
     container-type: inline-size;

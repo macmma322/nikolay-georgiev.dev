@@ -1,5 +1,7 @@
 ---
 import { getCollection } from 'astro:content';
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
+import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import Hero from '@/components/home/Hero.astro';
 import ProjectChapter, { type ChapterLayout } from '@/components/home/ProjectChapter.astro';
@@ -112,6 +114,10 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   </section>
 
   <section id="lab" class="container section lab" aria-labelledby="lab-title">
+    <div class="lab-cameo">
+      <CircuitBackdrop place="avatar-pad" />
+      <AvatarAnchor scene="lab" pose="inspect" />
+    </div>
     <SectionHeader
       label={s.lab.label}
       id="lab-title"
@@ -279,6 +285,14 @@ const rhythm: ChapterLayout[] = ['open', 'mirror', 'lead', 'essay', 'mirror'];
   }
 
   /* ---------- Lab: plain ruled rows, styled by LabCard ---------- */
+  .lab-cameo {
+    position: relative;
+    width: min(18rem, 100%);
+    height: 7.5rem;
+    margin-inline-start: auto;
+    margin-bottom: var(--space-s);
+  }
+
   .lab-list {
     display: grid;
   }

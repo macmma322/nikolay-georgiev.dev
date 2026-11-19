@@ -8,7 +8,7 @@ import {
 } from '@/lib/circuit-board';
 
 interface Props {
-  place: 'background' | 'footer' | 'panel';
+  place: 'background' | 'footer' | 'panel' | 'avatar-pad';
 }
 
 const { place } = Astro.props;
@@ -126,6 +126,13 @@ const banks = tones.map((name, tone) => {
     height: 100%;
     mask-image: linear-gradient(90deg, transparent 55%, black 100%);
     opacity: 0.63;
+  }
+
+  circuit-field[data-place='avatar-pad'] {
+    height: 100%;
+    border-bottom: 1px solid #af795b42;
+    background: radial-gradient(ellipse at 76% 100%, #3b21196b, transparent 65%);
+    mask-image: linear-gradient(90deg, transparent, black 36%);
   }
 
   svg,

@@ -1,4 +1,5 @@
 ---
+import AvatarAnchor from '@/components/avatar/AvatarAnchor.astro';
 import { getCollection } from 'astro:content';
 import BaseLayout from '@/layouts/BaseLayout.astro';
 import LabCard from '@/components/work/LabCard.astro';
@@ -19,6 +20,7 @@ const paused = byGroup('paused');
 
 <BaseLayout>
   <section class="container intro" aria-labelledby="lab-h1">
+    <AvatarAnchor scene="lab" pose="typing" />
     <p class="label">{u.eyebrow}</p>
     <h1 id="lab-h1" class="title" data-vt-lang="title">
       {u.title}
@@ -59,6 +61,8 @@ const paused = byGroup('paused');
 
 <style>
   .intro {
+    position: relative;
+    border-bottom: 1px solid var(--line-soft);
     padding-top: var(--space-2xl);
     padding-bottom: var(--space-l);
     container-type: inline-size;

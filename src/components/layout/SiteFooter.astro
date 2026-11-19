@@ -1,4 +1,5 @@
 ---
+import AvatarControl from '@/components/avatar/AvatarControl.astro';
 import { site } from '@/data/site';
 import ContactFinale from '@/components/layout/ContactFinale.astro';
 import Street from '@/components/layout/Street.astro';
@@ -37,6 +38,7 @@ const year = new Date().getFullYear();
       <span class="visually-hidden">{s.homeSuffix}</span>
     </a>
     <p>{l(contact.baseline)}</p>
+    <AvatarControl />
     <a class="footer-link" href={href('/open-source')}>
       {l(openSource.title)}
     </a>

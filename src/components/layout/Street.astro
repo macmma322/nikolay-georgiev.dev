@@ -435,6 +435,18 @@ const widths = [112, 168, 252, 336, 528];
 </script>
 
 <style>
+  :global(html[data-avatar-away]) :is(.me, .me-tag) {
+    visibility: hidden;
+  }
+  :global(html[data-avatar-still]) .me :is(.me-rise, .me-head, .me-chest, .me-lids) {
+    animation: none !important;
+    transition: none !important;
+    rotate: none !important;
+    translate: none !important;
+  }
+  :global(html[data-avatar-still]) .me .me-lids {
+    visibility: hidden;
+  }
   .street {
     position: relative;
     border-top: 1px solid var(--line-soft);

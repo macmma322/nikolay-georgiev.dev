@@ -70,6 +70,7 @@ class CircuitField extends HTMLElement {
     let offsetY = 0;
     let width = 0;
     let height = 0;
+    let contact: { x: number; y: number; at: number } | undefined;
 
     const sizeBuffer = () => {
       if (!visible || !width || !height || motion.matches) return;
@@ -105,6 +106,19 @@ class CircuitField extends HTMLElement {
       context.setTransform(1, 0, 0, 1, 0, 0);
       context.clearRect(0, 0, canvas.width, canvas.height);
       context.setTransform(scale, 0, 0, scale, offsetX, offsetY);
+      if (contact) {
+        const progress = (now - contact.at) / 720;
+        if (progress >= 1) contact = undefined;
+        else {
+          const x = (contact.x * canvas.width - offsetX) / scale;
+          const y = (contact.y * canvas.height - offsetY) / scale;
+          context.beginPath();
+          context.arc(x, y, 2 + progress * 15, 0, Math.PI * 2);
+          context.lineWidth = 1.8;
+          context.strokeStyle = `rgba(239,179,99,${0.8 * (1 - progress)})`;
+          context.stroke();
+        }
+      }
 
       // A diffuse envelope, short moving trace segments and small terminal lights.
       const bank = circuitWidth * (0.5 + Math.sin(time * 0.27) * 0.34);
@@ -189,6 +203,22 @@ class CircuitField extends HTMLElement {
     });
     const events = new AbortController();
     const { signal } = events;
+    if (this.dataset['place'] === 'avatar-pad') {
+      this.addEventListener(
+        'avatar-contact',
+        (event) => {
+          if (!frame || !width || !height) return;
+          const { x, y } = (event as CustomEvent<{ x: number; y: number }>).detail;
+          const box = this.getBoundingClientRect();
+          contact = {
+            x: (x - box.left) / box.width,
+            y: (y - box.top) / box.height,
+            at: performance.now(),
+          };
+        },
+        { signal },
+      );
+    }
     motion.addEventListener('change', sync, { signal });
     document.addEventListener('visibilitychange', sync, { signal });
     resize.observe(this);

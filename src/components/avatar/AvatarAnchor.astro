@@ -1,0 +1,128 @@
+---
+import { useI18n } from '@/i18n';
+import { avatar } from '@/i18n/ui/avatar';
+import type { Pose } from '@/scripts/avatar/choreography';
+
+interface Props {
+  scene: Exclude<keyof typeof avatar.lines, 'music'>;
+  pose: Pose;
+}
+const { scene, pose } = Astro.props;
+const { t } = useI18n(Astro);
+const copy = t(avatar);
+---
+
+<span
+  class="cameo"
+  data-avatar-anchor={scene}
+  data-pose={pose}
+  data-line={copy.lines[scene]}
+></span>
+
+<style>
+  /* Anchors describe occupied space even before a sprite is downloaded. */
+  .cameo {
+    position: absolute;
+    z-index: 2;
+    display: block;
+    pointer-events: none;
+    --figure: clamp(5.5rem, 7.3vw, 7.25rem);
+    height: var(--figure);
+  }
+  [data-pose='walk'] {
+    bottom: 0;
+    right: 8%;
+    width: min(calc(var(--figure) * 2.8), 48%);
+  }
+  [data-pose='lean'] {
+    top: 1px;
+    left: 1px;
+    width: calc(var(--figure) * 126 / 272);
+    /* Elbow underside at (89%,29%) meets the plate's top left vertex. */
+    translate: -89% -29%;
+  }
+  [data-pose='sit'] {
+    top: 1px;
+    right: 9%;
+    /* Headroom for the headset and clearance for elbows in the raised pose. */
+    height: calc(var(--figure) * 1.12);
+    width: calc(var(--figure) * 0.66);
+    translate: 0 -62.5%;
+  }
+  [data-pose='inspect'],
+  [data-pose='typing'] {
+    bottom: 1px;
+    right: 7%;
+    width: calc(var(--figure) * 0.92);
+  }
+  [data-avatar-anchor='contact'] {
+    right: 12%;
+  }
+  [data-pose='peek'] {
+    overflow: clip;
+    left: 18%;
+    bottom: 100%;
+    width: calc(var(--figure) * 0.36);
+    height: calc(var(--figure) * 0.32);
+  }
+  /* A bracket meets the bottom of the plate's corner as he rests his elbow
+     above it. Both the sole and the sleeve have a point of contact. */
+  [data-pose='lean']:has(canvas)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 11%;
+    width: 68%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--line-strong) 24%);
+    box-shadow: 0 2px 3px #0006;
+    z-index: -1;
+  }
+  @media (max-width: 44rem) {
+    [data-pose='lean'] {
+      display: none;
+    }
+    .cameo {
+      --figure: 4.5rem;
+    }
+  }
+  @media print, (prefers-reduced-motion: reduce) {
+    .cameo {
+      display: none;
+    }
+  }
+  .cameo :global(.avatar-drawing) {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    filter: drop-shadow(0 1px 1px #05050777);
+  }
+  .cameo :global(.avatar-remark) {
+    position: absolute;
+    z-index: 3;
+    bottom: calc(100% + 0.25rem);
+    left: 50%;
+    translate: -50% 0;
+    width: max-content;
+    max-width: 13rem;
+    padding: 0.45rem 0.65rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-s);
+    background: var(--ink-deep);
+    color: var(--fg);
+    font: 400 0.8rem/1.35 var(--ff-body);
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .cameo :global(.avatar-remark[data-align='end']) {
+    left: auto;
+    right: 0;
+    translate: 0;
+  }
+  .cameo :global(.avatar-remark[data-align='start']) {
+    left: 0;
+    translate: 0;
+  }
+</style>
