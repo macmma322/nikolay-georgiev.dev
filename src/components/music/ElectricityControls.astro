@@ -21,7 +21,7 @@ Astro.csp?.insertDirective(
 ---
 
 <electricity-controls
-  class="container electricity"
+  class="electricity"
   data-running={s.running}
   data-paused={s.paused}
   data-pause={s.pause}
@@ -31,7 +31,23 @@ Astro.csp?.insertDirective(
   hidden
 >
   <details>
-    <summary>{s.label}</summary>
+    <summary title={s.label}>
+      <svg
+        viewBox="0 0 24 24"
+        width="19"
+        height="19"
+        aria-hidden="true"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.6"
+      >
+        <path d="M4 6h16M4 12h16M4 18h16" />
+        <circle cx="8" cy="6" r="2" />
+        <circle cx="15" cy="12" r="2" />
+        <circle cx="10" cy="18" r="2" />
+      </svg>
+      <span class="visually-hidden">{s.label}</span>
+    </summary>
     <div class="controls">
       <label class="setting">
         <span>{s.mode}</span>
@@ -62,9 +78,9 @@ Astro.csp?.insertDirective(
           <input data-local-file type="file" accept="audio/*" />
         </label>
       </div>
+      <p class="notice" data-audio-notice role="status"></p>
     </div>
   </details>
-  <p class="notice" data-audio-notice role="status"></p>
   <div class="audio-dock" data-audio-dock hidden>
     <span data-active-audio>{s.running}</span>
     <button type="button" data-audio-toggle>
@@ -82,9 +98,9 @@ Astro.csp?.insertDirective(
 
 <style>
   .electricity {
-    display: grid;
-    justify-items: end;
-    padding-bottom: var(--space-l);
+    --controls-bottom: calc(100% + 0.5rem);
+    position: relative;
+    flex: 0 0 44px;
     color: var(--fg-2);
   }
 
@@ -92,18 +108,30 @@ Astro.csp?.insertDirective(
     display: none !important;
   }
 
-  details {
-    width: min(100%, 23rem);
-    border-block-start: 1px solid #6e53455e;
-    background: #151214;
-    border-radius: 4px;
+  summary {
+    display: grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid #645043;
+    border-radius: 6px;
+    background: #201917;
+    color: #e6b894;
+    cursor: pointer;
+    list-style: none;
   }
 
-  summary {
-    padding: 0.7rem;
-    cursor: pointer;
-    color: #e6b894;
-    font-size: var(--text-caption);
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary circle {
+    fill: #201917;
+  }
+
+  details[open] summary,
+  summary:hover {
+    background: #34261f;
   }
 
   .controls,
@@ -114,7 +142,24 @@ Astro.csp?.insertDirective(
   }
 
   .controls {
-    padding: 0 0.7rem 0.7rem;
+    position: absolute;
+    inset: auto 0 var(--controls-bottom) auto;
+    width: min(18rem, calc(100vw - 1.5rem));
+    max-height: max(5rem, calc(100dvh - var(--header-h) - var(--music-dock-clearance) - 2rem));
+    overflow: auto;
+    padding: 0.7rem;
+    border: 1px solid #795a46;
+    border-radius: 6px;
+    background: #1b1617;
+    box-shadow: 0 4px 22px #0008;
+  }
+
+  .electricity:has(.audio-dock:not([hidden])) {
+    --controls-bottom: calc(100% + 3.8rem);
+  }
+
+  .electricity:has(.audio-dock:not([hidden])) .controls {
+    max-height: max(5rem, calc(100dvh - var(--header-h) - var(--music-dock-clearance) - 5rem));
   }
 
   .setting {
@@ -165,12 +210,10 @@ Astro.csp?.insertDirective(
   }
 
   .audio-dock {
-    position: fixed;
-    z-index: 5;
-    inset: auto max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom))
-      auto;
+    position: absolute;
+    inset: auto 0 calc(100% + 0.5rem) auto;
     display: flex;
-    flex-wrap: wrap;
+    white-space: nowrap;
     gap: 0.35rem;
     align-items: center;
     width: max-content;
@@ -181,6 +224,16 @@ Astro.csp?.insertDirective(
     background: #191417;
     box-shadow: 0 4px 22px #0008;
     font-size: var(--text-caption);
+  }
+
+  @media (max-width: 30rem) {
+    .audio-dock span {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
   }
 
   .audio-dock span {

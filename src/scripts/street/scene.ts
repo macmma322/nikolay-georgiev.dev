@@ -642,8 +642,8 @@ export function createStreet(options: StreetOptions): Street {
     const look = CAST.find((candidate) => candidate.egg === slug);
     if (!look || width === 0) return false;
     let walker = walkers.find((candidate) => candidate.look === look) ?? null;
-    if (!walker && state === 'running') {
-      // Enters from the nearer edge of the middle of the street, walking in.
+    if (!walker && state !== 'static') {
+      // Focus can arrive before the visibility observer resumes the street.
       walker = spawn(3, look, random() < 0.5 ? 1 : -1);
       if (walker) walker.x = walker.dir === 1 ? -walker.half : width + walker.half;
     }

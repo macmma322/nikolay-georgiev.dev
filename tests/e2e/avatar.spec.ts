@@ -85,11 +85,9 @@ test('the seated drawing is attached to the card and leaves its case study usabl
   await expect(page).toHaveURL(/\/work\/caelora\/?$/);
 });
 
-test('the circuit inspection sends a local contact into the running prototype field', async ({
-  page,
-}) => {
+test('the circuit inspection sends a local contact into the running lab pad', async ({ page }) => {
   await page.goto('/');
-  const field = page.locator('circuit-field[data-scene="prototype"]');
+  const field = page.locator('circuit-field[data-place="avatar-pad"]');
   await field.evaluate((el) =>
     el.addEventListener('avatar-contact', (event) => {
       const { x, y } = (event as CustomEvent<{ x: number; y: number }>).detail;

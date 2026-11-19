@@ -1,7 +1,7 @@
 # Synthwave player and living circuitry
 
-The English and Bulgarian homepages retain the copper vinyl player and offer
-the four original selections. Each opens the same opt-in YouTube dialog.
+The English and Bulgarian layouts show the copper vinyl dock in the bottom-right
+corner. It offers four selections in the opt-in YouTube dialog.
 Choosing a track replaces the previous frame and waits for the visitor to use
 YouTube’s Play control. The Watch on YouTube link always follows the selection.
 
@@ -14,17 +14,19 @@ YouTube’s Play control. The Watch on YouTube link always follows the selection
 
 YouTube’s oEmbed metadata confirmed the titles and uploader channels. On
 19 November 2026, all four videos returned IFrame API error 150 on both embed
-domains from the local preview. The YouTube developer control video initialized. The first choice remains Memory Reboot. The panel
-shows a fallback for the individual selection when embedded playback fails.
+domains from the local preview. The YouTube developer control video initialized.
+Memory Reboot is the default selection. The panel highlights the Watch on YouTube
+link for the selected track when embedded playback fails.
 Current availability can vary by video, viewer, browser and origin.
 
 ## Visual reactivity
 
 The circuit renderer places a seeded SVG beneath a bounded Canvas 2D signal
 layer. The static board remains visible with reduced motion or without
-JavaScript. Motion runs only on screen in a visible tab. Rendering is capped
-at 30 frames per second, the drawing buffer is capped at 1.5 DPR and 1,800
-pixels wide, and compact viewports draw fewer pulses.
+JavaScript. Motion runs only on screen in a visible tab. The full-viewport
+background draws at most every 48 ms on desktop and 76 ms on mobile. Each
+drawing buffer is limited to about one megapixel. Compact viewports draw fewer
+pulses.
 
 The player publishes confirmed state transitions through
 `src/scripts/playback-state.ts`. The envelope in
@@ -41,17 +43,10 @@ can supply envelopes to the renderer independently of this YouTube adapter.
 
 ## Pedestrian footer integration
 
-The footer field renders in the homepage’s footer circuit slot. Once the
-pedestrian footer supplies `[data-street] [data-stage]` in the same footer, the
-decorative field moves to the first position inside that stage. Keep that
-mount ahead of the skyline and both crowd canvases. The layer leaves the
-stage’s background, pavement, cast controls and illustrated character owned
-by the existing footer. The current homepage also uses a static treatment in
-the lab and a masked, animated field in the music dialog header.
-
-The separate pedestrian worktree remains the owner of its in-progress assets
-and scene. The combined browser preview used a read-only snapshot of that
-checkout.
+The shared footer mounts its decorative field ahead of the skyline and both
+crowd canvases. The fixed dock lives in the shared layout, with room at the end
+of the page to reach the footer links above it. The dialog header uses a masked
+circuit field.
 
 ## Verification
 

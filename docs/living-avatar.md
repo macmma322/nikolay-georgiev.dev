@@ -10,7 +10,7 @@ The portfolio uses the illustrated master from the pedestrian street. The standi
 | Caelora                     | The pelvis sits on the plate’s top edge, with the shoes hanging in front. He checks the phone or, occasionally, puts on his headphones.                   |
 | J.A.R.V.I.S.                | The sleeve meets the upper-left corner and the feet rest on a small bracket. He checks the phone and pockets it again. Narrow layouts omit this position. |
 | KObait on the homepage      | A rare peek appears behind the top edge. The plate clips the lower body.                                                                                  |
-| Homepage Lab board          | A crouched fingertip touches a pad. The active prototype circuit field draws the pulse with its existing clock.                                           |
+| Homepage Lab                | A crouched fingertip touches a small circuit pad, which draws the pulse with the shared circuit clock.                                                    |
 | Lab and Setup pages         | A seated illustration includes the chair, desk, keyboard and monitor. Brief finger movements leave the desk and feet fixed.                               |
 | Contact                     | He sits on the facts panel when its text and links leave sufficient space.                                                                                |
 | Street                      | The original portrait owns the stage, with its existing chest, head and eyelid animation between the two crowd canvases.                                  |

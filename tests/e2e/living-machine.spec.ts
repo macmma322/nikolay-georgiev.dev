@@ -1,8 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
 const controller = (page: Page) => page.locator('electricity-controls');
-const scene = (page: Page, name: string) =>
-  page.locator('circuit-field[data-scene="' + name + '"]');
 
 async function chooseLive(page: Page) {
   await controller(page).locator('summary').click();
@@ -192,38 +190,56 @@ test('a blocked audio start closes the graph and leaves Ambient usable', async (
     .toBe('closed');
 });
 
-test('PCB scenes reverse with the browser scroll and pause away from the viewport', async ({
+test('the circuit field and vinyl stay anchored as the page scrolls', async ({ page }) => {
+  await page.goto('/');
+  const board = page.locator('circuit-field[data-place="background"]');
+  const dock = page.locator('music-experience');
+  await expect(board).toHaveCount(1);
+  await expect(board).toHaveAttribute('data-running', '');
+  await expect(dock).toBeInViewport();
+
+  const frame = await board.boundingBox();
+  const corner = await dock.boundingBox();
+  const viewport = page.viewportSize()!;
+  expect(frame).toEqual({ x: 0, y: 0, width: viewport.width, height: viewport.height });
+  expect(viewport.width - corner!.x - corner!.width).toBeLessThan(25);
+  expect(viewport.height - corner!.y - corner!.height).toBeLessThan(25);
+
+  for (const section of ['#capabilities', '#contact']) {
+    await page.locator(section).evaluate((section) => {
+      section.scrollIntoView({ behavior: 'instant' });
+    });
+    expect(await board.boundingBox()).toEqual(frame);
+    expect(await dock.boundingBox()).toEqual(corner);
+  }
+});
+
+test('a secondary page has the same dock and background', async ({ page }) => {
+  await page.goto('/about');
+  await expect(page.locator('circuit-field[data-place="background"]')).toBeInViewport();
+  await expect(page.locator('[data-music-launch]')).toBeInViewport();
+  await expect(page.locator('iframe')).toHaveCount(0);
+});
+
+test('the fixed settings panel closes by Escape and restores the trigger focus', async ({
   page,
 }) => {
   await page.goto('/');
-  await expect(page.locator('circuit-field[data-place="world"]')).toHaveCount(10);
-  const board = scene(page, 'architecture');
-  const move = (ratio: number) =>
-    board.evaluate((node, ratio) => {
-      window.scrollTo({
-        top: window.scrollY + node.getBoundingClientRect().top - window.innerHeight * ratio,
-        behavior: 'instant',
-      });
-    }, ratio);
-  await move(0.68);
-  await expect(board).toHaveAttribute('data-running', '');
-  const progress = () => board.getAttribute('data-progress').then(Number);
-  await expect.poll(progress).toBeGreaterThan(0.15);
-  const first = await progress();
-  await move(0.31);
-  await expect.poll(progress).toBeGreaterThan(first + 0.22);
-  await move(0.68);
-  await expect.poll(progress).toBeCloseTo(first, 1);
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
-  await expect(board).not.toHaveAttribute('data-running');
+  const settings = controller(page).locator('details');
+  const trigger = settings.locator('summary');
+  await trigger.click();
+  await settings.locator('[data-mode]').focus();
+  await page.keyboard.press('Escape');
+  await expect(settings).not.toHaveAttribute('open');
+  await expect(trigger).toBeFocused();
 });
 
 test('reduced motion retains the localized PCB and keeps the canvas stopped', async ({ page }) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/bg');
-  const processor = scene(page, 'processor');
-  await expect(processor.locator('svg')).toBeVisible();
-  await expect(processor.locator('canvas')).toBeHidden();
-  await expect(processor).not.toHaveAttribute('data-running');
+  const board = page.locator('circuit-field[data-place="background"]');
+  await expect(board.locator('svg')).toBeVisible();
+  await expect(board.locator('canvas')).toBeHidden();
+  await expect(board).not.toHaveAttribute('data-running');
   await expect(controller(page).locator('summary')).toContainText('Реакция');
 });

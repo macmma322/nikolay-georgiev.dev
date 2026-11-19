@@ -7,6 +7,8 @@ class ElectricityControls extends HTMLElement {
 
   connectedCallback() {
     if (this.#dispose) return;
+    const details = this.querySelector('details')!;
+    const summary = details.querySelector('summary')!;
     const mode = this.querySelector<HTMLSelectElement>('[data-mode]')!;
     const strength = this.querySelector<HTMLSelectElement>('[data-intensity]')!;
     const sources = this.querySelector<HTMLElement>('[data-live-sources]')!;
@@ -40,12 +42,7 @@ class ElectricityControls extends HTMLElement {
       stop();
       setMode('ambient');
       if (reason) notice.textContent = this.dataset[reason] ?? '';
-      if (
-        focusWasInDock &&
-        mode.getBoundingClientRect().top >= 0 &&
-        mode.getBoundingClientRect().bottom <= innerHeight
-      )
-        mode.focus();
+      if (focusWasInDock) summary.focus();
     };
     const begin = (source: AudioSource) => {
       stop();
@@ -125,6 +122,24 @@ class ElectricityControls extends HTMLElement {
       { signal },
     );
     stopButton.addEventListener('click', () => finish(), { signal });
+    document.addEventListener(
+      'pointerdown',
+      ({ target }) => {
+        if (details.open && target instanceof Node && !this.contains(target)) details.open = false;
+      },
+      { signal },
+    );
+    document.addEventListener(
+      'keydown',
+      (event) => {
+        if (event.key === 'Escape' && details.open) {
+          const hadFocus = details.contains(document.activeElement);
+          details.open = false;
+          if (hadFocus) summary.focus();
+        }
+      },
+      { signal },
+    );
     window.addEventListener('pagehide', () => finish(), { signal });
     const unobserve = observePlaybackState((state) => {
       if (state === 'loading' && session) finish();

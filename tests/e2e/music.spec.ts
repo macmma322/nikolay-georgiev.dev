@@ -90,7 +90,7 @@ test('player event adapter ignores pre-play states and pauses hidden playing or 
   expect(messages).toEqual(['buffering', 'playing', 'paused', 'ended', 'pauseVideo', 'pauseVideo']);
 });
 
-test('renders the footer entry with no third-party requests before opt-in', async ({ page }) => {
+test('renders the vinyl dock with no third-party requests before opt-in', async ({ page }) => {
   await mockPlayer(page);
   const requests: string[] = [];
   page.on('request', (request) => {
@@ -103,7 +103,7 @@ test('renders the footer entry with no third-party requests before opt-in', asyn
   await expect(launch(page)).toHaveAttribute('aria-haspopup', 'dialog');
   await expect(player(page)).toHaveCount(0);
   await expect(page.locator('iframe')).toHaveCount(0);
-  await launch(page).scrollIntoViewIfNeeded();
+  await expect(launch(page)).toBeInViewport();
   await expect(page.locator('footer#contact')).toBeVisible();
   await expect(page.locator('footer#contact .baseline a[href="/open-source"]')).toBeVisible();
   await expect(page.locator('footer#contact a[href^="mailto:"]')).toHaveCount(1);

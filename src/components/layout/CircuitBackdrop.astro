@@ -1,16 +1,21 @@
 ---
-import { circuitHeight, circuitWidth, makeCircuitBoard } from '@/lib/circuit-board';
-import { machineTraces, type SceneId } from '@/lib/machine-board';
-import CircuitPackages from './CircuitPackages.astro';
+import {
+  backdropHeight,
+  circuitHeight,
+  circuitWidth,
+  makeBackdropBoard,
+  makeCircuitBoard,
+} from '@/lib/circuit-board';
 
 interface Props {
-  place: 'footer' | 'panel' | 'accent' | 'world';
-  scene?: SceneId;
+  place: 'background' | 'footer' | 'panel' | 'avatar-pad';
 }
 
-const { place, scene } = Astro.props;
+const { place } = Astro.props;
+const background = place === 'background';
+const height = background ? backdropHeight : circuitHeight;
 const seed = place === 'footer' ? 3219 : 1207;
-const traces = scene ? machineTraces(scene, seed) : makeCircuitBoard(seed);
+const traces = background ? makeBackdropBoard(seed) : makeCircuitBoard(seed);
 const tones = ['copper', 'amber', 'violet'];
 const banks = tones.map((name, tone) => {
   const group = traces.filter((trace) => trace.tone === tone);
@@ -29,9 +34,9 @@ const banks = tones.map((name, tone) => {
 });
 ---
 
-<circuit-field data-place={place} data-scene={scene} data-seed={seed} aria-hidden="true">
+<circuit-field data-place={place} data-seed={seed} aria-hidden="true">
   <svg
-    viewBox={`0 0 ${circuitWidth} ${circuitHeight}`}
+    viewBox={`0 0 ${circuitWidth} ${height}`}
     preserveAspectRatio="xMidYMid slice"
     focusable="false"
   >
@@ -41,9 +46,8 @@ const banks = tones.map((name, tone) => {
         <path class="pads" d={pads} />
       </g>
     ))}
-    {scene && <CircuitPackages scene={scene} />}
   </svg>
-  {place !== 'accent' && <canvas></canvas>}
+  <canvas></canvas>
 </circuit-field>
 
 <script>
@@ -77,51 +81,42 @@ const banks = tones.map((name, tone) => {
     mask-image: linear-gradient(black 4%, black 67%, transparent 92%);
   }
 
-  circuit-field[data-place='world'] {
-    height: clamp(6.5rem, 12vw, 12.5rem);
-    border-block: 1px solid #98725223;
-    background:
-      radial-gradient(ellipse at 53% 50%, #4c373244, transparent 68%),
-      linear-gradient(111deg, #131116, #161417 55%, #0e1013);
-    mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
-  }
-
-  circuit-field[data-place='world'] .bank {
-    opacity: calc(0.57 + var(--pcb-activation, 0.82) * 0.43);
-  }
-
-  circuit-field[data-place='world'] .bank path {
-    opacity: 0.56;
-  }
-
-  circuit-field[data-scene='processor'] {
+  circuit-field[data-place='background'] {
     position: absolute;
-    inset: auto 0 2.5rem;
-    z-index: -1;
-    height: clamp(15rem, 30vw, 27rem);
-    border: 0;
-    background:
-      radial-gradient(ellipse at 73% 37%, #4a393b4d, transparent 67%),
-      linear-gradient(124deg, #121016, #1b161a 60%, #101014);
-    opacity: 0.6;
-    mask-image:
-      linear-gradient(90deg, transparent 36%, #0004 58%, black 86%, #000b),
-      linear-gradient(180deg, transparent, black 22%, black 71%, transparent);
-    mask-composite: intersect;
-    animation: processor-boot 760ms ease-out both;
+    inset: 0;
+    mask-image: radial-gradient(
+      ellipse 100% 82% at 50% 53%,
+      black 10%,
+      #000d 48%,
+      #0004 83%,
+      transparent
+    );
   }
 
-  circuit-field[data-scene='transmission'] {
-    height: clamp(6.5rem, 13vw, 11rem);
-    background: linear-gradient(180deg, #201813, #141317 62%, #0b0b0e);
+  circuit-field[data-place='background'] .bank {
+    --trace: #bf4f38;
   }
 
-  @media (max-width: 52rem) {
-    circuit-field[data-scene='processor'] {
-      inset: auto 0 4rem;
-      height: 20rem;
-      opacity: 0.54;
-      mask-image: linear-gradient(147deg, transparent 15%, black 70%, transparent 98%);
+  circuit-field[data-place='background'] .amber {
+    --trace: #ad654a;
+  }
+
+  circuit-field[data-place='background'] .violet {
+    --trace: #766479;
+  }
+
+  circuit-field[data-place='background'] .bank path {
+    opacity: 0.39;
+  }
+
+  circuit-field[data-place='background'] .bank .pads {
+    opacity: 0.56;
+    fill: #703529;
+  }
+
+  @media (max-width: 42rem) {
+    circuit-field[data-place='background'] {
+      opacity: 0.73;
     }
   }
 
@@ -133,11 +128,11 @@ const banks = tones.map((name, tone) => {
     opacity: 0.63;
   }
 
-  circuit-field[data-place='accent'] {
-    height: 2.8rem;
-    margin-bottom: var(--space-s);
-    opacity: 0.42;
-    mask-image: linear-gradient(90deg, transparent 3%, black 29%, black 79%, transparent 100%);
+  circuit-field[data-place='avatar-pad'] {
+    height: 100%;
+    border-bottom: 1px solid #af795b42;
+    background: radial-gradient(ellipse at 76% 100%, #3b21196b, transparent 65%);
+    mask-image: linear-gradient(90deg, transparent, black 36%);
   }
 
   svg,
@@ -175,16 +170,7 @@ const banks = tones.map((name, tone) => {
     opacity: 0.64;
   }
 
-  @keyframes processor-boot {
-    from {
-      opacity: 0.22;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    circuit-field[data-scene='processor'] {
-      animation: none;
-    }
     canvas {
       display: none;
     }
