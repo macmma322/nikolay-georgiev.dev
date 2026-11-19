@@ -19,35 +19,37 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 ---
 
 <music-experience class="music-shelf" data-locale={locale}>
-  <section class="container shelf-inner" aria-label={s.feature}>
-    <a
-      class="music-card"
-      data-music-launch
-      href={youtube.watch(track)}
-      aria-labelledby="music-open music-track music-artist"
-    >
-      <span class="card-art">
-        <VinylArtwork />
-      </span>
-      <span class="card-copy">
-        <span class="overline">{s.feature}</span>
-        <span class="track" id="music-track" lang="en" data-track-title>
-          {title}
+  <div class="music-dock">
+    <section class="shelf-inner" aria-label={s.feature}>
+      <a
+        class="music-card"
+        data-music-launch
+        href={youtube.watch(track)}
+        aria-labelledby="music-open music-track music-artist"
+      >
+        <span class="card-art">
+          <VinylArtwork />
         </span>
-        <span class="artist" lang="en">
-          {artist}
+        <span class="card-copy">
+          <span class="overline">{s.feature}</span>
+          <span class="track" id="music-track" lang="en" data-track-title>
+            {title}
+          </span>
+          <span class="artist" id="music-artist" lang="en" data-track-artist>
+            {artist}
+          </span>
         </span>
-      </span>
-      <span class="card-action">
-        <span class="play-icon" aria-hidden="true"></span>
-        <span class="source">YouTube</span>
-      </span>
-      <span class="visually-hidden" id="music-open">
-        {s.open}
-      </span>
-    </a>
-  </section>
-  <ElectricityControls />
+        <span class="card-action">
+          <span class="play-icon" aria-hidden="true"></span>
+          <span class="source">YouTube</span>
+        </span>
+        <span class="visually-hidden" id="music-open">
+          {s.open}
+        </span>
+      </a>
+    </section>
+    <ElectricityControls />
+  </div>
 
   <dialog class="music-panel" id="music-panel" aria-labelledby="music-panel-title">
     <div class="panel-interior">
@@ -121,23 +123,33 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     --copper-light: #e8b993;
     --copper-line: #735843;
     --hardware-dark: #111113;
+    position: fixed;
+    z-index: 18;
+    inset-inline-end: max(0.75rem, env(safe-area-inset-right, 0px));
+    inset-block-end: max(0.75rem, env(safe-area-inset-bottom, 0px));
     display: block;
-    background: var(--ink-deep);
+    max-width: calc(100vw - 1.5rem);
+  }
+
+  .music-dock {
+    display: flex;
+    max-width: 100%;
+    align-items: end;
+    gap: 0.35rem;
   }
 
   .shelf-inner {
-    display: flex;
-    justify-content: flex-end;
-    padding-block: 0.25rem var(--space-l);
+    min-width: 0;
   }
 
   .music-card {
     display: grid;
-    width: min(100%, 23rem);
-    grid-template-columns: minmax(0, 5.9rem) minmax(0, 1fr) auto;
-    gap: clamp(0.6rem, 2vw, 1rem);
+    width: min(16.5rem, calc(100vw - 4.75rem));
+    min-height: 54px;
+    grid-template-columns: 2.65rem minmax(0, 1fr) auto;
+    gap: 0.55rem;
     align-items: center;
-    padding: 0.58rem 0.78rem 0.58rem 0.58rem;
+    padding: 0.38rem 0.5rem;
     border: 1px solid #49413b;
     border-radius: 8px;
     background:
@@ -189,8 +201,11 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
   }
 
   .track {
-    font-size: clamp(1.43rem, 4vw, 1.85rem);
-    line-height: 1;
+    overflow: hidden;
+    font-size: 1rem;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .artist {
@@ -198,6 +213,22 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     color: var(--fg-2);
     font-size: var(--text-caption);
     line-height: 1.3;
+  }
+
+  .card-copy {
+    min-width: 0;
+    gap: 0.1rem;
+  }
+
+  .card-copy .overline {
+    font-size: 0.53rem;
+  }
+
+  .card-copy .artist {
+    overflow: hidden;
+    font-size: 0.65rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .card-action {
@@ -210,7 +241,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   .play-icon {
     display: grid;
-    width: 2rem;
+    width: 1.6rem;
     aspect-ratio: 1;
     place-items: center;
     border: 1px solid #685343;
@@ -237,7 +268,7 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   .source {
     color: var(--fg-2);
-    font-size: 0.65rem;
+    font-size: 0.55rem;
     line-height: 1;
   }
 
@@ -387,6 +418,13 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   .player-status,
   .watch,
+  music-experience:is([data-state='error'], [data-state='unavailable']) .watch {
+    padding-inline: 0.75rem;
+    border: 1px solid var(--copper-line);
+    border-radius: 4px;
+    background: #34251e;
+  }
+
   .privacy {
     font-size: var(--text-caption);
   }
@@ -453,6 +491,13 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
     color: var(--copper-light);
   }
 
+  music-experience:is([data-state='error'], [data-state='unavailable']) .watch {
+    padding-inline: 0.75rem;
+    border: 1px solid var(--copper-line);
+    border-radius: 4px;
+    background: #34251e;
+  }
+
   .privacy {
     margin: 0;
     padding-block-start: 0.65rem;
@@ -481,7 +526,8 @@ Astro.csp?.insertDirective(`frame-src ${youtube.embedOrigin}`);
 
   @media (max-width: 380px) {
     .music-card {
-      grid-template-columns: minmax(0, 4.65rem) minmax(0, 1fr) auto;
+      grid-template-columns: 2.4rem minmax(0, 1fr) auto;
+      gap: 0.45rem;
     }
   }
 

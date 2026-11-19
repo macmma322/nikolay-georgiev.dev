@@ -1,24 +1,16 @@
 # NIKOLAY.RUNTIME living machine
 
-The English and Bulgarian homepages use one circuit renderer from the hero to
-the street. The art depicts an imagined board for the portfolio, so the
-packages and buses are illustrative hardware rather than project specifications.
+The portfolio uses a continuous circuit layer in the shared layout across its
+English and Bulgarian pages. Copper-red traces cross a deep navy field. The
+street scene keeps a separate decorative layer behind its skyline and crowd.
+A compact vinyl dock stays at the bottom right on both desktop and mobile.
+It contains the player and the electricity settings. Opening the player is
+the first action that contacts YouTube.
 
-- The hero places the processor under the existing introduction and layer diagram.
-- Selected Work pairs the six feature projects with graphics, networking,
-  inference, services, embedded radio and firmware component layouts.
-- Capabilities shows a processor, memory banks and copper buses. The Lab adds
-  a prototype board with headers, surface-mount parts and an RF section.
-- The contact node feeds into the street. The layout renders the transmission
-  board immediately before the stage and the footer circuit before the skyline.
-  Both are placed at build time. The street owns its ground, walkers and portrait.
-
-`machine-board.ts` defines component placements and their trace endpoints.
-Astro renders the board and metallic packages as SVG. A shared frame clock
-renders the visible Canvas signal layers and samples live audio. The shared
-passive scroll listener caches position. Intersection observers measure where
-each scene enters, and the progress function works in both directions.
-Reduced motion retains the SVG. Offscreen fields release their drawing buffer.
+Astro renders the trace geometry from `circuit-board.ts` as SVG. The same
+geometry drives a bounded Canvas signal overlay through a shared frame clock.
+Reduced motion retains the SVG. Hidden or offscreen fields suspend drawing
+and release their drawing buffer.
 
 ## Electricity reactivity
 
@@ -64,6 +56,6 @@ or microphone capture route.
 Build the site and run `tests/e2e/living-machine.spec.ts` and
 `tests/e2e/music.spec.ts` against the production preview. Browser tests use
 generated tones and WAV files to verify bass, treble, silence and teardown.
-The dedicated integration branch includes the independent street commit. Its handoff slot places the transmission board immediately before the stage.
+The shared layout mounts the backdrop and vinyl. The footer mounts a separate circuit field before the street skyline.
 Mocked YouTube state verification and measured Web Audio verification are
 separate exercises.

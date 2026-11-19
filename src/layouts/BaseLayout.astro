@@ -5,6 +5,8 @@ import HeadBoot from '@/components/layout/HeadBoot.astro';
 import SEO from '@/components/layout/SEO.astro';
 import SiteHeader from '@/components/layout/SiteHeader.astro';
 import SiteFooter from '@/components/layout/SiteFooter.astro';
+import CircuitBackdrop from '@/components/layout/CircuitBackdrop.astro';
+import MusicExperience from '@/components/music/MusicExperience.astro';
 import TechBrandStyles from '@/components/ui/TechBrandStyles.astro';
 import { useI18n } from '@/i18n';
 import { common } from '@/i18n/ui/common';
@@ -41,16 +43,15 @@ const s = t(common);
     <a class="skip-link" href="#main">
       {s.skipLink}
     </a>
-    <div class="atmosphere" aria-hidden="true"></div>
+    <div class="atmosphere" aria-hidden="true">
+      <CircuitBackdrop place="background" />
+    </div>
     <SiteHeader />
     <main id="main" tabindex="-1">
       <slot />
     </main>
-    <SiteFooter>
-      <slot name="footer-circuit" slot="circuit" />
-      <slot name="footer-stage-circuit" slot="stage-circuit" />
-    </SiteFooter>
-    <slot name="footer-companion" />
+    <SiteFooter />
+    <MusicExperience />
     <script>
       import '@/scripts/reveal';
     </script>

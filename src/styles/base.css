@@ -15,6 +15,8 @@ html {
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   scroll-padding-top: calc(var(--header-h) + 1rem);
+  --music-dock-clearance: calc(5rem + env(safe-area-inset-bottom, 0px));
+  scroll-padding-bottom: var(--music-dock-clearance);
   background: var(--ink-0);
   hanging-punctuation: first last;
 }
@@ -27,6 +29,8 @@ html {
 
 body {
   min-height: 100dvh;
+  isolation: isolate;
+  padding-bottom: var(--music-dock-clearance);
   background: var(--ink-0);
   color: var(--fg);
   font-family: var(--ff-body);
@@ -392,8 +396,8 @@ html:active-view-transition-type(lang)::view-transition-new(*.art) {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(120vmax 70vmax at 78% -10%, oklch(0.3 0.03 240 / 0.3), transparent 60%),
-    var(--ink-0);
+    radial-gradient(ellipse at 52% 48%, #311820 0%, #14121b 42%, transparent 74%),
+    linear-gradient(140deg, #070e17, #0c111a 57%, #08111a);
 }
 
 .atmosphere::after {
