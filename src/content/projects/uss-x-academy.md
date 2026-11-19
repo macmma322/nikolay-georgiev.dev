@@ -6,7 +6,7 @@ accent: ussx
 kicker: Education platform with live classrooms
 signature: 'A student removed mid-lesson stops receiving events immediately, even on a stream that is already open.'
 summary: A production education platform for a Bulgarian vocational training centre, with course intakes and applications, live classrooms, a regional technician directory and single sign-on across products.
-description: 'Case study of USS X Academy: Next.js and Express 5 services with cross-domain SSO, LiveKit classrooms, SSE realtime, PostgreSQL and consent-aware tracking.'
+description: 'USS X Academy is a production education platform with Next.js, an Express API, PostgreSQL, cross-domain sign-on and live classrooms with LiveKit.'
 seoTitle: 'USS X Academy: education platform'
 status: production
 statusNote: Live at ussxacademy.bg, in active development
@@ -138,4 +138,4 @@ USS X Academy is the online platform of a Bulgarian vocational training centre t
 
 **Why it exists.** The training centre needed more than a brochure site. It needed applications with real capacity limits, live lessons with proper host control, and a public directory of technicians, with Bulgarian as the first language.
 
-**What I built.** The whole software side, alone: two Next.js frontends, an Express 5 API, a separate authentication and single sign-on service, the PostgreSQL schema, the deployment on Railway and the measurement layer for its marketing.
+**What I built.** The whole software side, alone: two Next.js frontends, an Express 5 API, a separate authentication and single sign-on service [shared with Stemini](/work/stemini), the PostgreSQL schema, the deployment on Railway and the measurement layer for its marketing.

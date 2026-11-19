@@ -13,8 +13,8 @@ export const work = {
     },
     title: { en: 'Work', bg: 'Проекти' },
     lede: {
-      en: 'Every project here is described from its current source code, with its real status. Some are in production, some are prototypes on a bench, and one is an operating system at its first milestones. The difference is stated on every page.',
-      bg: 'Описвам всеки проект по текущия му изходен код и с реалния му статус. Някои вече се използват от реални потребители, други са прототипи на работната маса, а един е операционна система в първите си етапи. Всяка страница казва ясно кое е кое.',
+      en: 'These case studies cover full-stack web platforms, real-time systems, local AI, game engineering, firmware and a Rust operating system. Each documents what I built, the technical decisions and what runs today.',
+      bg: 'Тук описвам full-stack уеб платформи, системи в реално време, локален AI, разработка на игри, фърмуер и операционна система на Rust. За всеки проект показвам какво съм изградил, какви технически решения взех и какво работи днес.',
     },
     list: { en: 'Case studies', bg: 'Списък на проектите' },
     outro: {
@@ -50,6 +50,10 @@ export const work = {
     next: { en: 'Next', bg: 'Предстои' },
     notes: { en: 'Notes', bg: 'Бележки' },
     nextCase: { en: 'Next case study', bg: 'Следващ проект' },
+    relatedExperience: {
+      en: 'Technical skills and project evidence',
+      bg: 'Технически умения и примери от проекти',
+    },
   },
   /** Section names, keyed by section id (ids stay English in every locale). */
   sections: {

@@ -121,9 +121,18 @@ test('every case study has a status, an architecture diagram and its text altern
   }
 });
 
-test('the CV download is a real PDF', async ({ request }) => {
-  const res = await request.get('/Nikolay-Georgiev-CV.pdf');
-  expect(res.status()).toBe(200);
-  expect(res.headers()['content-type']).toContain('pdf');
-  expect((await res.body()).subarray(0, 5).toString()).toBe('%PDF-');
-});
+for (const filename of [
+  'Nikolay-Georgiev-CV.pdf',
+  'Nikolay-Georgiev-CV-EN.pdf',
+  'Nikolay-Georgiev-CV-BG.pdf',
+  'Nikolay-Georgiev-CV-EN-ATS.pdf',
+  'Nikolay-Georgiev-CV-BG-ATS.pdf',
+]) {
+  test(`${filename} remains an indexable PDF`, async ({ request }) => {
+    const res = await request.get(`/${filename}`, { maxRedirects: 0 });
+    expect(res.status()).toBe(200);
+    expect(res.headers()['content-type']).toContain('pdf');
+    expect(res.headers()['x-robots-tag'] ?? '').not.toMatch(/noindex/i);
+    expect((await res.body()).subarray(0, 5).toString()).toBe('%PDF-');
+  });
+}

@@ -5,8 +5,8 @@ tier: A
 accent: kobait
 kicker: Embedded remote-control boat
 signature: 'A lost radio link stops the boat, and tests guard the safety rules in front of the motors.'
-summary: 'A two-board embedded system for a bait boat: a handheld remote and a boat controller joined by a radio protocol of my own, with safety gates in front of the motors.'
-description: 'Case study of KObait: a remote-controlled bait boat with a handheld remote, a radio link of my own design and safety gates in front of the motors. Bench-tested.'
+summary: 'I built the Arduino firmware for a handheld remote and a bait boat controller, linked them with a custom NRF24L01 radio protocol and bench-tested the motor failsafes.'
+description: 'KObait is a bench-tested bait boat prototype with Arduino firmware, a custom NRF24L01 radio protocol and motor failsafes.'
 seoTitle: 'KObait: remote-control bait boat'
 status: prototype
 statusNote: Bench-tested, not yet on the water

@@ -6,7 +6,7 @@ accent: malrynth
 kicker: Operating system written from scratch in Rust
 signature: 'A 42,496-byte UEFI loader, byte-reproducible across hosts, hands a checked BootInfo v1 to a kernel with zero dependencies.'
 summary: An independent x86-64 operating system with its own loader and kernel. A Rust UEFI loader hands a validated boot contract to a dependency-free kernel that owns physical memory, and CI boot-tests it under QEMU and OVMF.
-description: 'Case study of Malrynth: a from-scratch x86-64 OS in Rust with its own UEFI loader, a versioned boot ABI, a frame allocator and reproducible, boot-tested builds.'
+description: 'Malrynth is an early x86-64 OS written in Rust, with a UEFI loader, a physical memory allocator and reproducible builds boot-tested under QEMU.'
 seoTitle: 'Malrynth: x86-64 operating system in Rust'
 status: prototype
 statusNote: Boot milestone complete, physical memory merged

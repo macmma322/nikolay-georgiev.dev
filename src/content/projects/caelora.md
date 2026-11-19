@@ -5,8 +5,8 @@ tier: A
 accent: caelora
 kicker: Voxel fantasy sandbox game on Unity 6
 signature: 'A background job’s mesh is accepted only while its version stamps are current, so it can never paint over a newer edit.'
-summary: A native PC voxel sandbox set in a living medieval-fantasy valley. Unity 6 draws it; the voxel meshing, streaming, saves and living trees are my own code, on a deterministic rules core.
-description: 'Case study of Caelora: a Unity 6 voxel sandbox with its own meshing pipeline, deterministic engine-free rules, crash-safe saves and living trees.'
+summary: 'A PC voxel sandbox set in a medieval-fantasy valley. I built the C# systems for terrain meshing, streaming and saves in Unity 6, with a deterministic core independent of the engine.'
+description: 'Caelora is a playable Unity 6 and C# voxel sandbox prototype with deterministic world rules, background meshing and crash-safe saves.'
 seoTitle: 'Caelora: voxel fantasy sandbox game'
 status: prototype
 statusNote: Playable Windows build v0.1.0, in active development

@@ -37,10 +37,7 @@ export const site = {
       { text: '.' },
     ],
   } satisfies L<readonly { text: string; lights?: string }[]>,
-  /**
-   * The main stack, as recruiters search for it: shown under the hero, in the
-   * home title and at the top of the CV. Every name is "core" in tech.ts.
-   */
+  /** Core stack shown under the hero and in the CV. */
   focus: {
     en: 'React, Next.js, TypeScript, Node.js and PostgreSQL',
     bg: 'React, Next.js, TypeScript, Node.js и PostgreSQL',

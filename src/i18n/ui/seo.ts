@@ -11,24 +11,24 @@ export const seo = {
   /** The person in running text; og:site_name stays 'Nikolay Georgiev' in both. */
   name: { en: 'Nikolay Georgiev', bg: 'Николай Георгиев' },
   home: {
-    /** After the name: the role and main stack recruiters search for. */
+    /** After the name: role and location. */
     title: {
-      en: 'Software Engineer, React and Node.js',
-      bg: 'Софтуерен инженер, React и Node.js',
+      en: 'Software Engineer in Varna, Bulgaria',
+      bg: 'Софтуерен инженер във Варна, България',
     },
     description: {
-      en: 'Software engineer in Varna, Bulgaria: React, Next.js, TypeScript, Node.js and PostgreSQL in production platforms, plus local AI, embedded and systems work.',
-      bg: 'Софтуерен инженер от Варна: React, Next.js, TypeScript, Node.js и PostgreSQL в работещи платформи, както и локален AI, вградени системи и системен софтуер.',
+      en: 'Software engineer in Varna, Bulgaria, building web platforms with React, Next.js, TypeScript, Node.js and PostgreSQL. Open to local and remote roles.',
+      bg: 'Софтуерен инженер във Варна, България. Разработвам уеб платформи с React, Next.js, TypeScript, Node.js и PostgreSQL. Отворен за местни и дистанционни позиции.',
     },
   },
   work: {
     title: {
-      en: 'Work: case studies from web to bare metal',
-      bg: 'Проекти: от браузъра до хардуера',
+      en: 'Work: software engineering case studies',
+      bg: 'Проекти: софтуерно инженерство',
     },
     description: {
-      en: 'Case studies with their real status: a voxel sandbox game, education and community platforms, a local-first AI assistant, a radio-controlled boat and a Rust OS.',
-      bg: 'Проекти, всеки с реалния си статус: воксел игра, платформи за обучение и общност, локален AI асистент, радиоуправляема лодка и операционна система на Rust.',
+      en: 'Engineering case studies on full-stack platforms, real-time classrooms and chat, local AI, Unity voxel systems, embedded firmware and a Rust OS.',
+      bg: 'Инженерни проекти: full-stack платформи, класни стаи и чат в реално време, локален AI, вокселни системи в Unity, фърмуер и операционна система на Rust.',
     },
   },
   lab: {
@@ -47,18 +47,18 @@ export const seo = {
       bg: 'За мен: софтуерен инженер от Варна',
     },
     description: {
-      en: 'Nikolay Georgiev, software engineer in Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
-      bg: 'Николай Георгиев, софтуерен инженер от Варна и младши бекенд разработчик в DXC, изгражда full-stack платформи с React, Next.js, Node.js и PostgreSQL.',
+      en: 'Nikolay Georgiev is a junior backend developer at DXC Technology in Varna, with full-stack project work in React, Next.js, TypeScript and PostgreSQL.',
+      bg: 'Николай Георгиев е младши бекенд разработчик в DXC Technology във Варна, с full-stack проекти на React, Next.js, TypeScript и PostgreSQL.',
     },
   },
   contact: {
     title: {
-      en: 'Contact: email, phone, GitHub, LinkedIn',
-      bg: 'Контакт: имейл, телефон, GitHub, LinkedIn',
+      en: 'Contact: software engineering roles',
+      bg: 'Контакт: позиции в софтуерната разработка',
     },
     description: {
-      en: 'Contact Nikolay Georgiev, software engineer in Varna, Bulgaria, about remote or Varna-based roles: email, phone, GitHub, LinkedIn and a PDF CV.',
-      bg: 'Свържете се с Николай Георгиев, софтуерен инженер от Варна, за работа дистанционно или на място: имейл, телефон, GitHub, LinkedIn и CV.',
+      en: 'Contact Nikolay Georgiev about software engineering roles in Varna or remote work from Bulgaria. Find his email, phone, GitHub, LinkedIn and CV.',
+      bg: 'Свържете се с Николай Георгиев за позиции в софтуерната разработка във Варна или дистанционно от България. Имейл, телефон, GitHub, LinkedIn и CV.',
     },
   },
   cv: {
@@ -87,7 +87,7 @@ export const seo = {
       bg: 'Отворен код: CLAUDE.md и благодарности',
     },
     description: {
-      en: 'A reusable CLAUDE.md engineering blueprint under the MIT License, public repositories by Nikolay Georgiev, and credits for the open source his projects build on.',
+      en: 'Nikolay Georgiev’s reusable MIT-licensed CLAUDE.md engineering blueprint, public repositories and credits for the open source his projects build on.',
       bg: 'Преизползваем CLAUDE.md под лиценз MIT, публичните хранилища на Николай Георгиев и благодарности към отворения код, върху който стъпват проектите му.',
     },
   },

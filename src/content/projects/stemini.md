@@ -5,8 +5,8 @@ tier: B
 accent: stemini
 kicker: AI-assisted 3D model generation and printing
 signature: 'The expensive mesh step runs only after a person approves a cheap concept image.'
-summary: A multi-service platform that turns a prompt into a printable 3D model, with a person approving the concept before the paid mesh step, a token ledger and delivery all the way to a printer.
-description: 'Case study of Stemini: a TypeScript platform chaining an LLM, an image model and a 3D mesh API, with OrcaSlicer slicing, a token ledger and a printer bridge.'
+summary: 'A TypeScript prototype that turns a prompt into a printable 3D model. I built the workflow from human approval of a concept image through mesh generation, slicing and a local printer bridge.'
+description: 'Stemini is a TypeScript prototype for AI-generated 3D models, with concept approval, OrcaSlicer, a token ledger and a local printer bridge.'
 seoTitle: 'Stemini: from prompt to printed 3D model'
 status: prototype
 statusNote: Deployed pre-launch; development slowed since late June 2026
@@ -116,4 +116,4 @@ Stemini turns an idea into a physical object. A user describes a model, the syst
 
 **Why it exists.** Designing printable 3D models is a skill most people, including students, do not have. Stemini puts AI generation at the start of a real printing workflow, with a person approving each step that costs money.
 
-**Where it stands.** The services are built and deployed as a pre-launch prototype. Its own architecture reviews list what must be fixed before real users arrive, and those items are tracked openly.
+**Where it stands.** The services are built and deployed as a pre-launch prototype. It shares its sign-in infrastructure with [USS X Academy](/work/uss-x-academy). Its own architecture reviews list what must be fixed before real users arrive, and those items are tracked openly.

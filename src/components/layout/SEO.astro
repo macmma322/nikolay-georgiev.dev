@@ -139,7 +139,7 @@ if (noindex) {
   };
 }
 
-// The home title names the role and the main stack (seo.home.title).
+// The home title names the role and location (seo.home.title).
 const fullTitle = page.title ? `${page.title} · ${s.name}` : `${s.name} · ${s.home.title}`;
 // Self-referencing per locale: the root keeps its slash, /bg and the rest have none.
 const canonical = absolute(cleanPath(Astro.url.pathname));
