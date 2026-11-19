@@ -98,6 +98,20 @@ const copy = t(avatar);
     height: 100%;
     pointer-events: none;
     filter: drop-shadow(0 1px 1px #05050777);
+    transform-origin: 50% 99%;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .cameo :global(.avatar-drawing[data-idle-breathe]) {
+      animation: cameo-breathe 2400ms ease-in-out infinite alternate;
+    }
+  }
+  :global(html[data-avatar-still]) .cameo :global(.avatar-drawing) {
+    animation: none !important;
+  }
+  @keyframes cameo-breathe {
+    to {
+      scale: 1 1.009;
+    }
   }
   .cameo :global(.avatar-remark) {
     position: absolute;

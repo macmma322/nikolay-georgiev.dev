@@ -28,7 +28,6 @@ Astro.csp?.insertDirective(
   data-resume={s.resume}
   data-unavailable={s.unavailable}
   data-ended={s.ended}
-  hidden
 >
   <details>
     <summary title={s.label}>
@@ -67,6 +66,17 @@ Astro.csp?.insertDirective(
           <option value="1.25">{s.high}</option>
         </select>
       </label>
+      <label class="setting">
+        <span>{s.quality}</span>
+        <select data-quality>
+          <option value="auto" selected>
+            {s.qualityAuto}
+          </option>
+          <option value="high">{s.qualityHigh}</option>
+          <option value="balanced">{s.qualityBalanced}</option>
+          <option value="low">{s.qualityLow}</option>
+        </select>
+      </label>
       <p id="electricity-player-help">{s.playerHelp}</p>
       <div class="sources" data-live-sources hidden>
         <p>{s.sourceHelp}</p>
@@ -102,6 +112,10 @@ Astro.csp?.insertDirective(
     position: relative;
     flex: 0 0 44px;
     color: var(--fg-2);
+  }
+
+  :global(html:not([data-js])) .electricity {
+    display: none;
   }
 
   [hidden] {

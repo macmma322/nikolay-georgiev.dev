@@ -34,6 +34,7 @@ import { scriptHash } from '@/lib/csp';
 const code = `(() => {
   const P = ${JSON.stringify(LOCALE_META.bg.prefix)};
   const root = document.documentElement;
+  root.dataset.js = '';
   const split = (url) => {
     const p = new URL(url, location.href).pathname.replace(/(\\/index)?(\\.html)?\\/?$/, '') || '/';
     const bg = p === P || p.startsWith(P + '/');

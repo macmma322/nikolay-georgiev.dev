@@ -10,6 +10,12 @@
  */
 import { CAST, paintFor, pick } from './cast';
 import { cycleLength, drawFigure, type C3, type Look, type Paint, type Pose } from './figure';
+import {
+  getQualityTier,
+  observeQualityTier,
+  watchCircuitClock,
+  type QualityTier,
+} from '../circuit-clock';
 
 interface Lane {
   /** Ground line as a fraction of the stage height. */
@@ -124,13 +130,14 @@ export function createStreet(options: StreetOptions): Street {
   let dpr = 1;
   let clock = 0;
   let state: StreetStats['state'] = options.reduce ? 'static' : 'paused';
-  let raf = 0;
+  let stopClock: (() => void) | undefined;
   let last = 0;
   let visible = false;
   let spawned = 0;
   let left = 0;
   let frames = 0;
   let cost = 0;
+  let quality: QualityTier = getQualityTier();
   /** 1 at full population; the governor lowers it on a device that struggles. */
   let budget = 1;
   let slowFor = 0;
@@ -154,6 +161,8 @@ export function createStreet(options: StreetOptions): Street {
 
   const walkers: Walker[] = [];
   const pool: Walker[] = [];
+  const takenIds = new Set<string>();
+  const heldEggs = new Set<string>();
   const nextSpawn = LANES.map(() => 0);
   const pointer = { x: -1, y: -1, on: false };
   const labels = new Map(options.cast.map((el) => [el.dataset['cast'] ?? '', el]));
@@ -166,8 +175,13 @@ export function createStreet(options: StreetOptions): Street {
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     if (w === 0 || h === 0) return;
-    const ratio = Math.min(window.devicePixelRatio || 1, 2);
-    if (w === width && h === height && ratio === dpr) return;
+    const qualityCap = quality === 'low' ? 0.9 : quality === 'balanced' ? 1 : 1.25;
+    const ratio = Math.min(
+      window.devicePixelRatio || 1,
+      qualityCap,
+      Math.sqrt(1_150_000 / Math.max(1, w * h)),
+    );
+    if (w === width && h === height && Math.abs(ratio - dpr) < 0.01) return;
     // The first real size: until now there was no street to put anyone on.
     const first = width === 0;
     for (const walker of walkers) {
@@ -178,8 +192,8 @@ export function createStreet(options: StreetOptions): Street {
     height = h;
     dpr = ratio;
     for (const canvas of canvases) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+      canvas.width = Math.max(1, Math.round(w * dpr));
+      canvas.height = Math.max(1, Math.round(h * dpr));
     }
     if (first) populate();
     if (state !== 'running') draw();
@@ -201,8 +215,11 @@ export function createStreet(options: StreetOptions): Street {
   /** People the street holds at this width: fewer on a phone, more on a wide screen. */
   function population(): number {
     if (width === 0) return 0;
-    const full = Math.min(36, Math.max(8, Math.round(width / (height * 0.15))));
-    return Math.max(5, Math.round(full * budget));
+    const qualityFactor = quality === 'low' ? 0.65 : quality === 'balanced' ? 0.84 : 1;
+    const full = Math.min(32, Math.max(8, Math.round(width / (height * 0.16))));
+    const scaled = Math.round(full * budget * qualityFactor);
+    if (width < 500) return Math.min(10, Math.max(5, scaled));
+    return Math.max(quality === 'low' ? 10 : 14, scaled);
   }
 
   function laneTarget(index: number): number {
@@ -216,7 +233,9 @@ export function createStreet(options: StreetOptions): Street {
 
   // ---------- casting ----------
   function taken(): Set<string> {
-    return new Set(walkers.map((walker) => walker.look.id));
+    takenIds.clear();
+    for (const walker of walkers) takenIds.add(walker.look.id);
+    return takenIds;
   }
 
   function fits(look: Look, lane: number): boolean {
@@ -491,16 +510,20 @@ export function createStreet(options: StreetOptions): Street {
       }
     }
 
+    heldEggs.clear();
+    for (const walker of walkers) {
+      if (walker.look.egg) {
+        walker.lit = walker.look.egg === hovered ? 1 : 0;
+        if (walker.hold > 0) heldEggs.add(walker.look.egg);
+      }
+    }
     for (const [slug, label] of labels) {
-      const lit =
-        slug === hovered || walkers.some((walker) => walker.look.egg === slug && walker.hold > 0);
+      const lit = slug === hovered || heldEggs.has(slug);
       if (lit !== (label.dataset['lit'] !== undefined)) {
         if (lit) label.dataset['lit'] = '';
         else delete label.dataset['lit'];
       }
     }
-    for (const walker of walkers)
-      if (walker.look.egg) walker.lit = walker.look.egg === hovered ? 1 : 0;
 
     standing(dt);
 
@@ -539,7 +562,7 @@ export function createStreet(options: StreetOptions): Street {
         g.save();
         g.translate(walker.x, ground);
         g.scale(walker.dir * u, u);
-        drawFigure(g, walker.look, walker.paint, walker.pose);
+        drawFigure(g, walker.look, walker.paint, walker.pose, walker.lane >= 1);
         g.restore();
         if (lit > 0.02) {
           // A drafting tick over the head, in the project's colour.
@@ -559,8 +582,9 @@ export function createStreet(options: StreetOptions): Street {
   }
 
   function frame(now: number) {
-    raf = 0;
     if (state !== 'running') return;
+    const minInterval = quality === 'low' ? 30 : 0;
+    if (minInterval && now - last < minInterval) return;
     // A long gap is a tab that was away, not a long step.
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
     last = now;
@@ -576,7 +600,6 @@ export function createStreet(options: StreetOptions): Street {
       budget = Math.max(0.6, budget - 0.2);
       slowFor = 0;
     }
-    raf = requestAnimationFrame(frame);
   }
 
   function setState(next: StreetStats['state']) {
@@ -591,11 +614,11 @@ export function createStreet(options: StreetOptions): Street {
     if (run && state !== 'running') {
       setState('running');
       last = performance.now();
-      if (!raf) raf = requestAnimationFrame(frame);
+      if (!stopClock) stopClock = watchCircuitClock(frame, { priority: 'high' });
     } else if (!run && state === 'running') {
       setState('paused');
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
+      stopClock?.();
+      stopClock = undefined;
     }
   }
 
@@ -682,6 +705,10 @@ export function createStreet(options: StreetOptions): Street {
     { rootMargin: '80px 0px' },
   );
   watcher.observe(stage);
+  const unobserveQuality = observeQualityTier((tier) => {
+    quality = tier;
+    if (width > 0) resize();
+  });
   document.addEventListener('visibilitychange', sync);
 
   // Peoples the street as soon as it has a size (now, unless the stage is collapsed).
@@ -718,10 +745,11 @@ export function createStreet(options: StreetOptions): Street {
       })),
     destroy() {
       destroyed = true;
-      if (raf) cancelAnimationFrame(raf);
-      raf = 0;
+      stopClock?.();
+      stopClock = undefined;
       resizer.disconnect();
       watcher.disconnect();
+      unobserveQuality();
       document.removeEventListener('visibilitychange', sync);
       stage.removeEventListener('pointermove', onMove);
       stage.removeEventListener('pointerleave', onLeave);

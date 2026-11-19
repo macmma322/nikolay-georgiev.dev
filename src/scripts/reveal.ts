@@ -33,9 +33,16 @@ if (items.length > 0 && !reduce && 'IntersectionObserver' in window) {
   // jumped past (End, a scrollbar drag, a contents link) still counts as
   // arrived: one that ends above the screen is shown at once, never left
   // hidden. Only blocks entering from below play.
+  const pendingPlay: HTMLElement[] = [];
+  let flushId = 0;
+  const flushReveals = () => {
+    flushId = 0;
+    for (const el of pendingPlay) el.dataset.shown = 'play';
+    pendingPlay.length = 0;
+  };
+
   const observer = new IntersectionObserver(
     (entries) => {
-      let batch = 0;
       for (const entry of entries) {
         if (!entry.isIntersecting) continue;
         const el = entry.target as HTMLElement;
@@ -44,8 +51,10 @@ if (items.length > 0 && !reduce && 'IntersectionObserver' in window) {
           el.dataset.shown = 'instant';
           continue;
         }
-        const delay = Math.min(batch++, 4) * 40;
-        window.setTimeout(() => (el.dataset.shown = 'play'), delay);
+        pendingPlay.push(el);
+      }
+      if (pendingPlay.length > 0 && !flushId) {
+        flushId = requestAnimationFrame(flushReveals);
       }
     },
     { rootMargin: '100000px 0px -8% 0px' },

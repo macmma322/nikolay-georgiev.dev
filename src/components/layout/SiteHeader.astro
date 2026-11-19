@@ -143,7 +143,9 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
   if (menu) {
     const setPageInert = (inert: boolean) => {
       document
-        .querySelectorAll<HTMLElement>('.skip-link, .site-header > .bar, main, .site-footer')
+        .querySelectorAll<HTMLElement>(
+          '.skip-link, .site-header > .bar, main, .site-footer, music-experience',
+        )
         .forEach((el) => (el.inert = inert));
     };
 

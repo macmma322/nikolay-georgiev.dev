@@ -1,6 +1,7 @@
 import { clips, loadClip } from './clips';
-import { sequence, type Pose } from './choreography';
+import { idleCycle, sequence, type Pose } from './choreography';
 import { observePlaybackState } from '../playback-state';
+import { getQualityTier, observeQualityTier, type QualityTier } from '../circuit-clock';
 
 const preference = 'nikolay.avatar.motion';
 type Anchor = { element: HTMLElement; pose: Pose };
@@ -60,9 +61,13 @@ class AvatarRuntime extends HTMLElement {
     const skipped = new Set<Anchor>();
     const visits = new Map<Anchor, number>();
     const said = new Set<string>();
+    // Cache layout-invariant clearance and sizes; invalidate only on resize, never on scroll.
+    let clearance = new WeakMap<Anchor, boolean>();
+    const sizes = new WeakMap<Anchor, { width: number; height: number }>();
     const events = new AbortController();
     const { signal } = events;
     let active: Anchor | undefined,
+      activeMusic = false,
       token = 0,
       timer = 0,
       remarkTimer = 0,
@@ -70,7 +75,8 @@ class AvatarRuntime extends HTMLElement {
     let lastEgg = -Infinity,
       lastRemark = -Infinity,
       playing = false,
-      disabled = false;
+      disabled = false,
+      quality: QualityTier = getQualityTier();
     try {
       disabled = localStorage.getItem(preference) === 'off';
     } catch {
@@ -90,7 +96,16 @@ class AvatarRuntime extends HTMLElement {
     const scope = (a: Anchor) =>
       a.element.closest('article.chapter,.case-hero,.hero,.finale,section') ??
       a.element.parentElement!;
-    const header = document.querySelector('.site-header');
+    const header = document.querySelector<HTMLElement>('.site-header');
+    let headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+    let viewportWidth = document.documentElement.clientWidth;
+
+    function refreshChromeMetrics() {
+      headerBottom = header ? header.getBoundingClientRect().bottom : 0;
+      viewportWidth = document.documentElement.clientWidth;
+      clearance = new WeakMap();
+    }
+
     function dismiss() {
       clearTimeout(remarkTimer);
       bubble.remove();
@@ -100,20 +115,29 @@ class AvatarRuntime extends HTMLElement {
       clearTimeout(timer);
       dismiss();
       canvas.getAnimations().forEach((animation) => animation.cancel());
+      delete canvas.dataset['idleBreathe'];
       canvas.remove();
       active = undefined;
+      activeMusic = false;
       delete document.documentElement.dataset['avatarAway'];
+    }
+    function isClear(anchor: Anchor, rect: DOMRect) {
+      const cached = clearance.get(anchor);
+      if (cached !== undefined) return cached;
+      const clear = !obstructs(rect, scope(anchor));
+      clearance.set(anchor, clear);
+      return clear;
     }
     function safe(anchor: Anchor) {
       const rect = anchor.element.getBoundingClientRect();
       return (
         rect.width > 0 &&
         rect.height > 0 &&
-        rect.top >= (header?.getBoundingClientRect().bottom ?? 0) &&
+        rect.top >= headerBottom &&
         rect.bottom <= innerHeight &&
         rect.left >= 0 &&
-        rect.right <= document.documentElement.clientWidth &&
-        !obstructs(rect, scope(anchor))
+        rect.right <= viewportWidth &&
+        isClear(anchor, rect)
       );
     }
     function speak(anchor: Anchor, line: string) {
@@ -130,7 +154,7 @@ class AvatarRuntime extends HTMLElement {
       if (
         r.left < 4 ||
         r.right > innerWidth - 4 ||
-        r.top < (header?.getBoundingClientRect().bottom ?? 4) ||
+        r.top < (headerBottom || 4) ||
         obstructs(r, scope(anchor))
       ) {
         dismiss();
@@ -147,7 +171,7 @@ class AvatarRuntime extends HTMLElement {
       remarkTimer = window.setTimeout(dismiss, 4200);
     }
     const musicLine = this.dataset['music']!;
-    function play(anchor: Anchor) {
+    function play(anchor: Anchor, forceMusic = false) {
       if (anchor.pose === 'peek') {
         if (visits.has(anchor) || performance.now() - lastEgg < 75000 || Math.random() >= 0.14) {
           skipped.add(anchor);
@@ -159,107 +183,136 @@ class AvatarRuntime extends HTMLElement {
       active = anchor;
       const generation = ++token;
       const previous = visits.get(anchor);
-      const returning = previous !== undefined && performance.now() - previous < 60000;
+      const returning =
+        !forceMusic && previous !== undefined && performance.now() - previous < 60000;
       const rare =
         anchor.pose === 'sit' &&
-        !returning &&
-        performance.now() - lastEgg > 75000 &&
-        (playing || Math.random() < 0.12);
+        (forceMusic ||
+          (!returning && performance.now() - lastEgg > 75000 && (playing || Math.random() < 0.12)));
+      activeMusic = rare;
       if (rare) lastEgg = performance.now();
-      const bounds = anchor.element.getBoundingClientRect();
+      const cachedSize = sizes.get(anchor);
+      const bounds = cachedSize ?? anchor.element.getBoundingClientRect();
       const shortTrack = anchor.pose === 'walk' && bounds.width < bounds.height * 2.7;
       const choreography = sequence(anchor.pose, returning || shortTrack, rare);
-      const plan = returning ? choreography.slice(-1) : choreography;
-      async function draw(i: number) {
-        const step = plan[i];
-        if (!step || generation !== token) return;
-        const img = await loadClip(step.clip);
-        if (generation !== token || !anchor.element.isConnected) return;
-        const { width, height } = anchor.element.getBoundingClientRect();
-        if (!width || !height) {
-          cancel();
-          return;
-        }
-        const density = Math.min(2, devicePixelRatio || 1);
-        const w = Math.round(width * density),
-          h = Math.round(height * density);
-        if (canvas.width !== w || canvas.height !== h) {
-          canvas.width = w;
-          canvas.height = h;
-        }
-        const clip = clips[step.clip],
-          sw = img.naturalWidth / clip.frames;
-        let drawHeight = h;
-        if (anchor.pose === 'peek') drawHeight = h / 0.32;
-        if (anchor.pose === 'sit') drawHeight = h / 1.12;
-        const dw = (drawHeight * sw) / img.naturalHeight;
-        let x = (w - dw) / 2,
-          y = 0;
-        if (anchor.pose === 'walk') {
-          const stride = h * 1.96;
-          const center = w / 2 + ((step.x ?? 0.5) - 0.5) * Math.min(stride * 0.96, w - h * 0.81);
-          x = center - dw / 2;
-          y = h * (0.99 - clip.contact);
-        } else if (anchor.pose === 'sit') {
-          const seat = step.clip === 'listen' && step.index >= 3 ? 0.68 : clip.contact;
-          y = h * 0.625 - drawHeight * seat;
-        }
-        ctx!.clearRect(0, 0, w, h);
-        ctx!.save();
-        if (step.state === 'walk-left' || step.mirror) {
-          ctx!.translate(2 * x + dw, 0);
-          ctx!.scale(-1, 1);
-        }
-        ctx!.drawImage(img, step.index * sw, 0, sw, img.naturalHeight, x, y, dw, drawHeight);
-        ctx!.restore();
-        canvas.dataset['state'] = step.state;
-        canvas.dataset['frame'] = String(step.index);
-        if (canvas.parentElement !== anchor.element) {
-          anchor.element.prepend(canvas);
-          document.documentElement.dataset['avatarAway'] = '';
-          visits.set(anchor, performance.now());
-          if (anchor.pose === 'peek')
-            canvas.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], {
-              duration: 340,
-              easing: 'ease-out',
-            });
-        }
-        if (step.state === 'exit') {
-          canvas.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], {
-            duration: 250,
-            fill: 'forwards',
-          });
-          timer = window.setTimeout(() => {
-            skipped.add(anchor);
+      const initialPlan = returning ? choreography.slice(-1) : choreography;
+
+      function runPlan(plan: ReturnType<typeof sequence>, isAmbient: boolean) {
+        async function draw(i: number) {
+          const step = plan[i];
+          if (!step || generation !== token) return;
+          const img = await loadClip(step.clip);
+          if (generation !== token || !anchor.element.isConnected) return;
+          const dim = sizes.get(anchor) ?? anchor.element.getBoundingClientRect();
+          const { width, height } = dim;
+          if (!width || !height) {
             cancel();
-            schedule();
-          }, 250);
-          return;
-        }
-        if (step.state === 'interact' && anchor.pose === 'inspect' && !returning) {
-          const field = anchor.element.parentElement?.querySelector('circuit-field');
-          const box = anchor.element.getBoundingClientRect();
-          field?.dispatchEvent(
-            new CustomEvent('avatar-contact', {
-              detail: { x: box.left + box.width * 0.75, y: box.top + box.height * 0.92 },
-            }),
-          );
-        }
-        if (i === 1 && !returning && (rare || (anchor.pose !== 'walk' && Math.random() < 0.22))) {
-          speak(anchor, rare && playing ? musicLine : anchor.element.dataset['line']!);
-        }
-        if (i + 1 < plan.length) timer = window.setTimeout(() => startFrame(i + 1), step.ms);
-      }
-      function startFrame(i: number) {
-        void draw(i).catch(() => {
-          if (generation === token) {
-            skipped.add(anchor);
-            cancel();
-            schedule();
+            return;
           }
-        });
+          const density = Math.min(quality === 'low' ? 1.25 : 2, devicePixelRatio || 1);
+          const w = Math.round(width * density),
+            h = Math.round(height * density);
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+          const clip = clips[step.clip],
+            sw = img.naturalWidth / clip.frames;
+          let drawHeight = h;
+          if (anchor.pose === 'peek') drawHeight = h / 0.32;
+          if (anchor.pose === 'sit') drawHeight = h / 1.12;
+          const dw = (drawHeight * sw) / img.naturalHeight;
+          let x = (w - dw) / 2,
+            y = 0;
+          if (anchor.pose === 'walk') {
+            const stride = h * 1.96;
+            const center = w / 2 + ((step.x ?? 0.5) - 0.5) * Math.min(stride * 0.96, w - h * 0.81);
+            x = center - dw / 2;
+            y = h * (0.99 - clip.contact);
+          } else if (anchor.pose === 'sit') {
+            const seat = step.clip === 'listen' && step.index >= 3 ? 0.68 : clip.contact;
+            y = h * 0.625 - drawHeight * seat;
+          }
+          ctx!.clearRect(0, 0, w, h);
+          ctx!.save();
+          if (step.state === 'walk-left' || step.mirror) {
+            ctx!.translate(2 * x + dw, 0);
+            ctx!.scale(-1, 1);
+          }
+          ctx!.drawImage(img, step.index * sw, 0, sw, img.naturalHeight, x, y, dw, drawHeight);
+          ctx!.restore();
+          canvas.dataset['state'] = step.state;
+          canvas.dataset['frame'] = String(step.index);
+          if (anchor.pose === 'walk' && step.state === 'idle' && quality !== 'low') {
+            canvas.dataset['idleBreathe'] = '';
+          } else {
+            delete canvas.dataset['idleBreathe'];
+          }
+          if (canvas.parentElement !== anchor.element) {
+            anchor.element.prepend(canvas);
+            document.documentElement.dataset['avatarAway'] = '';
+            visits.set(anchor, performance.now());
+            if (anchor.pose === 'peek')
+              canvas.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], {
+                duration: 340,
+                easing: 'ease-out',
+              });
+          }
+          if (step.state === 'exit') {
+            canvas.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], {
+              duration: 250,
+              fill: 'forwards',
+            });
+            timer = window.setTimeout(() => {
+              skipped.add(anchor);
+              cancel();
+              schedule();
+            }, 250);
+            return;
+          }
+          if (step.state === 'interact' && anchor.pose === 'inspect' && (!returning || isAmbient)) {
+            const field = anchor.element.parentElement?.querySelector('circuit-field');
+            const box = anchor.element.getBoundingClientRect();
+            field?.dispatchEvent(
+              new CustomEvent('avatar-contact', {
+                detail: { x: box.left + box.width * 0.75, y: box.top + box.height * 0.92 },
+              }),
+            );
+          }
+          if (
+            !isAmbient &&
+            i === 1 &&
+            !returning &&
+            (rare || (anchor.pose !== 'walk' && Math.random() < 0.22))
+          ) {
+            speak(anchor, rare && playing ? musicLine : anchor.element.dataset['line']!);
+          }
+          if (i + 1 < plan.length) {
+            timer = window.setTimeout(() => startFrame(i + 1), step.ms);
+          } else if (quality !== 'low') {
+            // Queue a natural, restrained ambient repeat while the cameo stays on screen.
+            const nextLoop = idleCycle(anchor.pose, activeMusic && playing);
+            if (nextLoop) {
+              timer = window.setTimeout(() => {
+                if (generation !== token || !visible.has(anchor.element) || document.hidden) return;
+                runPlan(nextLoop.frames, true);
+              }, nextLoop.pauseMs);
+            }
+          }
+        }
+        function startFrame(i: number) {
+          void draw(i).catch(() => {
+            if (generation === token) {
+              skipped.add(anchor);
+              cancel();
+              schedule();
+            }
+          });
+        }
+        startFrame(0);
       }
-      timer = window.setTimeout(() => startFrame(0), 350);
+
+      timer = window.setTimeout(() => runPlan(initialPlan, false), 350);
     }
     function reconcile() {
       pending = 0;
@@ -270,31 +323,42 @@ class AvatarRuntime extends HTMLElement {
         document.querySelector('dialog[open], [role="dialog"]:popover-open') ||
         (stage && visible.has(stage))
       ) {
-        cancel();
+        if (active) cancel();
+        return;
+      }
+      if (visible.size === 0) {
+        if (active) cancel();
+        return;
+      }
+      // Fast path: if the active anchor is still visible and inside safe bounds, keep it.
+      if (active && visible.has(active.element) && !skipped.has(active) && safe(active)) {
+        if (bubble.isConnected && obstructs(bubble.getBoundingClientRect(), scope(active))) {
+          dismiss();
+        }
         return;
       }
       const candidates = anchors.filter(
         (a) => visible.has(a.element) && !skipped.has(a) && safe(a),
       );
       const selected =
-        candidates.find((a) => a === active) ??
-        candidates.sort((a, b) => {
-          const distance = (item: Anchor) =>
-            Math.abs(item.element.getBoundingClientRect().top - innerHeight * 0.45);
-          return distance(a) - distance(b);
-        })[0];
+        candidates.length <= 1
+          ? candidates[0]
+          : candidates.sort((a, b) => {
+              const distance = (item: Anchor) =>
+                Math.abs(item.element.getBoundingClientRect().top - innerHeight * 0.45);
+              return distance(a) - distance(b);
+            })[0];
       if (active !== selected) {
         cancel();
         if (selected) play(selected);
-      } else if (
-        active &&
-        bubble.isConnected &&
-        obstructs(bubble.getBoundingClientRect(), scope(active))
-      )
-        dismiss();
+      }
     }
     function schedule() {
       if (!pending) pending = requestAnimationFrame(reconcile);
+    }
+    function onScroll() {
+      if (visible.size === 0 && !active) return;
+      schedule();
     }
     function syncPreference() {
       toggle!.hidden = false;
@@ -316,15 +380,39 @@ class AvatarRuntime extends HTMLElement {
     );
     for (const anchor of anchors) observer.observe(anchor.element);
     if (stage) observer.observe(stage);
+    const anchorByElement = new WeakMap<Element, Anchor>(anchors.map((a) => [a.element, a]));
     const resize = new ResizeObserver((entries) => {
-      if (active && entries.some((entry) => entry.target === active?.element)) cancel();
+      let activeResized = false;
+      for (const entry of entries) {
+        if (entry.target === header || entry.target === document.body) {
+          refreshChromeMetrics();
+        }
+        const a = anchorByElement.get(entry.target);
+        if (a) {
+          sizes.set(a, {
+            width: entry.contentRect.width,
+            height: entry.contentRect.height,
+          });
+          clearance.delete(a);
+          if (a === active) activeResized = true;
+        }
+      }
+      if (activeResized) cancel();
       schedule();
     });
     resize.observe(document.body);
+    if (header) resize.observe(header);
     for (const anchor of anchors) resize.observe(anchor.element);
     // Handle scroll within the visibility thresholds, sticky headers and zoom.
-    window.addEventListener('scroll', schedule, { passive: true, signal });
-    window.addEventListener('resize', schedule, { signal });
+    window.addEventListener('scroll', onScroll, { passive: true, signal });
+    window.addEventListener(
+      'resize',
+      () => {
+        refreshChromeMetrics();
+        schedule();
+      },
+      { signal },
+    );
     document.addEventListener(
       'visibilitychange',
       () => {
@@ -336,7 +424,24 @@ class AvatarRuntime extends HTMLElement {
     document.addEventListener('toggle', schedule, { capture: true, signal });
     motion.addEventListener('change', syncPreference, { signal });
     const unwatch = observePlaybackState((state) => {
+      const started = !playing && state === 'playing';
       playing = state === 'playing';
+      // React live when music starts while the avatar is seated on Caelora/Contact.
+      if (
+        started &&
+        active &&
+        active.pose === 'sit' &&
+        !activeMusic &&
+        visible.has(active.element)
+      ) {
+        const target = active;
+        cancel();
+        play(target, true);
+      }
+    });
+    const unwatchQuality = observeQualityTier((tier) => {
+      quality = tier;
+      if (tier === 'low') delete canvas.dataset['idleBreathe'];
     });
     bubble.addEventListener('click', dismiss, { signal });
     document.addEventListener(
@@ -375,6 +480,7 @@ class AvatarRuntime extends HTMLElement {
       observer.disconnect();
       resize.disconnect();
       unwatch();
+      unwatchQuality();
       cancel();
       cancelAnimationFrame(pending);
     };

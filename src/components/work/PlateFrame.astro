@@ -120,6 +120,11 @@ const showLegend = legend && !compact;
       'pointermove',
       (event) => {
         if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+        const target = event.target;
+        const nearPlate =
+          target instanceof Element &&
+          !!target.closest('.project-plate, .chapter, .case-hero, .also-row');
+        if (!nearPlate && lit.size === 0) return;
         last = event;
         if (!frame) frame = requestAnimationFrame(update);
       },

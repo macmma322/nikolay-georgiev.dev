@@ -125,6 +125,17 @@ for (let x = -40; x < VIEW_W;) {
   });
   x += w + between(0, 22);
 }
+// Batch all window panes by tone into four single <path> strings to cut ~150+ SVG DOM nodes.
+const panePaths: Record<Pane, string[]> = { dark: [], warm: [], dim: [], cool: [] };
+for (const b of blocks) {
+  for (const p of b.panes) {
+    panePaths[p.kind].push(`M${p.x} ${p.y}h${p.w}v${p.h}h${-p.w}z`);
+  }
+}
+const paneBatches = (['dark', 'dim', 'warm', 'cool'] as const)
+  .map((kind) => ({ kind, d: panePaths[kind].join('') }))
+  .filter((batch) => batch.d.length > 0);
+
 // One tower crane, over the block behind the hoarding.
 const plot =
   blocks.find((b) => b.x < PLOT.x + PLOT.w / 2 && b.x + b.w > PLOT.x + PLOT.w / 2) ?? blocks[3]!;
@@ -217,9 +228,6 @@ const widths = [112, 168, 252, 336, 528];
               ).join('')}`}
             />
           )}
-          {b.panes.map((p) => (
-            <rect class:list={['pane', p.kind]} x={p.x} y={p.y} width={p.w} height={p.h} />
-          ))}
           {b.sills.length > 0 && (
             <path class="sill" d={b.sills.map((y) => `M${b.x + 12} ${y}h${b.w - 24}`).join('')} />
           )}
@@ -250,6 +258,10 @@ const widths = [112, 168, 252, 336, 528];
             />
           )}
         </g>
+      ))}
+
+      {paneBatches.map(({ kind, d }) => (
+        <path class:list={['pane', kind]} d={d} />
       ))}
 
       <g class="crane">
@@ -566,6 +578,7 @@ const widths = [112, 168, 252, 336, 528];
     height: var(--stage-h);
     overflow: hidden;
     isolation: isolate;
+    contain: layout paint style;
     border-block: 1px solid var(--line-soft);
     background: linear-gradient(
       to bottom,
@@ -576,17 +589,14 @@ const widths = [112, 168, 252, 336, 528];
     );
   }
 
-  /* Grain and a soft vignette over everything: the drawn crowd, the painted
-     figure and the block sit under one surface. */
+  /* Soft vignette over the stage without mix-blend-mode: overlay or SVG
+     feTurbulence readback over two animated crowd canvases. */
   .stage::after {
     content: '';
     position: absolute;
     z-index: 5;
     inset: 0;
     pointer-events: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
-    opacity: 0.38;
     box-shadow: inset 0 0 9rem 1rem oklch(0.08 0.01 262 / 0.75);
   }
 

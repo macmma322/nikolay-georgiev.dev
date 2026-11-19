@@ -10,6 +10,11 @@ export const electricity = {
   low: { en: 'Low', bg: 'Ниска' },
   medium: { en: 'Medium', bg: 'Средна' },
   high: { en: 'High', bg: 'Висока' },
+  quality: { en: 'Effects', bg: 'Ефекти' },
+  qualityAuto: { en: 'Automatic', bg: 'Автоматично' },
+  qualityHigh: { en: 'High', bg: 'Високи' },
+  qualityBalanced: { en: 'Balanced', bg: 'Балансирани' },
+  qualityLow: { en: 'Low power', bg: 'Икономичен' },
   playerHelp: {
     en: 'YouTube changes the circuit through player state alone.',
     bg: 'YouTube променя веригите само чрез състоянието на плейъра.',
