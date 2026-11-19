@@ -253,12 +253,15 @@ test.describe('street: the crowd', () => {
   });
 
   test('a label brings its figure onto the street', async ({ page }) => {
-    await open(page);
+    const { stage } = await open(page);
     const present = () =>
       page.evaluate(() => window.__street!.walkers().some((walker) => walker.id === 'traveller'));
     const label = page.locator('.cast a[data-cast="caelora"]');
-    await label.focus();
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await expect(stage).toHaveAttribute('data-state', 'paused');
+    await label.evaluate((el: HTMLAnchorElement) => el.focus({ preventScroll: true }));
     await expect.poll(present).toBe(true);
+    await stage.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     // Lit while it is held: the label carries its project's colour.
     await step(page, 0.2);
     await expect(label).toHaveAttribute('data-lit', '');
