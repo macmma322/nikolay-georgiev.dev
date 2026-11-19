@@ -272,6 +272,19 @@ function stroke(g: G, colour: string, w: number, pts: readonly number[]) {
   g.stroke();
 }
 
+/** A line with an outline: one path, stroked in the outline colour and then in its own. */
+function cord(
+  g: G,
+  pal: Paint,
+  fill: string,
+  outer: number,
+  inner: number,
+  pts: readonly number[],
+) {
+  stroke(g, pal.line, outer, pts);
+  stroke(g, fill, inner, pts);
+}
+
 function box(
   g: G,
   pal: Paint,
@@ -625,23 +638,12 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
     // Deck, stem and bar; the rider stands on the deck.
     wheel(g, pal, 15, deck - 3.2, 3.2, s.t * 9, false);
     wheel(g, pal, -11, deck - 3.2, 3.2, s.t * 9, false);
-    stroke(g, pal.line, pal.lw * 3.2, [-11, deck - 4.4, 12, deck - 4.4, 17, -44]);
-    stroke(g, pal.metal, pal.lw * 1.6, [-11, deck - 4.4, 12, deck - 4.4, 17, -44]);
+    cord(g, pal, pal.metal, pal.lw * 3.2, pal.lw * 1.6, [-11, deck - 4.4, 12, deck - 4.4, 17, -44]);
     stroke(g, pal.line, pal.lw * 2.6, [14, -44.5, 20, -43.5]);
   } else if (k.roll === 'board') {
     wheel(g, pal, 9, deck - 1.6, 1.6, 0, false);
     wheel(g, pal, -9, deck - 1.6, 1.6, 0, false);
-    stroke(g, pal.line, pal.lw * 3.4, [
-      -14,
-      deck - 4.6,
-      -11,
-      deck - 3.6,
-      11,
-      deck - 3.6,
-      14,
-      deck - 4.6,
-    ]);
-    stroke(g, pal.item, pal.lw * 1.8, [
+    cord(g, pal, pal.item, pal.lw * 3.4, pal.lw * 1.8, [
       -14,
       deck - 4.6,
       -11,
@@ -1026,13 +1028,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
     ]);
   }
   if (k.strap) {
-    stroke(g, pal.line, pal.lw * 2.2, [
-      tx(-d * 0.7, TORSO - 3),
-      ty(-d * 0.7, TORSO - 3),
-      tx(d * 0.86, 5),
-      ty(d * 0.86, 5),
-    ]);
-    stroke(g, pal.item, pal.lw, [
+    cord(g, pal, pal.item, pal.lw * 2.2, pal.lw, [
       tx(-d * 0.7, TORSO - 3),
       ty(-d * 0.7, TORSO - 3),
       tx(d * 0.86, 5),
@@ -1043,15 +1039,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
     box(g, pal, mx - 6.5, my - 4, 13, 10.5, 2.4, pal.item);
   }
   if (k.back === 'pack') {
-    stroke(g, pal.line, pal.lw * 2.4, [
-      tx(-d * 0.5, TORSO - 2),
-      ty(-d * 0.5, TORSO - 2),
-      tx(d * 0.2, TORSO - 14),
-      ty(d * 0.2, TORSO - 14),
-      tx(-d * 0.78, 13),
-      ty(-d * 0.78, 13),
-    ]);
-    stroke(g, pal.item, pal.lw * 1.1, [
+    cord(g, pal, pal.item, pal.lw * 2.4, pal.lw * 1.1, [
       tx(-d * 0.5, TORSO - 2),
       ty(-d * 0.5, TORSO - 2),
       tx(d * 0.2, TORSO - 14),
@@ -1083,8 +1071,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
   const r = 6.2 * headK;
   const hx = nx + 1.2 + tilt * 3.2 - s.turn * 0.6;
   const hy = ny - r - 2.6 + tilt * 1.2;
-  stroke(g, pal.line, 4 * headK + pal.lw * 2, [nx, ny - 0.2, hx - 1.2, hy + 3]);
-  stroke(g, pal.skinDark, 4 * headK, [nx, ny - 0.2, hx - 1.2, hy + 3]);
+  cord(g, pal, pal.skinDark, 4 * headK + pal.lw * 2, 4 * headK, [nx, ny - 0.2, hx - 1.2, hy + 3]);
   if (k.scarf) {
     box(g, pal, nx - 4.6, ny - 3.4, 9.4, 4.4, 2, pal.item);
     box(g, pal, nx - 5.4 - trail * 0.5, ny, 3.6, 10, 1.5, pal.item);
@@ -1502,8 +1489,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
   } else if (hand === 'staff') {
     const topX = wx - 2.2;
     const topY = wy - 44;
-    stroke(g, pal.line, pal.lw * 2.6, [wx + 4, -0.4, topX, topY]);
-    stroke(g, pal.item, pal.lw * 1.2, [wx + 4, -0.4, topX, topY]);
+    cord(g, pal, pal.item, pal.lw * 2.6, pal.lw * 1.2, [wx + 4, -0.4, topX, topY]);
     // A lantern on the staff, the one light this figure carries.
     stroke(g, pal.line, pal.lw, [topX, topY + 2, topX + 5, topY + 3, topX + 5, topY + 6]);
     g.globalAlpha = 0.16 * glow + 0.2 * s.lit;
@@ -1514,8 +1500,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose): void {
     g.globalAlpha = 1;
     box(g, pal, topX + 2.8, topY + 6, 4.4, 6.6, 1, pal.accent);
   } else if (hand === 'umbrella') {
-    stroke(g, pal.line, pal.lw * 3.4, [wx, wy - 2, wx + 1.5, wy + 22]);
-    stroke(g, pal.item, pal.lw * 1.8, [wx, wy - 2, wx + 1.5, wy + 22]);
+    cord(g, pal, pal.item, pal.lw * 3.4, pal.lw * 1.8, [wx, wy - 2, wx + 1.5, wy + 22]);
   } else if (hand === 'spool') {
     disc(g, pal, wx + 0.5, wy + 7.6, 7.2, pal.metal);
     g.beginPath();
@@ -1590,20 +1575,22 @@ function drawDog(g: G, pal: Paint, x: number, size: number, p: number, stand: nu
       -0.8,
       3,
       2.4,
-      shade ? pal.topDark : pal.item,
-      shade ? pal.topDark : pal.item,
+      pal.item,
+      pal.item,
+      // The far pair is in the dog's own shadow, never in its owner's coat colour.
+      shade ? pal.soft : undefined,
+      shade ? pal.soft : undefined,
     );
   };
   paw(-7, 0.5, true);
   paw(7.5, 0, true);
   const wag = Math.sin(t * 11) * 0.35;
-  stroke(g, pal.line, 2.4 + pal.lw * 2, [-10, -16, -15 - wag * 2, -22 - Math.abs(wag) * 2]);
-  stroke(g, pal.item, 2.4, [-10, -16, -15 - wag * 2, -22 - Math.abs(wag) * 2]);
+  cord(g, pal, pal.item, 2.4 + pal.lw * 2, 2.4, [-10, -16, -15 - wag * 2, -22 - Math.abs(wag) * 2]);
   shape(g, [-11, -19, 4, 9, -20, 4, 11, -11.5, 4, -10, -11, 4], pal, pal.item);
   paw(-8.5, 0, false);
   paw(6, 0.5, false);
   shape(g, [7, -26, 3, 15, -25.5, 3, 19.6, -20.6, 1.8, 15, -17, 3, 8, -17.5, 3], pal, pal.item);
-  shape(g, [8.4, -26.6, 1.2, 11.6, -26.4, 1.2, 9.4, -20.6, 1.4], pal, pal.topDark);
+  shape(g, [8.4, -26.6, 1.2, 11.6, -26.4, 1.2, 9.4, -20.6, 1.4], pal, pal.item);
   g.fillStyle = pal.line;
   g.beginPath();
   g.arc(14.2, -22.6, 0.7, 0, TAU);

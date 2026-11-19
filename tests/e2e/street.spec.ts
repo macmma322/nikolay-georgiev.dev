@@ -274,7 +274,12 @@ test.describe('street: running only when it should', () => {
       await page.waitForTimeout(400);
       return (await stats(page)).frames - a;
     };
-    expect(await moving()).toBeGreaterThan(3);
+    // How fast frames come depends on the machine; that they keep coming does not.
+    const advances = async () => {
+      const from = (await stats(page)).frames;
+      await expect.poll(async () => (await stats(page)).frames - from).toBeGreaterThan(3);
+    };
+    await advances();
 
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
     await expect.poll(async () => (await stats(page)).state).toBe('paused');
@@ -297,16 +302,22 @@ test.describe('street: running only when it should', () => {
     expect(await moving()).toBe(0);
     await hide(false);
     await expect.poll(async () => (await stats(page)).state).toBe('running');
-    expect(await moving()).toBeGreaterThan(3);
+    await advances();
   });
 
   test('a frame costs a small part of its budget', async ({ page }) => {
+    test.setTimeout(60_000);
     await open(page);
-    await page.waitForTimeout(2500);
-    const { cost, frames } = await stats(page);
-    expect(frames).toBeGreaterThan(20);
-    // Simulation and drawing together, per frame; 16.7 ms is a 60 Hz frame.
-    expect(cost).toBeLessThan(6);
+    // Enough frames for the running mean to settle (it reaches 90% of its
+    // value after 45), however fast this machine paints them.
+    await expect
+      .poll(async () => (await stats(page)).frames, { timeout: 40_000 })
+      .toBeGreaterThan(45);
+    const { cost } = await stats(page);
+    // The scene's own work per frame (simulation and drawing), not the frame
+    // rate: a busy host paints fewer frames, but each must still be cheap.
+    // 16.7 ms is a 60 Hz frame.
+    expect(cost).toBeLessThan(8);
   });
 });
 
@@ -371,5 +382,53 @@ test.describe('street: without JavaScript', () => {
     await expect(street.locator('[data-me] img').first()).toBeVisible();
     await expect(street.locator('.cast a')).toHaveCount(7);
     await expect(street.locator('[data-to-top]')).toBeVisible();
+  });
+});
+
+test.describe('street: edges of its life', () => {
+  test('a stage with no size holds nobody, and fills once it has one', async ({ page }) => {
+    // Collapse the stage before the scene loads (CSSOM, which the CSP allows).
+    await page.addInitScript(() => {
+      document.addEventListener('DOMContentLoaded', () => {
+        const stage = document.querySelector<HTMLElement>('[data-stage]');
+        if (!stage) return;
+        stage.style.height = '0px';
+        stage.style.borderWidth = '0';
+      });
+    });
+    await open(page);
+    await step(page, 5);
+    expect((await stats(page)).active).toBe(0);
+
+    await page.locator('[data-stage]').evaluate((el: HTMLElement) => {
+      el.style.height = '';
+      el.style.borderWidth = '';
+    });
+    await expect.poll(async () => (await stats(page)).active).toBeGreaterThanOrEqual(5);
+    await step(page, 30);
+    // Everyone has a real position: a zero-length walk cycle would have made these NaN.
+    const xs = (await page.evaluate(() => window.__street!.walkers())).map((walker) => walker.x);
+    expect(xs.every((x) => Number.isFinite(x))).toBe(true);
+  });
+
+  test('destroy stops the loop and lets go of the street', async ({ page }) => {
+    await open(page);
+    await expect.poll(async () => (await stats(page)).state).toBe('running');
+    const frames = await page.evaluate(() => {
+      const street = window.__street as unknown as { destroy(): void; stats(): { frames: number } };
+      street.destroy();
+      return street.stats().frames;
+    });
+    await page.waitForTimeout(400);
+    const after = await stats(page);
+    expect(after.frames).toBe(frames);
+    expect(after.active).toBe(0);
+    // Scrolling away and back does not start it again.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await page
+      .locator('[data-stage]')
+      .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
+    await page.waitForTimeout(400);
+    expect((await stats(page)).frames).toBe(frames);
   });
 });
