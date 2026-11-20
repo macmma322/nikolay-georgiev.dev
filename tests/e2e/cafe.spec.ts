@@ -77,72 +77,105 @@ test.describe('café scenario: environment, character choreography & physical in
     expect(initial.phoneOnTable).toBe(true);
     expect(initial.laptopOpen).toBe(false);
 
-    // 1. Coffee sequence: reach (hand contacts cup on table) -> sip (cup lifted off saucer) -> return (cup back on table)
-    await page.evaluate(() => window.__cafe!.triggerAction('coffee'));
-    let state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('coffee-reach');
-    expect(state.handContactsCup).toBe(true);
-    expect(state.cupOnTable).toBe(true);
+    // 1. Coffee sequence: reach -> lift -> sip (at lips) -> lift -> return -> idle
+    const coffeeSeq = await page.evaluate(() => {
+      const cafe = window.__cafe!;
+      cafe.triggerAction('coffee');
+      const s0 = cafe.cafeState();
+      cafe.step(0.56);
+      const s1 = cafe.cafeState();
+      cafe.step(0.45);
+      const s2 = cafe.cafeState();
+      cafe.step(2.4);
+      const s3 = cafe.cafeState();
+      return { s0, s1, s2, s3 };
+    });
+    expect(coffeeSeq.s0.stepName).toBe('coffee-reach');
+    expect(coffeeSeq.s0.handContactsCup).toBe(true);
+    expect(coffeeSeq.s0.cupOnTable).toBe(true);
+    expect(coffeeSeq.s1.stepName).toBe('coffee-lift');
+    expect(coffeeSeq.s1.handContactsCup).toBe(true);
+    expect(coffeeSeq.s1.cupOnTable).toBe(false);
+    expect(coffeeSeq.s2.stepName).toBe('coffee-sip');
+    expect(coffeeSeq.s2.handContactsCup).toBe(true);
+    expect(coffeeSeq.s2.cupOnTable).toBe(false);
+    expect(coffeeSeq.s3.action).toBe('idle');
+    expect(coffeeSeq.s3.cupOnTable).toBe(true);
+    expect(coffeeSeq.s3.sips).toBeGreaterThanOrEqual(1);
 
-    await page.evaluate(() => window.__cafe!.step(0.75));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('coffee-sip');
-    expect(state.handContactsCup).toBe(true);
-    expect(state.cupOnTable).toBe(false);
-
-    await page.evaluate(() => window.__cafe!.step(2.4));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.action).toBe('idle');
-    expect(state.cupOnTable).toBe(true);
-    expect(state.sips).toBeGreaterThanOrEqual(1);
-
-    // 2. Phone sequence: picks up Samsung Galaxy S20+ (phoneOnTable becomes false, cup stays on table), scrolls, puts down
-    await page.evaluate(() => window.__cafe!.triggerAction('phone'));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('phone-check');
-    expect(state.phoneOnTable).toBe(false);
-    expect(state.cupOnTable).toBe(true);
-
-    await page.evaluate(() => window.__cafe!.step(1.25));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('phone-scroll');
-    expect(state.phoneOnTable).toBe(false);
-
-    await page.evaluate(() => window.__cafe!.step(2.0));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.action).toBe('idle');
-    expect(state.phoneOnTable).toBe(true);
-    expect(state.phoneChecks).toBeGreaterThanOrEqual(1);
+    // 2. Phone sequence: reach (on table) -> check (picked up, tabletop clear) -> scroll -> return -> idle
+    const phoneSeq = await page.evaluate(() => {
+      const cafe = window.__cafe!;
+      cafe.triggerAction('phone');
+      const s0 = cafe.cafeState();
+      cafe.step(0.48);
+      const s1 = cafe.cafeState();
+      cafe.step(1.1);
+      const s2 = cafe.cafeState();
+      cafe.step(2.4);
+      const s3 = cafe.cafeState();
+      return { s0, s1, s2, s3 };
+    });
+    expect(phoneSeq.s0.stepName).toBe('phone-reach');
+    expect(phoneSeq.s0.phoneOnTable).toBe(true);
+    expect(phoneSeq.s0.cupOnTable).toBe(true);
+    expect(phoneSeq.s1.stepName).toBe('phone-check');
+    expect(phoneSeq.s1.phoneOnTable).toBe(false);
+    expect(phoneSeq.s1.cupOnTable).toBe(true);
+    expect(phoneSeq.s2.stepName).toBe('phone-scroll');
+    expect(phoneSeq.s2.phoneOnTable).toBe(false);
+    expect(phoneSeq.s3.action).toBe('idle');
+    expect(phoneSeq.s3.phoneOnTable).toBe(true);
+    expect(phoneSeq.s3.phoneChecks).toBeGreaterThanOrEqual(1);
 
     // 3. Laptop sequence: opens laptop on table, types across keyframes, closes and returns to idle
-    await page.evaluate(() => window.__cafe!.triggerAction('laptop'));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('laptop-type-a');
-    expect(state.laptopOpen).toBe(true);
-    expect(state.cupOnTable).toBe(true);
-
-    await page.evaluate(() => window.__cafe!.step(0.55));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.stepName).toBe('laptop-type-b');
-    expect(state.laptopOpen).toBe(true);
-
-    await page.evaluate(() => window.__cafe!.step(1.8));
-    state = await page.evaluate(() => window.__cafe!.cafeState());
-    expect(state.action).toBe('idle');
-    expect(state.laptopOpen).toBe(false);
-    expect(state.laptopSessions).toBeGreaterThanOrEqual(1);
+    const laptopSeq = await page.evaluate(() => {
+      const cafe = window.__cafe!;
+      cafe.triggerAction('laptop');
+      const s0 = cafe.cafeState();
+      cafe.step(0.55);
+      const s1 = cafe.cafeState();
+      cafe.step(2.4);
+      const s2 = cafe.cafeState();
+      return { s0, s1, s2 };
+    });
+    expect(laptopSeq.s0.stepName).toBe('laptop-type-a');
+    expect(laptopSeq.s0.laptopOpen).toBe(true);
+    expect(laptopSeq.s0.cupOnTable).toBe(true);
+    expect(laptopSeq.s1.stepName).toBe('laptop-type-b');
+    expect(laptopSeq.s1.laptopOpen).toBe(true);
+    expect(laptopSeq.s2.action).toBe('idle');
+    expect(laptopSeq.s2.laptopOpen).toBe(false);
+    expect(laptopSeq.s2.laptopSessions).toBeGreaterThanOrEqual(1);
 
     expect(errors).toEqual([]);
   });
 
   for (const locale of locales) {
-    test(`café labels, accessible description, and manual scene toggle are localized (${locale})`, async ({
+    test(`café labels, scene-specific footer copy, accessible description, and manual scene toggle are localized (${locale})`, async ({
       page,
     }) => {
       await openCafe(page, localize('/about', locale));
       const street = page.locator('[data-street]');
       await expect(street.locator('[data-scene-eyebrow]')).toHaveText(
         locale === 'bg' ? 'Вечерно кафене' : 'Evening café',
+      );
+      await expect(street.locator('[data-cast-label]')).toHaveText(
+        locale === 'bg' ? 'В бележника' : 'On the bench',
+      );
+      await expect(street.locator('.tally')).toBeHidden();
+      await expect(street.locator('.cafe-status')).toBeVisible();
+      await page.evaluate(() => window.__cafe!.triggerAction('idle'));
+      await expect(street.locator('[data-cafe-status]')).toHaveText(
+        locale === 'bg' ? 'Еспресо · почивка' : 'Espresso · seated',
+      );
+      await page.evaluate(() => window.__cafe!.triggerAction('coffee'));
+      await expect(street.locator('[data-cafe-status]')).toHaveText(
+        locale === 'bg' ? 'Еспресо · отпива' : 'Espresso · sipping',
+      );
+      await page.evaluate(() => window.__cafe!.triggerAction('phone'));
+      await expect(street.locator('[data-cafe-status]')).toHaveText(
+        locale === 'bg' ? 'Телефон · преглежда' : 'Phone · checking',
       );
       await expect(street.locator('[data-me]')).toHaveAccessibleName(
         locale === 'bg' ? /Николай седи на маса в кафене/ : /Nikolay, sitting at a café table/,
@@ -225,20 +258,24 @@ test.describe('café scenario: environment, character choreography & physical in
     await page.goto('/');
     await page.waitForTimeout(250);
     expect(requestedUrls.filter((u) => u.includes('/avatar/cafe.webp'))).toEqual([]);
+    expect(requestedUrls.filter((u) => u.includes('/avatar/crowd-fg.webp'))).toEqual([]);
     expect(requestedUrls.filter((u) => /\/_astro\/cafe\.[^/]+\.js/.test(u))).toEqual([]);
     expect(requestedUrls.filter((u) => /\/_astro\/nikolay-(body|chest|head)\./.test(u))).toEqual(
       [],
     );
 
-    // 2. When street is scrolled into view, cafe.webp and cafe.js remain unloaded
+    // 2. When street is scrolled into view, cafe.webp and cafe.js remain unloaded, while crowd-fg.webp loads
     await page
       .locator('[data-stage]')
       .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
+    await expect
+      .poll(() => requestedUrls.some((u) => u.includes('/avatar/crowd-fg.webp')))
+      .toBe(true);
     expect(requestedUrls.filter((u) => u.includes('/avatar/cafe.webp'))).toEqual([]);
     expect(requestedUrls.filter((u) => /\/_astro\/cafe\.[^/]+\.js/.test(u))).toEqual([]);
 
-    // 3. When café is selected from the start, street portrait layers (nikolay-body/chest/head) are never fetched
+    // 3. When café is selected from the start, street portrait layers and crowd-fg.webp are never fetched
     requestedUrls.length = 0;
     await page.addInitScript(() => sessionStorage.setItem('nikolay.footer.scene', 'cafe'));
     await page.goto('/about');
@@ -246,6 +283,7 @@ test.describe('café scenario: environment, character choreography & physical in
       .locator('[data-stage]')
       .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
+    expect(requestedUrls.filter((u) => u.includes('/avatar/crowd-fg.webp'))).toEqual([]);
     expect(requestedUrls.filter((u) => /\/_astro\/nikolay-(body|chest|head)\./.test(u))).toEqual(
       [],
     );

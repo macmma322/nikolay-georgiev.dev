@@ -25,6 +25,7 @@ export const street = {
     bg: 'Николай седи на маса в кафене с кафе и лаптоп. Поздравете го.',
   },
   castLabel: { en: 'In the crowd', bg: 'В тълпата' },
+  cafeCastLabel: { en: 'On the bench', bg: 'В бележника' },
   /** One passer-by per project; the name follows as a link. */
   cast: {
     caelora: { en: 'The traveller', bg: 'Пътешественикът' },
@@ -40,6 +41,14 @@ export const street = {
   cafeSign: { en: 'Night bench · espresso', bg: 'Нощна маса · еспресо' },
   /** Mono label before the count of people who have walked off the page. */
   passed: { en: 'Passed by', bg: 'Отминали' },
+  /** Live café activity labels shown in place of the street counter (no invented counts). */
+  cafeStatus: {
+    idle: { en: 'Espresso · seated', bg: 'Еспресо · почивка' },
+    glance: { en: 'Window · glancing', bg: 'Витрина · оглежда се' },
+    coffee: { en: 'Espresso · sipping', bg: 'Еспресо · отпива' },
+    phone: { en: 'Phone · checking', bg: 'Телефон · преглежда' },
+    laptop: { en: 'Laptop · typing', bg: 'Лаптоп · пише' },
+  },
   /** What the scene shows, for anyone who cannot see it. */
   description: {
     en: 'An illustrated street in the evening, in front of buildings that are still going up. People walk past in both directions: commuters, students, tourists, a runner, someone with a dog. Nikolay stands still among them: bearded, in amber glasses, a black hoodie and cargo trousers, hands in his pockets. Some pass in front of him, some behind. A few carry something from one of his projects.',

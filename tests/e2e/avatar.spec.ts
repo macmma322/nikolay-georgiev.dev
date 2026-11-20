@@ -200,7 +200,7 @@ test('header boundary hysteresis, spatial occlusion, graceful exit and scroll re
   expect(headerControlsRemainTop).toBe(true);
 
   // 2 & 3. Scroll further so <44% of the avatar remains below the header (entering 'exiting'),
-  // then reverse scroll mid-exit back into the recovery zone within the 180ms exit window.
+  // then reverse scroll mid-exit back into the recovery zone within the exit window.
   const midExitSnapshot = await page.evaluate(async () => {
     const rt = document.querySelector('avatar-runtime')!;
     const cv = document.querySelector('[data-avatar-anchor="caelora"] canvas')!;
@@ -208,17 +208,55 @@ test('header boundary hysteresis, spatial occlusion, graceful exit and scroll re
     const anchorEl = document.querySelector<HTMLElement>('[data-avatar-anchor="caelora"]')!;
     const el = anchorEl.getBoundingClientRect();
     const targetTop = header.bottom - el.height * 0.75;
-    window.scrollBy({ top: el.top - targetTop, behavior: 'instant' });
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    const lifecycleDuringExit = rt.getAttribute('data-lifecycle');
-    const exitDir = cv.getAttribute('data-exit-dir');
-    // Reverse scroll mid-exit before the 180ms exit timer completes.
-    anchorEl.scrollIntoView({ block: 'center', behavior: 'instant' });
-    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+    const observed = await new Promise<{
+      lifecycleDuringExit: string | null;
+      exitDir: string | null;
+    }>((resolve) => {
+      const timeout = window.setTimeout(() => {
+        mo.disconnect();
+        resolve({
+          lifecycleDuringExit: rt.getAttribute('data-lifecycle'),
+          exitDir: cv.getAttribute('data-exit-dir'),
+        });
+      }, 1500);
+      const mo = new MutationObserver(() => {
+        const lc = rt.getAttribute('data-lifecycle');
+        if (lc === 'exiting') {
+          window.clearTimeout(timeout);
+          mo.disconnect();
+          resolve({
+            lifecycleDuringExit: lc,
+            exitDir: cv.getAttribute('data-exit-dir'),
+          });
+        }
+      });
+      mo.observe(rt, { attributes: true, attributeFilter: ['data-lifecycle'] });
+      window.scrollBy({ top: el.top - targetTop, behavior: 'instant' });
+    });
+
+    // Reverse scroll mid-exit before the 220ms exit timer completes.
+    const lifecycleAfterReverse = await new Promise<string | null>((resolve) => {
+      const timeout = window.setTimeout(() => {
+        mo.disconnect();
+        resolve(rt.getAttribute('data-lifecycle'));
+      }, 1500);
+      const mo = new MutationObserver(() => {
+        const lc = rt.getAttribute('data-lifecycle');
+        if (lc === 'entering' || lc === 'active') {
+          window.clearTimeout(timeout);
+          mo.disconnect();
+          resolve(lc);
+        }
+      });
+      mo.observe(rt, { attributes: true, attributeFilter: ['data-lifecycle'] });
+      anchorEl.scrollIntoView({ block: 'center', behavior: 'instant' });
+    });
+
     return {
-      lifecycleDuringExit,
-      exitDir,
-      lifecycleAfterReverse: rt.getAttribute('data-lifecycle'),
+      lifecycleDuringExit: observed.lifecycleDuringExit,
+      exitDir: observed.exitDir,
+      lifecycleAfterReverse,
     };
   });
   expect(midExitSnapshot.lifecycleDuringExit).toBe('exiting');

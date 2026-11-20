@@ -22,7 +22,7 @@ type SavedAnchorState = {
 };
 
 const ENTER_DURATION_MS = 160;
-const EXIT_DURATION_MS = 180;
+const EXIT_DURATION_MS = 220;
 // Hysteresis ratios: require more visible height to newly enter than to stay active.
 const ENTER_TOP_SLACK_RATIO = 0.12;
 const ENTER_BOTTOM_SLACK_RATIO = 0.12;
@@ -549,7 +549,6 @@ class AvatarRuntime extends HTMLElement {
       if (active && active !== selected) {
         const rect = active.element.getBoundingClientRect();
         const stillPartiallyVisible =
-          visible.has(active.element) &&
           rect.width > 0 &&
           rect.height > 0 &&
           rect.bottom > headerBottom + 4 &&

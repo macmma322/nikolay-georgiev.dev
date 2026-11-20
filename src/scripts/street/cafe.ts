@@ -26,10 +26,13 @@ export interface CafeState {
     | 'idle'
     | 'glance'
     | 'coffee-reach'
+    | 'coffee-lift'
     | 'coffee-sip'
     | 'coffee-return'
+    | 'phone-reach'
     | 'phone-check'
     | 'phone-scroll'
+    | 'phone-return'
     | 'laptop-type-a'
     | 'laptop-type-b';
   frame: number;
@@ -74,7 +77,7 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
     {
       frame: 2,
       stepName: 'coffee-reach',
-      duration: 0.65,
+      duration: 0.48,
       cupOnTable: true,
       phoneOnTable: true,
       laptopOpen: false,
@@ -82,8 +85,26 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
     },
     {
       frame: 3,
+      stepName: 'coffee-lift',
+      duration: 0.36,
+      cupOnTable: false,
+      phoneOnTable: true,
+      laptopOpen: false,
+      handContactsCup: true,
+    },
+    {
+      frame: 4,
       stepName: 'coffee-sip',
-      duration: 1.75,
+      duration: 1.45,
+      cupOnTable: false,
+      phoneOnTable: true,
+      laptopOpen: false,
+      handContactsCup: true,
+    },
+    {
+      frame: 3,
+      stepName: 'coffee-lift',
+      duration: 0.32,
       cupOnTable: false,
       phoneOnTable: true,
       laptopOpen: false,
@@ -92,7 +113,7 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
     {
       frame: 2,
       stepName: 'coffee-return',
-      duration: 0.55,
+      duration: 0.42,
       cupOnTable: true,
       phoneOnTable: true,
       laptopOpen: false,
@@ -101,9 +122,36 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
   ],
   phone: [
     {
-      frame: 4,
+      frame: 5,
+      stepName: 'phone-reach',
+      duration: 0.36,
+      cupOnTable: true,
+      phoneOnTable: true,
+      laptopOpen: false,
+      handContactsCup: false,
+    },
+    {
+      frame: 6,
       stepName: 'phone-check',
-      duration: 1.15,
+      duration: 1.05,
+      cupOnTable: true,
+      phoneOnTable: false,
+      laptopOpen: false,
+      handContactsCup: false,
+    },
+    {
+      frame: 7,
+      stepName: 'phone-scroll',
+      duration: 0.9,
+      cupOnTable: true,
+      phoneOnTable: false,
+      laptopOpen: false,
+      handContactsCup: false,
+    },
+    {
+      frame: 6,
+      stepName: 'phone-check',
+      duration: 0.75,
       cupOnTable: true,
       phoneOnTable: false,
       laptopOpen: false,
@@ -111,26 +159,35 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
     },
     {
       frame: 5,
-      stepName: 'phone-scroll',
-      duration: 0.95,
+      stepName: 'phone-return',
+      duration: 0.36,
       cupOnTable: true,
-      phoneOnTable: false,
-      laptopOpen: false,
-      handContactsCup: false,
-    },
-    {
-      frame: 4,
-      stepName: 'phone-check',
-      duration: 0.95,
-      cupOnTable: true,
-      phoneOnTable: false,
+      phoneOnTable: true,
       laptopOpen: false,
       handContactsCup: false,
     },
   ],
   laptop: [
     {
-      frame: 6,
+      frame: 8,
+      stepName: 'laptop-type-a',
+      duration: 0.48,
+      cupOnTable: true,
+      phoneOnTable: true,
+      laptopOpen: true,
+      handContactsCup: false,
+    },
+    {
+      frame: 9,
+      stepName: 'laptop-type-b',
+      duration: 0.46,
+      cupOnTable: true,
+      phoneOnTable: true,
+      laptopOpen: true,
+      handContactsCup: false,
+    },
+    {
+      frame: 8,
       stepName: 'laptop-type-a',
       duration: 0.5,
       cupOnTable: true,
@@ -139,27 +196,9 @@ const ACTION_PLANS: Record<Exclude<CafeAction, 'idle'>, readonly CafeKeyframe[]>
       handContactsCup: false,
     },
     {
-      frame: 7,
+      frame: 9,
       stepName: 'laptop-type-b',
-      duration: 0.48,
-      cupOnTable: true,
-      phoneOnTable: true,
-      laptopOpen: true,
-      handContactsCup: false,
-    },
-    {
-      frame: 6,
-      stepName: 'laptop-type-a',
-      duration: 0.52,
-      cupOnTable: true,
-      phoneOnTable: true,
-      laptopOpen: true,
-      handContactsCup: false,
-    },
-    {
-      frame: 7,
-      stepName: 'laptop-type-b',
-      duration: 0.65,
+      duration: 0.58,
       cupOnTable: true,
       phoneOnTable: true,
       laptopOpen: true,
@@ -222,7 +261,9 @@ function rng(seed: number) {
 }
 
 export function createCafe(options: StreetOptions): CafeScene {
-  const { stage, avatar, counter } = options;
+  const { stage, avatar } = options;
+  const streetRoot = stage.closest<HTMLElement>('[data-street]');
+  const statusEl = streetRoot?.querySelector<HTMLElement>('[data-cafe-status]') ?? null;
   const backCtx = options.back.getContext('2d');
   const frontCtx = options.front.getContext('2d');
   const random = rng(options.seed ?? (Date.now() ^ (performance.now() * 1000)) >>> 0);
@@ -242,7 +283,6 @@ export function createCafe(options: StreetOptions): CafeScene {
   let cost = 0;
   let spawned = 0;
   let left = 0;
-  let shown = -1;
   let atlas: HTMLImageElement | null = null;
 
   // Controlled non-repetitive sequence of café actions
@@ -251,8 +291,6 @@ export function createCafe(options: StreetOptions): CafeScene {
   let currentAction: CafeAction = 'idle';
   let currentStepName: CafeState['stepName'] = 'idle';
   let currentFrame = 0;
-  let prevFrame = 0;
-  let transitionElapsed = 1;
   let stepIndex = 0;
   let stepLeft = between(1.6, 2.6);
   let cupOnTable = true;
@@ -270,18 +308,22 @@ export function createCafe(options: StreetOptions): CafeScene {
   const labels = new Map(options.cast.map((el) => [el.dataset['cast'] ?? '', el]));
 
   function syncAvatarDataset() {
-    if (!avatar) return;
-    avatar.dataset['cafeAction'] = currentAction;
-    avatar.dataset['cafeStep'] = currentStepName;
-    avatar.dataset['cafeFrame'] = String(currentFrame);
-    avatar.dataset['cupOnTable'] = String(cupOnTable);
-    avatar.dataset['phoneOnTable'] = String(phoneOnTable);
-    avatar.dataset['laptopOpen'] = String(laptopOpen);
+    if (avatar) {
+      avatar.dataset['cafeAction'] = currentAction;
+      avatar.dataset['cafeStep'] = currentStepName;
+      avatar.dataset['cafeFrame'] = String(currentFrame);
+      avatar.dataset['cupOnTable'] = String(cupOnTable);
+      avatar.dataset['phoneOnTable'] = String(phoneOnTable);
+      avatar.dataset['laptopOpen'] = String(laptopOpen);
+    }
+    if (statusEl && streetRoot) {
+      const key = `status${currentAction[0]!.toUpperCase()}${currentAction.slice(1)}`;
+      const text = streetRoot.dataset[key];
+      if (text && statusEl.textContent !== text) statusEl.textContent = text;
+    }
   }
 
   function startAction(next: CafeAction) {
-    prevFrame = currentFrame;
-    transitionElapsed = 0;
     currentAction = next;
     stepIndex = 0;
     if (next === 'idle') {
@@ -306,7 +348,6 @@ export function createCafe(options: StreetOptions): CafeScene {
   }
 
   function advanceCharacter(dt: number) {
-    transitionElapsed = Math.min(1, transitionElapsed + dt / 0.12);
     stepLeft -= dt;
     if (stepLeft > 0) return;
 
@@ -322,8 +363,6 @@ export function createCafe(options: StreetOptions): CafeScene {
     if (stepIndex + 1 < plan.length) {
       stepIndex += 1;
       const kf = plan[stepIndex]!;
-      prevFrame = currentFrame;
-      transitionElapsed = 0;
       currentStepName = kf.stepName;
       currentFrame = kf.frame;
       cupOnTable = kf.cupOnTable;
@@ -441,11 +480,6 @@ export function createCafe(options: StreetOptions): CafeScene {
         else delete label.dataset['lit'];
       }
     }
-
-    if (counter && left !== shown) {
-      shown = left;
-      counter.textContent = String(left).padStart(3, '0');
-    }
   }
 
   function update(dt: number) {
@@ -524,27 +558,27 @@ export function createCafe(options: StreetOptions): CafeScene {
     const dx = Math.round((width - drawW) / 2);
     const dy = Math.round(height * 0.968 - drawH + breathe);
 
-    if (transitionElapsed < 1 && prevFrame !== currentFrame && !options.reduce) {
-      frontCtx.save();
-      frontCtx.globalAlpha = 1 - transitionElapsed;
-      frontCtx.drawImage(atlas, prevFrame * CELL_W, 0, CELL_W, CELL_H, dx, dy, drawW, drawH);
-      frontCtx.globalAlpha = transitionElapsed;
-      frontCtx.drawImage(atlas, currentFrame * CELL_W, 0, CELL_W, CELL_H, dx, dy, drawW, drawH);
-      frontCtx.restore();
-    } else {
-      frontCtx.drawImage(atlas, currentFrame * CELL_W, 0, CELL_W, CELL_H, dx, dy, drawW, drawH);
-    }
+    // Discrete registered keyframes (zero alpha double-exposure, preventing duplicate props or ghost limbs)
+    frontCtx.drawImage(atlas, currentFrame * CELL_W, 0, CELL_W, CELL_H, dx, dy, drawW, drawH);
 
-    // Live espresso steam wisps rising from the cup (on the table or in his hand during a sip)
+    // Live espresso steam wisps rising from the cup (on the table, lifted, or at his mouth during a sip)
     if (quality !== 'low') {
       if (currentStepName === 'coffee-sip') {
+        const cupMouthX = dx + drawW * (158 / 326);
+        const cupMouthY = dy + drawH * (121 / 550);
+        drawSteam(frontCtx, cupMouthX, cupMouthY, 1.0);
+      } else if (currentStepName === 'coffee-lift') {
         const cupHandX = dx + drawW * (150 / 326);
-        const cupHandY = dy + drawH * (170 / 550);
+        const cupHandY = dy + drawH * (172 / 550);
         drawSteam(frontCtx, cupHandX, cupHandY, 1.05);
       } else if (cupOnTable) {
-        const cupSourceX = laptopOpen ? 58 : currentStepName === 'coffee-reach' ? 108 : 118;
+        const cupSourceX = laptopOpen
+          ? 56
+          : currentStepName === 'coffee-reach' || currentStepName === 'coffee-return'
+            ? 108
+            : 114;
         const cupTableX = dx + drawW * (cupSourceX / 326);
-        const cupTableY = dy + drawH * (295 / 550);
+        const cupTableY = dy + drawH * (307 / 550);
         drawSteam(frontCtx, cupTableX, cupTableY, 0.9);
       }
     }
@@ -669,7 +703,17 @@ export function createCafe(options: StreetOptions): CafeScene {
 
   syncAvatarDataset();
   resize();
+  const initialRect = stage.getBoundingClientRect();
+  if (
+    initialRect.width > 0 &&
+    initialRect.height > 0 &&
+    initialRect.bottom >= -80 &&
+    initialRect.top <= window.innerHeight + 80
+  ) {
+    visible = true;
+  }
   setState(state);
+  sync();
 
   loadCafeAtlas()
     .then((img) => {
@@ -723,7 +767,6 @@ export function createCafe(options: StreetOptions): CafeScene {
     }),
     triggerAction(action: CafeAction) {
       startAction(action);
-      transitionElapsed = 1;
       draw();
     },
     destroy() {
