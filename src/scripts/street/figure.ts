@@ -132,15 +132,20 @@ export interface Paint {
   line: string;
   /** Inner lines: seams, folds, a hem. Softer than the outline. */
   soft: string;
+  /** Warm amber evening rim highlight from street lamps and shopfronts. */
+  rim: string;
   skin: string;
   skinDark: string;
+  skinLight: string;
   hair: string;
   hairLight: string;
   sole: string;
   top: string;
   topDark: string;
+  topLight: string;
   bottom: string;
   bottomDark: string;
+  bottomLight: string;
   shoe: string;
   item: string;
   under: string;
@@ -422,15 +427,35 @@ function shoe(g: G, pal: Paint, l: Leg, k: Look, detail: boolean) {
   g.stroke();
 
   if (detail && boot === 0) {
-    const sy = ANKLE - 0.75;
+    // Sculpted sneaker quarter panel, padded ankle collar, and cushioned midsole wedge.
     g.beginPath();
-    g.moveTo(ax + -3 * c - sy * s, ay + -3 * s + sy * c);
-    g.lineTo(ax + 7.9 * c - sy * s, ay + 7.9 * s + sy * c);
-    g.strokeStyle = pal.sole;
-    g.lineWidth = 1.1;
-    g.lineCap = 'round';
-    g.lineJoin = 'round';
-    g.stroke();
+    g.moveTo(ax + -3.3 * c - (ANKLE - 1.35) * s, ay + -3.3 * s + (ANKLE - 1.35) * c);
+    g.lineTo(ax + 8.1 * c - (ANKLE - 1.05) * s, ay + 8.1 * s + (ANKLE - 1.05) * c);
+    g.lineTo(ax + 8.1 * c - (ANKLE - 0.15) * s, ay + 8.1 * s + (ANKLE - 0.15) * c);
+    g.lineTo(ax + -3.3 * c - (ANKLE - 0.15) * s, ay + -3.3 * s + (ANKLE - 0.15) * c);
+    g.closePath();
+    g.fillStyle = pal.sole;
+    g.fill();
+    stroke(g, pal.soft, pal.lw * 0.75, [
+      ax + -2.8 * c - (yTop0 + 0.4) * s,
+      ay + -2.8 * s + (yTop0 + 0.4) * c,
+      ax + 1.2 * c - (ANKLE - 1.45) * s,
+      ay + 1.2 * s + (ANKLE - 1.45) * c,
+    ]);
+    stroke(g, pal.sole, pal.lw * 0.75, [
+      ax + 1.8 * c - (yTop1 + 0.5) * s,
+      ay + 1.8 * s + (yTop1 + 0.5) * c,
+      ax + 4.3 * c - (yTop1 + 1.25) * s,
+      ay + 4.3 * s + (yTop1 + 1.25) * c,
+    ]);
+  } else if (detail && boot > 0) {
+    const sy = ANKLE - 0.75;
+    stroke(g, pal.soft, pal.lw * 0.9, [
+      ax + -3.1 * c - sy * s,
+      ay + -3.1 * s + sy * c,
+      ax + 0.2 * c - sy * s,
+      ay + 0.2 * s + sy * c,
+    ]);
   }
 }
 
@@ -607,9 +632,14 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       g.fill();
     } else if (
       detail &&
-      (top === 'hoodie' || top === 'puffer' || top === 'jacket' || top === 'leather')
+      (top === 'hoodie' ||
+        top === 'puffer' ||
+        top === 'jacket' ||
+        top === 'leather' ||
+        top === 'coat' ||
+        top === 'trench')
     ) {
-      // A cuff.
+      // A cuff and interior elbow crease.
       const qx = ex + (wx - ex) * 0.86;
       const qy = ey + (wy - ey) * 0.86;
       const nx = -(wy - ey) / FORE;
@@ -621,11 +651,19 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
         qx + nx * half,
         qy + ny * half,
       ]);
+      if (!shade && arm.b > 0.22) {
+        stroke(g, pal.soft, pal.lw * 0.75, [
+          ex - nx * half * 0.55,
+          ey - ny * half * 0.55,
+          ex + nx * half * 0.75,
+          ey + ny * half * 0.75,
+        ]);
+      }
     }
     if (arm.hand) {
       const fa = arm.a + lean + arm.b;
-      const tipX = wx + Math.sin(fa) * 3;
-      const tipY = wy + Math.cos(fa) * 3;
+      const tipX = wx + Math.sin(fa) * 3.1;
+      const tipY = wy + Math.cos(fa) * 3.1;
       g.fillStyle = pal.line;
       g.beginPath();
       capsule(g, wx, wy, tipX, tipY, 2 + pal.lw, 1.6 + pal.lw);
@@ -634,6 +672,17 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       g.beginPath();
       capsule(g, wx, wy, tipX, tipY, 2, 1.6);
       g.fill();
+      if (detail && !shade) {
+        // Subtle thumb separation on the near hand.
+        const txH = wx + Math.sin(fa + 0.52) * 1.9;
+        const tyH = wy + Math.cos(fa + 0.52) * 1.9;
+        stroke(g, pal.soft, pal.lw * 0.65, [
+          wx + Math.sin(fa) * 0.8,
+          wy + Math.cos(fa) * 0.8,
+          txH,
+          tyH,
+        ]);
+      }
     }
     return [wx, wy] as const;
   };
@@ -645,6 +694,19 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     const cloth = shade ? pal.bottomDark : pal.bottom;
     const skin = shade ? pal.skinDark : pal.skin;
     const thighBare = k.bottomStyle === 'none' || k.bottomStyle === 'skirt' || top === 'dress';
+    // Planted foot contact shadow directly under each sole when close to the ground.
+    if (detail && !rolling && l.ay > -4.8) {
+      const groundAlpha = Math.max(0, Math.min(1, (4.8 + l.ay) / 2.2)) * (shade ? 0.24 : 0.34);
+      if (groundAlpha > 0.02) {
+        g.save();
+        g.globalAlpha = groundAlpha;
+        g.fillStyle = pal.line;
+        g.beginPath();
+        g.ellipse(l.ax + ox + 2.2, 0.3, 6.8, 1.25, 0, 0, TAU);
+        g.fill();
+        g.restore();
+      }
+    }
     limb(
       g,
       pal,
@@ -662,18 +724,58 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       shade ? undefined : bare ? pal.skinDark : pal.bottomDark,
     );
     if (detail && !bare) {
-      // The hem above the shoe.
+      // Front thigh cylindrical light plane and knee/ankle garment folds on the near leg.
+      if (!shade && !thighBare) {
+        g.fillStyle = pal.bottomLight;
+        g.beginPath();
+        capsule(
+          g,
+          ox + legW * 0.16,
+          -hipH + 3,
+          l.kx + ox + legW * 0.12,
+          l.ky - 2,
+          legW * 0.17,
+          legW * 0.12,
+        );
+        g.fill();
+        // Pocket curve and knee articulation crease.
+        stroke(g, pal.soft, pal.lw * 0.72, [
+          ox - 0.6,
+          -hipH + 5.5,
+          ox + 2.4,
+          -hipH + 9.2,
+          ox + 2.8,
+          -hipH + 13.5,
+        ]);
+        stroke(g, pal.soft, pal.lw * 0.72, [
+          l.kx + ox - legW * 0.26,
+          l.ky - 0.8,
+          l.kx + ox + legW * 0.18,
+          l.ky + 0.6,
+        ]);
+      }
+      // Gathered hem and ankle cuff folds above the shoe.
       const qx = l.kx + ox + (l.ax - l.kx) * 0.9;
       const qy = l.ky + (l.ay - l.ky) * 0.9;
       const nx = -(l.ay - l.ky) / SHIN;
       const ny = (l.ax - l.kx) / SHIN;
       const half = (legW - 2.2) * 0.4;
-      stroke(g, pal.soft, pal.lw * 0.8, [
+      stroke(g, pal.soft, pal.lw * 0.85, [
         qx - nx * half,
         qy - ny * half,
         qx + nx * half,
         qy + ny * half,
       ]);
+      if (!shade) {
+        const qx2 = l.kx + ox + (l.ax - l.kx) * 0.82;
+        const qy2 = l.ky + (l.ay - l.ky) * 0.82;
+        stroke(g, pal.soft, pal.lw * 0.65, [
+          qx2 - nx * half * 0.7,
+          qy2 - ny * half * 0.7,
+          qx2 + nx * half * 0.85,
+          qy2 + ny * half * 0.85,
+        ]);
+      }
     }
     g.save();
     g.translate(ox, 0);
@@ -911,7 +1013,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     );
   }
 
-  // The side away from the light.
+  // The side away from the light: curved anatomical back shadow.
   if (top !== 'cloak') {
     const low = top === 'dress' ? 12 : -hem;
     const hbx = longCoat ? -d * 0.92 - trail * 0.5 + sway * 0.5 : tx(-d * 0.84, low);
@@ -925,16 +1027,60 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       ty(-d * 0.9, TORSO * 0.45),
     );
     g.lineTo(hbx + pal.lw, hby - pal.lw);
-    g.lineTo(hbx + d * 0.62, hby - pal.lw);
+    g.lineTo(hbx + d * 0.42, hby - pal.lw);
     g.quadraticCurveTo(
-      tx(-d * 0.2, 14),
-      ty(-d * 0.2, 14),
-      tx(-d * 0.36, TORSO - 7),
-      ty(-d * 0.36, TORSO - 7),
+      tx(-d * 0.45, 13),
+      ty(-d * 0.45, 13),
+      tx(-d * 0.48, TORSO - 6),
+      ty(-d * 0.48, TORSO - 6),
     );
     g.closePath();
     g.fillStyle = pal.topDark;
     g.fill();
+
+    if (detail) {
+      // Curved front chest key-light rim and natural garment folds.
+      g.beginPath();
+      g.moveTo(tx(2.5, TORSO - 0.8), ty(2.5, TORSO - 0.8));
+      g.quadraticCurveTo(
+        tx(d * 0.96, TORSO - 10),
+        ty(d * 0.96, TORSO - 10),
+        tx(d * 0.86 + belly * 0.78, 10),
+        ty(d * 0.86 + belly * 0.78, 10),
+      );
+      g.lineTo(tx(d * 0.66 + belly * 0.55, 9), ty(d * 0.66 + belly * 0.55, 9));
+      g.quadraticCurveTo(
+        tx(d * 0.74, TORSO - 11),
+        ty(d * 0.74, TORSO - 11),
+        tx(1.2, TORSO - 1.6),
+        ty(1.2, TORSO - 1.6),
+      );
+      g.closePath();
+      g.fillStyle = pal.topLight;
+      g.fill();
+
+      // Soft curved cloth drape lines and warm evening rim highlight.
+      stroke(g, pal.soft, pal.lw * 0.68, [
+        tx(-d * 0.34, 7.5),
+        ty(-d * 0.34, 7.5),
+        tx(d * 0.14, 4.2),
+        ty(d * 0.14, 4.2),
+      ]);
+      stroke(g, pal.soft, pal.lw * 0.64, [
+        tx(-d * 0.22, 13.5),
+        ty(-d * 0.22, 13.5),
+        tx(d * 0.2, 10.5),
+        ty(d * 0.2, 10.5),
+      ]);
+      stroke(g, pal.rim, pal.lw * 0.9, [
+        tx(2.6, TORSO - 0.6),
+        ty(2.6, TORSO - 0.6),
+        tx(d * 0.96, TORSO - 11),
+        ty(d * 0.96, TORSO - 11),
+        tx(d * 0.88 + belly * 0.85, 10),
+        ty(d * 0.88 + belly * 0.85, 10),
+      ]);
+    }
   }
 
   // What the garment shows: an open front, a hem band, quilting, a tie of light.
@@ -1020,15 +1166,29 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     }
   }
   if (top === 'hoodie') {
-    // Kangaroo pocket.
-    stroke(g, pal.soft, pal.lw * 0.8, [
+    // Kangaroo pocket and drawstring cords.
+    stroke(g, pal.soft, pal.lw * 0.85, [
       tx(d * 0.86 + belly * 0.8, 3),
       ty(d * 0.86 + belly * 0.8, 3),
-      tx(d * 0.3, 9),
-      ty(d * 0.3, 9),
-      tx(d * 0.2, 2),
-      ty(d * 0.2, 2),
+      tx(d * 0.28, 9.5),
+      ty(d * 0.28, 9.5),
+      tx(d * 0.18, 2),
+      ty(d * 0.18, 2),
     ]);
+    if (detail) {
+      stroke(g, pal.soft, pal.lw * 0.75, [
+        tx(2.4, TORSO - 2),
+        ty(2.4, TORSO - 2),
+        tx(2.8, TORSO - 10),
+        ty(2.8, TORSO - 10),
+      ]);
+      stroke(g, pal.metal, pal.lw * 0.8, [
+        tx(2.8, TORSO - 10),
+        ty(2.8, TORSO - 10),
+        tx(2.8, TORSO - 11.4),
+        ty(2.8, TORSO - 11.4),
+      ]);
+    }
   } else if (
     top === 'shirt' ||
     top === 'jacket' ||
@@ -1242,6 +1402,16 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   g.closePath();
   g.fillStyle = pal.skinDark;
   g.fill();
+  if (detail) {
+    // Warm front facial plane on nose bridge and cheekbone (no harsh line).
+    g.beginPath();
+    g.moveTo(3.8, -3.4);
+    g.quadraticCurveTo(4.6 + 1.1 * n, -0.4, 3.6 + 0.5 * n, 1.9);
+    g.quadraticCurveTo(2.1, 1.1, 2.5, -2.2);
+    g.closePath();
+    g.fillStyle = pal.skinLight;
+    g.fill();
+  }
   if (k.beard) {
     shape(
       g,
@@ -1271,18 +1441,31 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal,
       pal.hair,
     );
+    if (detail) {
+      stroke(g, pal.hairLight, 0.55, [0.4, 4.6, 2.5, 5.8]);
+    }
   }
   // Brow and eye; a second eye appears as the face turns.
   const eyeX = 3.4 - turn * 1.3;
-  stroke(g, pal.hair, 0.75, [eyeX - 1, -2.5, eyeX + 1.3, -2.75]);
-  stroke(g, pal.line, 0.95, [eyeX - 0.5, -1.2, eyeX + 0.7, -1.25]);
+  stroke(g, pal.hair, 0.85, [eyeX - 1.1, -2.5, eyeX + 1.35, -2.78]);
+  stroke(g, pal.line, 1.0, [eyeX - 0.55, -1.2, eyeX + 0.75, -1.25]);
+  if (detail) {
+    g.fillStyle = pal.line;
+    g.beginPath();
+    g.arc(eyeX + 0.15, -1.15, 0.52, 0, TAU);
+    g.fill();
+  }
   if (turn > 0.3) {
     g.globalAlpha = (turn - 0.3) / 0.7;
-    stroke(g, pal.hair, 0.75, [eyeX - 4, -2.6, eyeX - 2, -2.7]);
+    stroke(g, pal.hair, 0.8, [eyeX - 4, -2.6, eyeX - 2, -2.7]);
     stroke(g, pal.line, 0.95, [eyeX - 3.5, -1.2, eyeX - 2.4, -1.2]);
     g.globalAlpha = 1;
   }
   if (k.glasses) {
+    if (detail) {
+      g.fillStyle = pal.rim;
+      g.fillRect(eyeX - 0.9, -2.6, 2.8, 2.3);
+    }
     stroke(g, pal.line, pal.lw * 0.9, [-0.9, -1.5, eyeX - 1, -1.6]);
     g.strokeStyle = pal.line;
     g.lineWidth = pal.lw * 0.9;
@@ -1297,8 +1480,16 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     g.strokeStyle = pal.line;
     g.lineWidth = pal.lw * 0.8;
     g.stroke();
+    if (detail) {
+      stroke(g, pal.skinDark, 0.55, [-0.95, 0.2, -0.8, 1.1]);
+    }
   };
-  const sheen = () => stroke(g, pal.hairLight, 0.7, [1.8, -6.5, -2.6, -6.9]);
+  const sheen = () => {
+    stroke(g, pal.hairLight, 0.75, [2.0, -6.5, -2.6, -6.9]);
+    if (detail) {
+      stroke(g, pal.soft, 0.6, [2.6, -5.1, -3.4, -5.4]);
+    }
+  };
   const backHair = () =>
     shape(
       g,
