@@ -10,6 +10,13 @@
  */
 import { createAvatarPresence, type AvatarPresenceSnapshot } from './avatar-presence';
 import { CAST, paintFor, pick } from './cast';
+import {
+  CROWD_ATLAS_FILES,
+  CROWD_SPRITES,
+  hasPhotorealSprite,
+  type CrowdAtlasTier,
+  type SpriteStripEntry,
+} from './crowd-atlas';
 import { cycleLength, drawFigure, type C3, type Look, type Paint, type Pose } from './figure';
 import {
   getQualityTier,
@@ -64,6 +71,7 @@ interface Walker {
   /** Lit by its label (target), and summoned by one. */
   lit: number;
   hold: number;
+  vignetteDone: boolean;
   half: number;
   tall: number;
 }
@@ -92,6 +100,8 @@ export interface StreetStats {
   front: number;
   back: number;
   vignettes: number;
+  photoreal: number;
+  atlases: { core: boolean; city: boolean };
 }
 
 export interface Street {
@@ -154,6 +164,29 @@ export function createStreet(options: StreetOptions): Street {
   let lastVignetteAt = -10;
   let shown = -1;
   let destroyed = false;
+  let photorealDrawn = 0;
+
+  // Progressive photorealistic sprite atlases (core projects/city first, extended city deferred).
+  const sheets: Partial<Record<CrowdAtlasTier, HTMLImageElement>> = {};
+  const loadAtlasTier = (tier: CrowdAtlasTier) => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = CROWD_ATLAS_FILES[tier].src;
+    img
+      .decode()
+      .then(() => {
+        if (destroyed) return;
+        sheets[tier] = img;
+        if (state !== 'running') draw();
+      })
+      .catch(() => {
+        // Fallback vector renderer stays active if image decoding fails.
+      });
+  };
+  loadAtlasTier('core');
+  const cityTimer = window.setTimeout(() => {
+    if (!destroyed) loadAtlasTier('city');
+  }, 110);
 
   // One soft shadow, painted once and stamped under every pair of feet and companions.
   const shadow = document.createElement('canvas');
@@ -187,8 +220,8 @@ export function createStreet(options: StreetOptions): Street {
   // ---------- size & avatar composition corridor ----------
   const unit = (lane: Lane) => height * UNIT * lane.scale;
   const avatarCoreHalf = () => Math.max(36, height * 0.13);
-  const avatarFlankMin = () => avatarCoreHalf() * 1.15;
-  const avatarFlankMax = () => Math.max(115, width * 0.27);
+  const avatarFlankMin = () => avatarCoreHalf() * 1.1;
+  const avatarFlankMax = () => Math.max(128, width * 0.3);
 
   function resize() {
     const rect = stage.getBoundingClientRect();
@@ -264,6 +297,8 @@ export function createStreet(options: StreetOptions): Street {
   function fits(look: Look, lane: number): boolean {
     // A project figure belongs where it can be found and pointed at.
     if (look.egg) return lane === 2 || lane === 3;
+    // Foreground and mid-ground lanes around Nikolay stay 100% photorealistic for visual cohesion.
+    if (lane >= 2 && !hasPhotorealSprite(look.id)) return false;
     if (lane === 4) return !look.roll && !look.run && look.h > 0.8 && !look.with;
     if (lane === 0) return !look.roll;
     return true;
@@ -291,6 +326,7 @@ export function createStreet(options: StreetOptions): Street {
       pose: { p: 0, stand: 0, wave: 0, phone: 0, turn: 0, shrug: 0, t: 0, lit: 0 },
       lit: 0,
       hold: 0,
+      vignetteDone: false,
       half: 0,
       tall: 0,
     };
@@ -314,9 +350,10 @@ export function createStreet(options: StreetOptions): Street {
     walker.v = walker.pace;
     walker.act = null;
     walker.actLeft = 0;
-    walker.rest = between(2, 9);
+    walker.rest = between(1.6, 5.5);
     walker.lit = 0;
     walker.hold = 0;
+    walker.vignetteDone = false;
     const pose = walker.pose;
     pose.p = random();
     pose.stand = pose.wave = pose.phone = pose.turn = pose.shrug = pose.lit = 0;
@@ -359,11 +396,11 @@ export function createStreet(options: StreetOptions): Street {
         // One slot each across the width, so the first frame is evenly peopled.
         const slot = width / count;
         let x = slot * i + between(0.14, 0.86) * slot;
-        // Keep the initial frame from stamping a foreground walker over Nikolay's torso.
-        if (lane === 3 && Math.abs(x - centre) < clearHalf) {
+        // Keep the initial frame (and first ~1s after arrival) from stamping a foreground walker over Nikolay's torso.
+        if (lane === 3 && Math.abs(x - centre) < clearHalf + 20) {
           const pushDir = x < centre ? -1 : 1;
-          const shifted = centre + pushDir * (clearHalf + 14);
-          if (shifted > 24 && shifted < width - 24) x = shifted;
+          const shifted = centre + pushDir * Math.max(clearHalf + 34, width * 0.34);
+          if (shifted > 20 && shifted < width - 20) x = shifted;
         }
         add(look, lane, x, random() < 0.5 ? 1 : -1);
       }
@@ -412,13 +449,13 @@ export function createStreet(options: StreetOptions): Street {
   }
 
   function tryContextualVignette(): boolean {
-    if (clock - lastVignetteAt < 6.5 || state !== 'running') return false;
+    if (clock - lastVignetteAt < 6.5 || state === 'static') return false;
     const centre = width * 0.5;
     const minDist = avatarFlankMin();
     const maxDist = avatarFlankMax();
 
     for (const walker of walkers) {
-      if (walker.act || walker.rest > 0 || walker.look.roll || walker.look.run) continue;
+      if (walker.act || walker.vignetteDone || walker.look.roll || walker.look.run) continue;
       const dist = Math.abs(walker.x - centre);
       if (dist < minDist || dist > maxDist) continue;
       const side = walker.x < centre ? 'left' : 'right';
@@ -428,6 +465,7 @@ export function createStreet(options: StreetOptions): Street {
         const hasItem = walker.look.hand !== undefined && walker.look.hand !== 'pocket';
         begin(walker, hasItem ? 'look' : 'wave', 1.65);
         walker.hold = Math.max(walker.hold, 1.8);
+        walker.vignetteDone = true;
         if (random() < 0.45) presence.acknowledge(clock, 1.25, 2.1);
         else presence.glance(clock, side, 'near', 1.85);
         lastVignetteAt = clock;
@@ -438,6 +476,7 @@ export function createStreet(options: StreetOptions): Street {
       // 2. Dog or pup companion drawing a gentle downward glance.
       if ((walker.look.with === 'dog' || walker.look.with === 'pup') && walker.lane >= 2) {
         begin(walker, 'look', 1.6);
+        walker.vignetteDone = true;
         presence.glance(clock, side, 'down', 1.85);
         lastVignetteAt = clock;
         vignettes += 1;
@@ -452,6 +491,7 @@ export function createStreet(options: StreetOptions): Street {
         (walker.lane === 1 || walker.lane === 2)
       ) {
         begin(walker, 'look', 1.75);
+        walker.vignetteDone = true;
         presence.glance(clock, side, 'up', 1.85);
         lastVignetteAt = clock;
         vignettes += 1;
@@ -674,8 +714,87 @@ export function createStreet(options: StreetOptions): Street {
     }
   }
 
+  /** Renders a photorealistic sprite cell when loaded; returns true if painted. */
+  function drawSpriteWalker(
+    g: CanvasRenderingContext2D,
+    walker: Walker,
+    lane: Lane,
+    ground: number,
+    u: number,
+    entry: SpriteStripEntry,
+    sheet: HTMLImageElement,
+  ) {
+    // Distance-tiered animation sampling: 24 fps near, 18 fps mid, 12 fps far,
+    // while walker position still interpolates smoothly at full 60 fps.
+    const quantSteps = lane.front ? 24 : lane === LANES[2] ? 18 : 12;
+    const pose = walker.pose;
+    const interacting = pose.turn > 0.36 || pose.wave > 0.28 || pose.phone > 0.28;
+    const frameIdx =
+      pose.stand > 0.62
+        ? interacting
+          ? 9
+          : 8
+        : Math.floor(((Math.round(pose.p * quantSteps) / quantSteps) % 1) * 8) % 8;
+
+    const sx = frameIdx * entry.w;
+    const sy = entry.y;
+    const drawH = u * 100 * (entry.h / 136);
+    const drawW = drawH * (entry.w / entry.h);
+    const footPadY = drawH * ((entry.h - entry.soleY) / entry.h);
+    const centerRatio = walker.look.with ? 0.31 : walker.look.hand === 'bike' ? 0.49 : 0.5;
+    const depthAlpha = lane === LANES[0] ? 0.72 : lane === LANES[1] ? 0.88 : 1;
+
+    // Subtle wet-pavement specular reflection beneath foreground/midground pedestrians.
+    if (lane.scale >= 0.75 && ground < height + 4) {
+      g.save();
+      g.translate(walker.x, ground);
+      g.scale(walker.dir, -0.26);
+      g.globalAlpha = 0.085 * depthAlpha;
+      g.drawImage(
+        sheet,
+        sx,
+        sy,
+        entry.w,
+        entry.h,
+        -drawW * centerRatio,
+        -(drawH - footPadY),
+        drawW,
+        drawH,
+      );
+      g.restore();
+    }
+
+    g.save();
+    g.translate(walker.x, ground);
+    g.scale(walker.dir, 1);
+    g.globalAlpha = depthAlpha;
+    g.drawImage(
+      sheet,
+      sx,
+      sy,
+      entry.w,
+      entry.h,
+      -drawW * centerRatio,
+      -(drawH - footPadY),
+      drawW,
+      drawH,
+    );
+
+    // Subtle companion status optical pulse for J.A.R.V.I.S. autonomous unit
+    if (walker.look.id === 'companion') {
+      const pulse = 0.55 + 0.45 * Math.sin(pose.t * 3.8);
+      g.fillStyle = walker.paint.accent;
+      g.globalAlpha = 0.75 * pulse * depthAlpha;
+      g.beginPath();
+      g.arc(drawW * 0.37, -drawH * 0.28, Math.max(1.2, u * 1.4), 0, Math.PI * 2);
+      g.fill();
+    }
+    g.restore();
+  }
+
   // ---------- drawing ----------
   function draw() {
+    let spriteCount = 0;
     for (let layer = 0; layer < 2; layer += 1) {
       const g = contexts[layer];
       if (!g) continue;
@@ -755,17 +874,24 @@ export function createStreet(options: StreetOptions): Street {
             g.globalAlpha = 1;
           }
         }
-        g.save();
-        g.translate(walker.x, ground);
-        g.scale(walker.dir * u, u);
-        drawFigure(
-          g,
-          walker.look,
-          walker.paint,
-          walker.pose,
-          walker.lane >= (quality === 'low' ? 2 : 1),
-        );
-        g.restore();
+        const spriteEntry = CROWD_SPRITES[walker.look.id];
+        const spriteSheet = spriteEntry ? sheets[spriteEntry.atlas] : undefined;
+        if (spriteEntry && spriteSheet) {
+          drawSpriteWalker(g, walker, lane, ground, u, spriteEntry, spriteSheet);
+          spriteCount += 1;
+        } else {
+          g.save();
+          g.translate(walker.x, ground);
+          g.scale(walker.dir * u, u);
+          drawFigure(
+            g,
+            walker.look,
+            walker.paint,
+            walker.pose,
+            walker.lane >= (quality === 'low' ? 2 : 1),
+          );
+          g.restore();
+        }
         if (lit > 0.02) {
           // A drafting tick over the head, in the project's colour.
           const top = ground - walker.tall - 8 * lane.scale;
@@ -786,6 +912,7 @@ export function createStreet(options: StreetOptions): Street {
       box.maxX = maxX;
       box.maxY = maxY;
     }
+    photorealDrawn = spriteCount;
   }
 
   function frame(now: number) {
@@ -946,7 +1073,11 @@ export function createStreet(options: StreetOptions): Street {
 
   // Peoples the street as soon as it has a size (now, unless the stage is collapsed).
   resize();
+  const initRect = stage.getBoundingClientRect();
+  visible =
+    initRect.height > 0 && initRect.bottom >= -80 && initRect.top <= window.innerHeight + 80;
   setState(state);
+  sync();
   draw();
 
   return {
@@ -973,6 +1104,11 @@ export function createStreet(options: StreetOptions): Street {
         front: frontCount,
         back: backCount,
         vignettes,
+        photoreal: photorealDrawn,
+        atlases: {
+          core: !!sheets.core,
+          city: !!sheets.city,
+        },
       };
     },
     summon,
@@ -988,6 +1124,7 @@ export function createStreet(options: StreetOptions): Street {
     avatar: () => presence.snapshot(),
     destroy() {
       destroyed = true;
+      window.clearTimeout(cityTimer);
       stopClock?.();
       stopClock = undefined;
       presence.reset();

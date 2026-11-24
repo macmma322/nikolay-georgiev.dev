@@ -28,13 +28,48 @@ const c = t(common);
 
 /** Passers-by who carry a project, in the order of the work index. */
 const cast = [
-  { slug: 'caelora', name: 'Caelora', accent: 'caelora' },
-  { slug: 'uss-x-academy', name: 'USS X Academy', accent: 'ussx' },
-  { slug: 'jarvis', name: 'J.A.R.V.I.S.', accent: 'jarvis' },
-  { slug: 'zone-32-19', name: 'Zone 32-19', accent: 'zone' },
-  { slug: 'kobait', name: 'KObait', accent: 'kobait' },
-  { slug: 'malrynth', name: 'Malrynth', accent: 'malrynth' },
-  { slug: 'stemini', name: 'Stemini', accent: 'stemini' },
+  {
+    slug: 'caelora',
+    name: 'Caelora',
+    accent: 'caelora',
+    icon: 'M1.5 11.5 5 5.5 7.5 9 9.5 6.5 12.5 11.5z',
+  },
+  {
+    slug: 'uss-x-academy',
+    name: 'USS X Academy',
+    accent: 'ussx',
+    icon: 'M7 2.5 1.5 5.5 7 8.5 12.5 5.5z M3.5 7.2v2.8c0 .9 1.6 1.6 3.5 1.6s3.5-.7 3.5-1.6V7.2',
+  },
+  {
+    slug: 'jarvis',
+    name: 'J.A.R.V.I.S.',
+    accent: 'jarvis',
+    icon: 'M7 2 12 4.8v4.4L7 12 2 9.2V4.8z M7 7l5-2.2 M7 7L2 4.8 M7 7v5',
+  },
+  {
+    slug: 'zone-32-19',
+    name: 'Zone 32-19',
+    accent: 'zone',
+    icon: 'M2 4.5 7 2 12 4.5v5L7 12 2 9.5z M2 4.5 7 7l5-2.5 M7 7v5',
+  },
+  {
+    slug: 'kobait',
+    name: 'KObait',
+    accent: 'kobait',
+    icon: 'M8.5 2.5v5.8a2.4 2.4 0 0 1-4.8 0v-.6l1.3 1.1',
+  },
+  {
+    slug: 'malrynth',
+    name: 'Malrynth',
+    accent: 'malrynth',
+    icon: 'M4.8 4 1.8 7l3 3 M9.2 4l3 3-3 3 M7.8 3.2 6.2 10.8',
+  },
+  {
+    slug: 'stemini',
+    name: 'Stemini',
+    accent: 'stemini',
+    icon: 'M7 2.2 12 4.8 7 7.4 2 4.8z M2.5 7.6 7 10.1l4.5-2.5 M2.5 10 7 12.4l4.5-2.4',
+  },
 ] as const;
 
 /*
@@ -177,6 +212,15 @@ const widths = [112, 168, 252, 336, 528];
 
   <div class="stage" data-stage data-state="static">
     <slot name="circuit" />
+    <img
+      class="stage-backdrop"
+      src="/street/street-backdrop.webp"
+      alt=""
+      width="1920"
+      height="520"
+      loading="lazy"
+      decoding="async"
+    />
     <svg
       class="block"
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
@@ -386,6 +430,23 @@ const widths = [112, 168, 252, 336, 528];
             data-cast={member.slug}
             data-accent={member.accent}
           >
+            <svg
+              class="cast-ico"
+              viewBox="0 0 14 14"
+              width="13"
+              height="13"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d={member.icon}
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.25"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <span class="role">{s.cast[member.slug]}</span>
             <span class="of">{member.name}</span>
           </a>
@@ -606,8 +667,22 @@ const widths = [112, 168, 252, 336, 528];
     box-shadow: inset 0 0 9rem 1rem oklch(0.08 0.01 262 / 0.75);
   }
 
+  .stage-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 100%;
+    pointer-events: none;
+    opacity: 0.94;
+    filter: brightness(0.96) contrast(1.03);
+  }
+
   .block {
     position: absolute;
+    z-index: 0;
     inset: 0;
     width: 100%;
     height: 100%;
@@ -617,26 +692,26 @@ const widths = [112, 168, 252, 336, 528];
   }
 
   .block .far {
-    fill: oklch(0.21 0.022 272);
-    stroke: oklch(0.21 0.022 272);
-    stroke-width: 2;
+    fill: oklch(0.21 0.022 272 / 0.2);
+    stroke: oklch(0.21 0.022 272 / 0.24);
+    stroke-width: 1.5;
   }
 
   .block .wall {
-    fill: oklch(0.2 0.014 262);
+    fill: oklch(0.2 0.014 262 / 0.16);
   }
 
   .block .tone-1 .wall {
-    fill: oklch(0.225 0.018 255);
+    fill: oklch(0.225 0.018 255 / 0.16);
   }
 
   .block .tone-2 .wall {
-    fill: oklch(0.18 0.014 280);
+    fill: oklch(0.18 0.014 280 / 0.16);
   }
 
   .block .cornice,
   .block .roof {
-    fill: oklch(0.15 0.012 262);
+    fill: oklch(0.15 0.012 262 / 0.36);
   }
 
   .block .planned {
@@ -767,47 +842,49 @@ const widths = [112, 168, 252, 336, 528];
 
   .block .ground {
     fill: url(#street-ground);
+    fill-opacity: 0.16;
   }
 
   .block .joint {
     fill: none;
     stroke: oklch(0.1 0.008 262);
-    stroke-opacity: 0.34;
+    stroke-opacity: 0.22;
     vector-effect: non-scaling-stroke;
   }
 
   .block .kerb {
-    fill: oklch(0.42 0.014 262);
+    fill: oklch(0.42 0.014 262 / 0.35);
   }
 
   .block .tree circle {
-    fill: oklch(0.2 0.028 160);
+    fill: oklch(0.2 0.028 160 / 0.28);
   }
 
   .block .tree .trunk {
     fill: none;
-    stroke: oklch(0.14 0.012 60);
+    stroke: oklch(0.14 0.012 60 / 0.35);
     stroke-width: 7;
   }
 
   .block .lamp path {
     fill: none;
-    stroke: oklch(0.12 0.01 262);
+    stroke: oklch(0.12 0.01 262 / 0.52);
     stroke-width: 4;
   }
 
   .block .lamp rect,
   .block .hoarding .head {
-    fill: oklch(0.94 0.07 88);
+    fill: oklch(0.94 0.07 88 / 0.85);
   }
 
   .block .halo {
     fill: url(#street-glow);
+    opacity: 0.55;
   }
 
   .block .hoarding .board {
-    fill: oklch(0.47 0.03 78);
-    stroke: oklch(0.14 0.01 262);
+    fill: oklch(0.47 0.03 78 / 0.26);
+    stroke: oklch(0.14 0.01 262 / 0.55);
     stroke-width: 2;
   }
 
@@ -1122,39 +1199,48 @@ const widths = [112, 168, 252, 336, 528];
   .cast {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.1rem clamp(0.48rem, 0.88vw, 1.35rem);
+    gap: 0.35rem clamp(0.32rem, 0.55vw, 0.78rem);
     flex: 1 1 24rem;
   }
 
   .cast a {
     display: inline-flex;
     align-items: center;
-    gap: 0.26rem;
+    gap: 0.28rem;
     min-height: 44px;
-    padding-block: 0.5rem;
-    font-size: clamp(0.73rem, 0.65rem + 0.15vw, 0.88rem);
-    line-height: 1.35;
+    padding: 0.32rem clamp(0.36rem, 0.48vw, 0.62rem);
+    border: 1px solid color-mix(in oklch, var(--line-soft) 72%, transparent);
+    border-radius: var(--radius-xs);
+    background: color-mix(in oklch, var(--ink-1) 64%, transparent);
+    font-size: clamp(0.68rem, 0.57rem + 0.14vw, 0.83rem);
+    line-height: 1.3;
     white-space: nowrap;
     text-decoration: none;
     color: var(--fg-3);
-    transition: color var(--dur-fast) var(--ease-out);
+    transition:
+      color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out),
+      background-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out);
   }
 
-  .cast a::before {
-    content: '';
-    width: 4px;
-    height: 4px;
+  :global(html[lang='bg']) .cast a {
+    gap: 0.2rem;
+    padding: 0.3rem clamp(0.26rem, 0.38vw, 0.54rem);
+    font-size: clamp(0.64rem, 0.53rem + 0.12vw, 0.8rem);
+  }
+
+  .cast-ico {
     flex: none;
-    background: var(--line-strong);
+    color: var(--fg-3);
     transition:
-      background-color var(--dur-fast) var(--ease-out),
-      box-shadow var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
       scale var(--dur-fast) var(--ease-out);
   }
 
   .cast .role::after {
     content: '–';
-    margin-inline-start: 0.26rem;
+    margin-inline-start: 0.2rem;
     color: var(--line-strong);
     transition: color var(--dur-fast) var(--ease-out);
   }
@@ -1171,13 +1257,15 @@ const widths = [112, 168, 252, 336, 528];
 
   /* A label lights with its figure, and the figure with its label. */
   .cast a:is(:hover, :focus-visible, [data-lit]) {
-    color: var(--fg-2);
+    color: var(--fg);
+    border-color: color-mix(in oklch, var(--accent) 55%, var(--line));
+    background: color-mix(in oklch, var(--ink-1) 92%, var(--accent) 8%);
+    box-shadow: 0 0 12px color-mix(in oklch, var(--accent) 22%, transparent);
   }
 
-  .cast a:is(:hover, :focus-visible, [data-lit])::before {
-    background: var(--accent);
-    box-shadow: 0 0 6px var(--accent);
-    scale: 1.25;
+  .cast a:is(:hover, :focus-visible, [data-lit]) .cast-ico {
+    color: var(--accent);
+    scale: 1.12;
   }
 
   .cast a:is(:hover, :focus-visible, [data-lit]) .role::after {
