@@ -19,6 +19,7 @@ interface Stats {
   cost: number;
   front: number;
   back: number;
+  vignettes: number;
 }
 interface Walker {
   id: string;
@@ -28,11 +29,19 @@ interface Walker {
   front: boolean;
   act: string | null;
 }
+interface AvatarSnapshot {
+  mode: string;
+  head: string;
+  glance: string;
+  stance: string;
+  blinking: boolean;
+}
 interface Street {
   step(seconds: number, dt?: number): void;
   stats(): Stats;
   summon(slug: string): boolean;
   walkers(): Walker[];
+  avatar(): AvatarSnapshot;
 }
 declare global {
   interface Window {
@@ -433,5 +442,130 @@ test.describe('street: edges of its life', () => {
       .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await page.waitForTimeout(400);
     expect((await stats(page)).frames).toBe(frames);
+  });
+});
+
+test.describe('street v2: cast layout, presence, composition & counter', () => {
+  test('project links never wrap internally and avoid desktop orphan row ("The maker — Stemini")', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
+    for (const [width, height] of [
+      [1920, 1080],
+      [1366, 768],
+    ] as const) {
+      for (const locale of locales) {
+        await page.setViewportSize({ width, height });
+        await open(page, localize('/about', locale));
+        const rows = await page.locator('.cast a').evaluateAll((links) =>
+          links.map((a) => {
+            const rect = a.getBoundingClientRect();
+            const roleRect = a.querySelector('.role')!.getBoundingClientRect();
+            const ofRect = a.querySelector('.of')!.getBoundingClientRect();
+            return {
+              slug: a.getAttribute('data-cast'),
+              top: Math.round(rect.top),
+              roleTop: Math.round(roleRect.top),
+              ofTop: Math.round(ofRect.top),
+              roleHeight: Math.round(roleRect.height),
+            };
+          }),
+        );
+        expect(rows).toHaveLength(7);
+        for (const r of rows) {
+          // Each link keeps its role and project name on the same baseline line.
+          expect(
+            Math.abs(r.roleTop - r.ofTop),
+            `${r.slug} wrapped internally at ${width} (${locale})`,
+          ).toBeLessThan(6);
+          expect(
+            r.roleHeight,
+            `${r.slug} wrapped inside role at ${width} (${locale})`,
+          ).toBeLessThan(34);
+        }
+        // All 7 project links sit cleanly on one single row at 1366x768 and 1920x1080 (no orphan Stemini).
+        const distinctTops = [...new Set(rows.map((r) => r.top))];
+        expect(distinctTops.length, `${locale} cast links wrapped at ${width}x${height}`).toBe(1);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        ).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  test('mobile viewports (390x844 and 320x740) stay overflow-free with readable cast links', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
+    for (const [width, height] of [
+      [390, 844],
+      [320, 740],
+    ] as const) {
+      for (const locale of locales) {
+        await page.setViewportSize({ width, height });
+        await open(page, localize('/about', locale));
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        ).toBeLessThanOrEqual(0);
+        const me = (await page.locator('[data-me]').boundingBox())!;
+        const tag = (await page.locator('.me-tag').boundingBox())!;
+        expect(me.x).toBeGreaterThanOrEqual(0);
+        expect(tag.x).toBeGreaterThanOrEqual(0);
+        expect(tag.x + tag.width).toBeLessThanOrEqual(width + 1);
+      }
+    }
+  });
+
+  test('composition corridor keeps initial foreground pedestrians off center torso and triggers contextual vignettes', async ({
+    page,
+  }) => {
+    const { stage } = await open(page);
+    const box = (await stage.boundingBox())!;
+    const centre = box.width / 2;
+    const clearHalf = Math.max(36, box.height * 0.13);
+    const initialFrontCenter = await page.evaluate(
+      ({ c, ch }) => window.__street!.walkers().some((w) => w.lane === 3 && Math.abs(w.x - c) < ch),
+      { c: centre, ch: clearHalf },
+    );
+    expect(initialFrontCenter).toBe(false);
+
+    // Step 120 simulated seconds: contextual micro-storytelling vignettes trigger with cooldowns.
+    await step(page, 120);
+    const after = await stats(page);
+    expect(after.vignettes).toBeGreaterThanOrEqual(1);
+  });
+
+  test('avatar presence cycles natural stance, blinks, glances when summoning, and clears in still mode', async ({
+    page,
+  }) => {
+    await open(page);
+    await expect.poll(async () => (await stats(page)).state).toBe('running');
+    await step(page, 18);
+    const snap = await page.evaluate(() => window.__street!.avatar());
+    expect(['neutral', 'glance', 'acknowledge', 'inspect']).toContain(snap.mode);
+
+    // Hovering/focusing a cast link summons the character and directs Nikolay toward them.
+    const label = page.locator('.cast a[data-cast="stemini"]');
+    await label.focus();
+    await expect
+      .poll(() => page.evaluate(() => window.__street!.avatar().head))
+      .toMatch(/^(left|right)$/);
+    const turn = await page
+      .locator('.me-head')
+      .evaluate((el) => Math.abs(parseFloat(getComputedStyle(el).rotate)) || 0);
+    expect(turn).toBeLessThan(1);
+
+    // Simulated counter matches stats().left and carries its clarifying scene tooltip.
+    await step(page, 25);
+    const s = await stats(page);
+    await expect(page.locator('[data-street-count]')).toHaveText(String(s.left).padStart(3, '0'));
+    await expect(page.locator('.tally')).toHaveAttribute('title', /.+/);
+
+    // Toggling reduced motion dynamically pauses to static and clears presence attributes.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'static');
+    await expect(page.locator('[data-me]')).not.toHaveAttribute('data-head', /.+/);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'running');
   });
 });
