@@ -20,6 +20,8 @@ interface Stats {
   front: number;
   back: number;
   vignettes: number;
+  photoreal: number;
+  atlases: { core: boolean; city: boolean };
 }
 interface Walker {
   id: string;
@@ -567,5 +569,44 @@ test.describe('street v2: cast layout, presence, composition & counter', () => {
     await expect(page.locator('[data-me]')).not.toHaveAttribute('data-head', /.+/);
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'running');
+  });
+});
+
+test.describe('street v3: photorealistic crowd, backdrop & project cards', () => {
+  test('loads core and extended sprite atlases, renders photorealistic walkers and backdrop, and clears music dock', async ({
+    page,
+  }) => {
+    await open(page);
+    await expect
+      .poll(async () => (await stats(page)).atlases, { timeout: 10_000 })
+      .toEqual({ core: true, city: true });
+    await step(page, 0.25);
+    const s = await stats(page);
+    expect(s.photoreal).toBeGreaterThan(0);
+
+    // Photorealistic nighttime street backdrop loads cleanly behind SVG overlays.
+    const backdrop = page.locator('.stage-backdrop');
+    await expect(backdrop).toBeVisible();
+    await expect
+      .poll(() =>
+        backdrop.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth >= 1920),
+      )
+      .toBe(true);
+
+    // Every project card carries an SVG archetype icon and sits clear of any floating music dock.
+    await expect(page.locator('.cast a .cast-ico')).toHaveCount(7);
+    const dockOverlap = await page.evaluate(() => {
+      const dock = document.querySelector<HTMLElement>('.music-dock');
+      if (!dock) return false;
+      const dr = dock.getBoundingClientRect();
+      if (dr.width === 0 || dr.height === 0) return false;
+      return Array.from(document.querySelectorAll<HTMLElement>('.cast a')).some((a) => {
+        a.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const ar = a.getBoundingClientRect();
+        const r = dock.getBoundingClientRect();
+        return ar.left < r.right && ar.right > r.left && ar.top < r.bottom && ar.bottom > r.top;
+      });
+    });
+    expect(dockOverlap).toBe(false);
   });
 });
