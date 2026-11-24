@@ -146,6 +146,8 @@ export interface Paint {
   under: string;
   metal: string;
   accent: string;
+  /** Warm evening rim highlight from streetlamps and hoarding spots. */
+  rim: string;
   /** Outline width in units. */
   lw: number;
 }
@@ -343,6 +345,9 @@ interface Leg {
   pitch: number;
 }
 
+const NEAR_LEG: Leg = { kx: 0, ky: 0, ax: 0, ay: 0, pitch: 0 };
+const FAR_LEG: Leg = { kx: 0, ky: 0, ax: 0, ay: 0, pitch: 0 };
+
 /** Where the ankle is at phase `p`, then the knee by two-bone IK from the hip. */
 function leg(
   p: number,
@@ -352,6 +357,7 @@ function leg(
   hipH: number,
   stand: number,
   restX: number,
+  out: Leg,
 ): Leg {
   let x: number;
   let pitch: number;
@@ -385,7 +391,12 @@ function leg(
   const ky = -hipH + Math.cos(a) * THIGH;
   // The ankle sits where the shin ends: on the target while it is in reach.
   const b = base - bend;
-  return { kx, ky, ax: kx + Math.sin(b) * SHIN, ay: ky + Math.cos(b) * SHIN, pitch };
+  out.kx = kx;
+  out.ky = ky;
+  out.ax = kx + Math.sin(b) * SHIN;
+  out.ay = ky + Math.cos(b) * SHIN;
+  out.pitch = pitch;
+  return out;
 }
 
 function shoe(g: G, pal: Paint, l: Leg, k: Look, detail: boolean) {
@@ -472,7 +483,188 @@ interface Arm {
   hand: boolean;
 }
 
+const NEAR_ARM: Arm = { a: 0, b: 0, hand: true };
+const FAR_ARM: Arm = { a: 0, b: 0, hand: true };
+const WRIST_POS: [number, number] = [0, 0];
+const SCRATCH_LINE: [number, number, number, number] = [0, 0, 0, 0];
+
 const HANG = new Set<Hand>(['tote', 'helmet', 'case', 'bags', 'spool', 'pad', 'umbrella', 'books']);
+
+function computeWalkArm(phase: number, swing: number, run: boolean, out: Arm): Arm {
+  const c = Math.cos(TAU * phase);
+  if (run) {
+    out.a = -swing * c;
+    out.b = 1.35 + 0.25 * c;
+  } else {
+    out.a = -swing * c + 0.03;
+    out.b = 0.16 + 0.42 * (1 - c) * 0.5;
+  }
+  out.hand = true;
+  return out;
+}
+
+function blendArm(arm: Arm, a: number, b: number, amount = 1, showHand = true): void {
+  arm.a = lerp(arm.a, a, amount);
+  arm.b = lerp(arm.b, b, amount);
+  arm.hand = showHand;
+}
+
+function drawArmSegment(
+  g: G,
+  pal: Paint,
+  arm: Arm,
+  shX: number,
+  shY: number,
+  ox: number,
+  lean: number,
+  armW: number,
+  long: boolean,
+  top: Top,
+  detail: boolean,
+  shade: boolean,
+): void {
+  const ex = shX + ox + Math.sin(arm.a + lean) * UPPER;
+  const ey = shY + Math.cos(arm.a + lean) * UPPER;
+  const fa = arm.a + lean + arm.b;
+  const wx = ex + Math.sin(fa) * FORE;
+  const wy = ey + Math.cos(fa) * FORE;
+  const sleeve = shade ? pal.topDark : pal.top;
+  const skin = shade ? pal.skinDark : pal.skin;
+  const band = shade ? undefined : long ? pal.topDark : pal.skinDark;
+  limb(
+    g,
+    pal,
+    shX + ox,
+    shY,
+    ex,
+    ey,
+    wx,
+    wy,
+    armW,
+    armW * 0.8,
+    long ? sleeve : skin,
+    long ? sleeve : skin,
+    band,
+    band,
+  );
+  if (!long) {
+    // A short sleeve: cloth to the middle of the upper arm.
+    const mx = shX + ox + (ex - shX - ox) * 0.58;
+    const my = shY + (ey - shY) * 0.58;
+    g.fillStyle = pal.line;
+    g.beginPath();
+    capsule(g, shX + ox, shY, mx, my, armW * 0.6 + pal.lw, armW * 0.56 + pal.lw);
+    g.fill();
+    g.fillStyle = sleeve;
+    g.beginPath();
+    capsule(g, shX + ox, shY, mx, my, armW * 0.6, armW * 0.56);
+    g.fill();
+  } else if (
+    detail &&
+    (top === 'hoodie' || top === 'puffer' || top === 'jacket' || top === 'leather')
+  ) {
+    // A cuff.
+    const qx = ex + (wx - ex) * 0.86;
+    const qy = ey + (wy - ey) * 0.86;
+    const nx = -(wy - ey) / FORE;
+    const ny = (wx - ex) / FORE;
+    const half = armW * 0.36;
+    SCRATCH_LINE[0] = qx - nx * half;
+    SCRATCH_LINE[1] = qy - ny * half;
+    SCRATCH_LINE[2] = qx + nx * half;
+    SCRATCH_LINE[3] = qy + ny * half;
+    stroke(g, pal.soft, pal.lw * 0.8, SCRATCH_LINE);
+  }
+  if (arm.hand) {
+    const tipX = wx + Math.sin(fa) * 3;
+    const tipY = wy + Math.cos(fa) * 3;
+    g.fillStyle = pal.line;
+    g.beginPath();
+    capsule(g, wx, wy, tipX, tipY, 2 + pal.lw, 1.6 + pal.lw);
+    g.fill();
+    g.fillStyle = skin;
+    g.beginPath();
+    capsule(g, wx, wy, tipX, tipY, 2, 1.6);
+    g.fill();
+  }
+  WRIST_POS[0] = wx;
+  WRIST_POS[1] = wy;
+}
+
+function drawLegSegment(
+  g: G,
+  pal: Paint,
+  k: Look,
+  l: Leg,
+  hipH: number,
+  legW: number,
+  build: number,
+  bare: boolean,
+  top: Top,
+  detail: boolean,
+  shade: boolean,
+  ox: number,
+): void {
+  const cloth = shade ? pal.bottomDark : pal.bottom;
+  const skin = shade ? pal.skinDark : pal.skin;
+  const thighBare = k.bottomStyle === 'none' || k.bottomStyle === 'skirt' || top === 'dress';
+  limb(
+    g,
+    pal,
+    ox,
+    -hipH,
+    l.kx + ox,
+    l.ky,
+    l.ax + ox,
+    l.ay,
+    legW * build ** 0.4,
+    (legW - 2.2) * (bare ? 0.72 : 1),
+    thighBare ? skin : cloth,
+    bare ? skin : cloth,
+    shade ? undefined : thighBare ? pal.skinDark : pal.bottomDark,
+    shade ? undefined : bare ? pal.skinDark : pal.bottomDark,
+  );
+  if (detail && !bare) {
+    // The hem above the shoe.
+    const qx = l.kx + ox + (l.ax - l.kx) * 0.9;
+    const qy = l.ky + (l.ay - l.ky) * 0.9;
+    const nx = -(l.ay - l.ky) / SHIN;
+    const ny = (l.ax - l.kx) / SHIN;
+    const half = (legW - 2.2) * 0.4;
+    SCRATCH_LINE[0] = qx - nx * half;
+    SCRATCH_LINE[1] = qy - ny * half;
+    SCRATCH_LINE[2] = qx + nx * half;
+    SCRATCH_LINE[3] = qy + ny * half;
+    stroke(g, pal.soft, pal.lw * 0.8, SCRATCH_LINE);
+  }
+  g.save();
+  g.translate(ox, 0);
+  shoe(g, pal, l, k, detail);
+  g.restore();
+}
+
+function drawEar(g: G, pal: Paint): void {
+  g.beginPath();
+  g.ellipse(-0.9, 0.7, 1.15, 1.7, 0.15, 0, TAU);
+  g.fillStyle = pal.skin;
+  g.fill();
+  g.strokeStyle = pal.line;
+  g.lineWidth = pal.lw * 0.8;
+  g.stroke();
+}
+
+function drawHairSheen(g: G, pal: Paint): void {
+  stroke(g, pal.hairLight, 0.7, [1.8, -6.5, -2.6, -6.9]);
+}
+
+function drawBackHair(g: G, pal: Paint): void {
+  shape(
+    g,
+    [-6.2, -2.6, 1, -6, 1.6, 2.2, -4.2, 4.2, 1, -2.4, 1.6, 0.8, -1.4, -2.6, 0.8],
+    pal,
+    pal.hair,
+  );
+}
 
 /**
  * Draws one figure. The context is already at the figure's ground point,
@@ -500,8 +692,8 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   const hipH =
     lerp(walkHip, rolling ? 46.5 : 51.2, stand) + (rolling ? Math.sin(s.t * 2.1) * 0.4 : 0);
   const deck = rolling ? 4.2 : 0;
-  const near = leg(p, stride, duty, lift, hipH, stand, rolling ? 5 : 2.2);
-  const far = leg((p + 0.5) % 1, stride, duty, lift, hipH, stand, rolling ? -5.5 : -2.6);
+  const near = leg(p, stride, duty, lift, hipH, stand, rolling ? 5 : 2.2, NEAR_LEG);
+  const far = leg((p + 0.5) % 1, stride, duty, lift, hipH, stand, rolling ? -5.5 : -2.6, FAR_LEG);
 
   g.save();
   g.translate(0, -deck);
@@ -523,163 +715,44 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   // ----- arms: the walk's own swing, then whatever the hands are doing -----
   const swing = (k.swing ?? (run ? 0.85 : 0.5)) * (1 - stand);
   const hand = k.hand;
-  const armAt = (phase: number): Arm => {
-    const c = Math.cos(TAU * phase);
-    return run
-      ? { a: -swing * c, b: 1.35 + 0.25 * c, hand: true }
-      : { a: -swing * c + 0.03, b: 0.16 + 0.42 * (1 - c) * 0.5, hand: true };
-  };
-  let nearArm = armAt(p);
-  let farArm = armAt((p + 0.5) % 1);
-  const set = (arm: Arm, a: number, b: number, amount = 1, showHand = true): Arm => ({
-    a: lerp(arm.a, a, amount),
-    b: lerp(arm.b, b, amount),
-    hand: showHand,
-  });
+  const nearArm = computeWalkArm(p, swing, run, NEAR_ARM);
+  const farArm = computeWalkArm((p + 0.5) % 1, swing, run, FAR_ARM);
   if (hand) {
-    if (HANG.has(hand)) nearArm = { a: nearArm.a * 0.3, b: 0.12, hand: true };
-    else if (hand === 'phone') nearArm = set(nearArm, 0.42, 1.78);
-    else if (hand === 'coffee') nearArm = set(nearArm, 0.18, 1.42);
+    if (HANG.has(hand)) {
+      nearArm.a *= 0.3;
+      nearArm.b = 0.12;
+    } else if (hand === 'phone') blendArm(nearArm, 0.42, 1.78);
+    else if (hand === 'coffee') blendArm(nearArm, 0.18, 1.42);
     else if (hand === 'laptop' || hand === 'board' || hand === 'boat')
-      nearArm = set(nearArm, -0.12, 0.85);
-    else if (hand === 'suitcase') nearArm = set(nearArm, -0.5, 0.08);
+      blendArm(nearArm, -0.12, 0.85);
+    else if (hand === 'suitcase') blendArm(nearArm, -0.5, 0.08);
     else if (hand === 'cane' || hand === 'staff')
-      nearArm = set(nearArm, 0.34 + 0.2 * Math.sin(TAU * p) * (1 - stand), 0.72);
-    else if (hand === 'leash') nearArm = set(nearArm, 0.42 + 0.06 * Math.sin(s.t * 3.1), 0.42);
-    else if (hand === 'pocket') nearArm = set(nearArm, -0.04, 0.42, 1, false);
+      blendArm(nearArm, 0.34 + 0.2 * Math.sin(TAU * p) * (1 - stand), 0.72);
+    else if (hand === 'leash') blendArm(nearArm, 0.42 + 0.06 * Math.sin(s.t * 3.1), 0.42);
+    else if (hand === 'pocket') blendArm(nearArm, -0.04, 0.42, 1, false);
     else if (hand === 'box' || hand === 'openlaptop') {
-      nearArm = set(nearArm, 0.38, 1.36);
-      farArm = set(farArm, 0.5, 1.3);
+      blendArm(nearArm, 0.38, 1.36);
+      blendArm(farArm, 0.5, 1.3);
     } else if (hand === 'bike' || hand === 'stroller') {
-      nearArm = set(nearArm, 0.62, 0.62);
-      farArm = set(farArm, 0.7, 0.55);
+      blendArm(nearArm, 0.62, 0.62);
+      blendArm(farArm, 0.7, 0.55);
     }
   }
   if (k.roll === 'scooter') {
-    nearArm = set(nearArm, 0.72, 0.5);
-    farArm = set(farArm, 0.78, 0.45);
+    blendArm(nearArm, 0.72, 0.5);
+    blendArm(farArm, 0.78, 0.45);
   }
-  if (s.phone > 0) nearArm = set(nearArm, 0.42, 1.78, s.phone);
-  if (s.shrug > 0) nearArm = set(nearArm, 0.5, 2.25, s.shrug);
-  if (s.wave > 0) nearArm = set(nearArm, 2.55 + Math.sin(s.t * 9) * 0.16 * s.wave, 0.55, s.wave);
+  if (s.phone > 0) blendArm(nearArm, 0.42, 1.78, s.phone);
+  if (s.shrug > 0) blendArm(nearArm, 0.5, 2.25, s.shrug);
+  if (s.wave > 0) blendArm(nearArm, 2.55 + Math.sin(s.t * 9) * 0.16 * s.wave, 0.55, s.wave);
 
   const shX = tx(0.6, TORSO - 2.6);
   const shY = ty(0.6, TORSO - 2.6);
   const armW = (child ? 4.6 : 5.7) * Math.sqrt(build) * (bulk > 1.2 ? 1.25 : bulk > 1 ? 1.1 : 1);
-  const joint = (arm: Arm, ox: number) => {
-    const ex = shX + ox + Math.sin(arm.a + lean) * UPPER;
-    const ey = shY + Math.cos(arm.a + lean) * UPPER;
-    const fa = arm.a + lean + arm.b;
-    return [ex, ey, ex + Math.sin(fa) * FORE, ey + Math.cos(fa) * FORE] as const;
-  };
-  const drawArm = (arm: Arm, ox: number, shade: boolean) => {
-    const [ex, ey, wx, wy] = joint(arm, ox);
-    const sleeve = shade ? pal.topDark : pal.top;
-    const skin = shade ? pal.skinDark : pal.skin;
-    const band = shade ? undefined : long ? pal.topDark : pal.skinDark;
-    limb(
-      g,
-      pal,
-      shX + ox,
-      shY,
-      ex,
-      ey,
-      wx,
-      wy,
-      armW,
-      armW * 0.8,
-      long ? sleeve : skin,
-      long ? sleeve : skin,
-      band,
-      band,
-    );
-    if (!long) {
-      // A short sleeve: cloth to the middle of the upper arm.
-      const mx = shX + ox + (ex - shX - ox) * 0.58;
-      const my = shY + (ey - shY) * 0.58;
-      g.fillStyle = pal.line;
-      g.beginPath();
-      capsule(g, shX + ox, shY, mx, my, armW * 0.6 + pal.lw, armW * 0.56 + pal.lw);
-      g.fill();
-      g.fillStyle = sleeve;
-      g.beginPath();
-      capsule(g, shX + ox, shY, mx, my, armW * 0.6, armW * 0.56);
-      g.fill();
-    } else if (
-      detail &&
-      (top === 'hoodie' || top === 'puffer' || top === 'jacket' || top === 'leather')
-    ) {
-      // A cuff.
-      const qx = ex + (wx - ex) * 0.86;
-      const qy = ey + (wy - ey) * 0.86;
-      const nx = -(wy - ey) / FORE;
-      const ny = (wx - ex) / FORE;
-      const half = armW * 0.36;
-      stroke(g, pal.soft, pal.lw * 0.8, [
-        qx - nx * half,
-        qy - ny * half,
-        qx + nx * half,
-        qy + ny * half,
-      ]);
-    }
-    if (arm.hand) {
-      const fa = arm.a + lean + arm.b;
-      const tipX = wx + Math.sin(fa) * 3;
-      const tipY = wy + Math.cos(fa) * 3;
-      g.fillStyle = pal.line;
-      g.beginPath();
-      capsule(g, wx, wy, tipX, tipY, 2 + pal.lw, 1.6 + pal.lw);
-      g.fill();
-      g.fillStyle = skin;
-      g.beginPath();
-      capsule(g, wx, wy, tipX, tipY, 2, 1.6);
-      g.fill();
-    }
-    return [wx, wy] as const;
-  };
 
   // ----- behind the body -----
   const legW = k.bottomStyle === 'wide' ? 11.4 : k.bottomStyle === 'slim' ? 8 : 9.6;
   const bare = k.bottomStyle === 'shorts' || k.bottomStyle === 'skirt' || top === 'dress';
-  const drawLeg = (l: Leg, shade: boolean, ox: number) => {
-    const cloth = shade ? pal.bottomDark : pal.bottom;
-    const skin = shade ? pal.skinDark : pal.skin;
-    const thighBare = k.bottomStyle === 'none' || k.bottomStyle === 'skirt' || top === 'dress';
-    limb(
-      g,
-      pal,
-      ox,
-      -hipH,
-      l.kx + ox,
-      l.ky,
-      l.ax + ox,
-      l.ay,
-      legW * build ** 0.4,
-      (legW - 2.2) * (bare ? 0.72 : 1),
-      thighBare ? skin : cloth,
-      bare ? skin : cloth,
-      shade ? undefined : thighBare ? pal.skinDark : pal.bottomDark,
-      shade ? undefined : bare ? pal.skinDark : pal.bottomDark,
-    );
-    if (detail && !bare) {
-      // The hem above the shoe.
-      const qx = l.kx + ox + (l.ax - l.kx) * 0.9;
-      const qy = l.ky + (l.ay - l.ky) * 0.9;
-      const nx = -(l.ay - l.ky) / SHIN;
-      const ny = (l.ax - l.kx) / SHIN;
-      const half = (legW - 2.2) * 0.4;
-      stroke(g, pal.soft, pal.lw * 0.8, [
-        qx - nx * half,
-        qy - ny * half,
-        qx + nx * half,
-        qy + ny * half,
-      ]);
-    }
-    g.save();
-    g.translate(ox, 0);
-    shoe(g, pal, l, k, detail);
-    g.restore();
-  };
 
   if (k.roll === 'scooter') {
     // Deck, stem and bar; the rider stands on the deck.
@@ -715,7 +788,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     stroke(g, pal.line, pal.lw * 3, [0.5, -38.5, 7, -38.5]);
   }
 
-  drawArm(farArm, -1.2, true);
+  drawArmSegment(g, pal, farArm, shX, shY, -1.2, lean, armW, long, top, detail, true);
   if (k.back === 'guitar') {
     const gx = tx(-depth * 1.3, 10);
     const gy = ty(-depth * 1.3, 10);
@@ -733,7 +806,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     );
     g.restore();
   }
-  drawLeg(far, true, -1.4);
+  drawLegSegment(g, pal, k, far, hipH, legW, build, bare, top, detail, true, -1.4);
 
   // ----- cloak, skirt and long coats hang from the body and trail the walk -----
   const sway = Math.sin(2 * TAU * p) * 1.3 * (1 - stand);
@@ -774,7 +847,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     );
   }
 
-  drawLeg(near, false, 1.4);
+  drawLegSegment(g, pal, k, near, hipH, legW, build, bare, top, detail, false, 1.4);
 
   if (k.bottomStyle === 'skirt' || top === 'dress') {
     const hy = top === 'dress' ? -23 : -27;
@@ -1107,6 +1180,14 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     g.fillStyle = pal.accent;
     g.fill();
   }
+  if (detail && top !== 'cloak') {
+    // Subtle warm evening rim highlight on the upper shoulder & back contour.
+    SCRATCH_LINE[0] = tx(-1.6, TORSO + 0.1);
+    SCRATCH_LINE[1] = ty(-1.6, TORSO + 0.1);
+    SCRATCH_LINE[2] = tx(-d * 0.88 - stoop, TORSO - 5.2);
+    SCRATCH_LINE[3] = ty(-d * 0.88 - stoop, TORSO - 5.2);
+    stroke(g, pal.rim, pal.lw * 0.85, SCRATCH_LINE);
+  }
 
   // ----- neck and head -----
   const tilt =
@@ -1289,23 +1370,6 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     g.strokeRect(eyeX - 1, -2.7, 3, 2.5);
   }
 
-  const ear = () => {
-    g.beginPath();
-    g.ellipse(-0.9, 0.7, 1.15, 1.7, 0.15, 0, TAU);
-    g.fillStyle = pal.skin;
-    g.fill();
-    g.strokeStyle = pal.line;
-    g.lineWidth = pal.lw * 0.8;
-    g.stroke();
-  };
-  const sheen = () => stroke(g, pal.hairLight, 0.7, [1.8, -6.5, -2.6, -6.9]);
-  const backHair = () =>
-    shape(
-      g,
-      [-6.2, -2.6, 1, -6, 1.6, 2.2, -4.2, 4.2, 1, -2.4, 1.6, 0.8, -1.4, -2.6, 0.8],
-      pal,
-      pal.hair,
-    );
   if (hs === 'short' || hs === 'pony' || hs === 'bun') {
     shape(
       g,
@@ -1316,8 +1380,8 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal,
       pal.hair,
     );
-    sheen();
-    ear();
+    drawHairSheen(g, pal);
+    drawEar(g, pal);
   } else if (hs === 'quiff') {
     shape(
       g,
@@ -1329,7 +1393,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal.hair,
     );
     stroke(g, pal.hairLight, 0.7, [3.6, -8, -1.6, -8.4]);
-    ear();
+    drawEar(g, pal);
   } else if (hs === 'long' || hs === 'bob') {
     shape(
       g,
@@ -1340,7 +1404,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal,
       pal.hair,
     );
-    sheen();
+    drawHairSheen(g, pal);
   } else if (hs === 'curly') {
     const curls = [3.8, -6, 0.8, -8, -2.8, -7.8, -5.8, -5.4, -7, -2, -6.2, 1.4, -3.8, 3.4];
     g.fillStyle = pal.line;
@@ -1365,10 +1429,12 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
     g.closePath();
     g.fill();
     stroke(g, pal.hairLight, 0.7, [1.6, -9.4, -1.8, -9.6]);
-    ear();
-  } else if (hs === 'bald') ear();
-  else if (hs === 'cap') {
-    backHair();
+    drawEar(g, pal);
+  } else if (hs === 'bald') {
+    if (detail) stroke(g, pal.rim, 0.65, [2.2, -5.9, -2.2, -5.7]);
+    drawEar(g, pal);
+  } else if (hs === 'cap') {
+    drawBackHair(g, pal);
     shape(
       g,
       [5.2, -3.3, 0.6, 4.6, -7.2, 2.4, -1.6, -8, 3.4, -6.6, -4.6, 3.2, -6.5, -2.5, 0.8],
@@ -1376,9 +1442,10 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal.item,
     );
     shape(g, [4.8, -4.2, 0.5, 9.8, -3.3, 0.8, 9.6, -2.5, 0.4, 5, -2.9, 0.3], pal, pal.item);
-    ear();
+    if (detail) stroke(g, pal.rim, 0.7, [2.6, -6.8, -2.4, -7.2]);
+    drawEar(g, pal);
   } else if (hs === 'beanie') {
-    backHair();
+    drawBackHair(g, pal);
     shape(
       g,
       [5.4, -3.4, 0.8, 4.8, -8, 2.6, -1.4, -9, 3.6, -6.8, -5.2, 3.4, -6.8, -2.3, 0.8],
@@ -1386,12 +1453,14 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal.item,
     );
     stroke(g, pal.soft, pal.lw * 0.8, [5.2, -4.8, -6.8, -3.8]);
-    ear();
+    if (detail) stroke(g, pal.rim, 0.7, [2.2, -7.6, -2.6, -7.8]);
+    drawEar(g, pal);
   } else if (hs === 'hat') {
-    backHair();
+    drawBackHair(g, pal);
     shape(g, [4.6, -4.2, 0.6, 3.8, -8.2, 1.6, -4.8, -8.2, 1.6, -5.8, -4, 0.6], pal, pal.item);
     shape(g, [8.4, -3.4, 0.7, -8.8, -3, 0.7, -8.4, -4.5, 0.5, 8, -4.9, 0.5], pal, pal.item);
-    ear();
+    if (detail) stroke(g, pal.rim, 0.7, [3.2, -7.7, -4.2, -7.7]);
+    drawEar(g, pal);
   } else if (hs === 'hijab' || hs === 'hood') {
     shape(
       g,
@@ -1402,6 +1471,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
       pal,
       hs === 'hijab' ? pal.item : pal.topDark,
     );
+    if (detail) stroke(g, pal.rim, 0.7, [2.6, -7, -2.6, -7.1]);
   }
   if (k.phones) {
     g.beginPath();
@@ -1417,7 +1487,9 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   g.restore();
 
   // ----- the near arm, and what it holds -----
-  const [wx, wy] = drawArm(nearArm, 1.2, false);
+  drawArmSegment(g, pal, nearArm, shX, shY, 1.2, lean, armW, long, top, detail, false);
+  const wx = WRIST_POS[0];
+  const wy = WRIST_POS[1];
   const glow = 0.7 + 0.3 * Math.sin(s.t * 2.3);
   if (s.phone > 0.4 || hand === 'phone') {
     g.save();
@@ -1471,12 +1543,8 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   } else if (hand === 'suitcase') {
     stroke(g, pal.line, pal.lw * 1.6, [wx, wy, wx - 7, -24]);
     box(g, pal, wx - 17, -25, 12.5, 22, 2.2, pal.item);
-    stroke(
-      g,
-      pal.line,
-      pal.lw * 0.7,
-      [wx - 13.6, -22, wx - 13.6, -6, wx - 8, -22, wx - 8, -6].slice(0, 4),
-    );
+    stroke(g, pal.line, pal.lw * 0.7, [wx - 13.6, -22, wx - 13.6, -6]);
+    stroke(g, pal.line, pal.lw * 0.7, [wx - 8, -22, wx - 8, -6]);
     wheel(g, pal, wx - 14.5, -1.6, 1.6, 0, false);
     wheel(g, pal, wx - 7, -1.6, 1.6, 0, false);
   } else if (hand === 'box') {
@@ -1594,7 +1662,7 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   if (k.with === 'dog' || k.with === 'pup') {
     const big = k.with === 'dog';
     const dx = wx + (big ? 28 : 21) + Math.sin(s.t * 1.3) * 2;
-    drawDog(g, pal, dx, big ? 1 : 0.68, p, stand, s.t);
+    drawDog(g, pal, dx, big ? 1 : 0.68, p, stand, s.t, s.turn);
     stroke(g, pal.line, pal.lw * 0.9, [wx + 1, wy + 1, dx - (big ? 2 : 1), big ? -20 : -13.5]);
   }
 
@@ -1603,46 +1671,67 @@ export function drawFigure(g: G, k: Look, pal: Paint, s: Pose, detail = true): v
   if (k.with === 'robot') drawRobot(g, pal, -27 - Math.sin(s.t * 0.9) * 2, s);
 }
 
+function drawDogPaw(
+  g: G,
+  pal: Paint,
+  ox: number,
+  phase: number,
+  p: number,
+  stand: number,
+  shade: boolean,
+): void {
+  const a = Math.sin(TAU * (p * 2 + phase)) * 0.55 * (1 - stand);
+  limb(
+    g,
+    pal,
+    ox,
+    -13,
+    ox + Math.sin(a) * 6,
+    -7,
+    ox + Math.sin(a) * 6 + Math.sin(a * 0.4) * 4,
+    -0.8,
+    3,
+    2.4,
+    pal.item,
+    pal.item,
+    // The far pair is in the dog's own shadow, never in its owner's coat colour.
+    shade ? pal.soft : undefined,
+    shade ? pal.soft : undefined,
+  );
+}
+
 /** A small dog trotting ahead on its lead. */
-function drawDog(g: G, pal: Paint, x: number, size: number, p: number, stand: number, t: number) {
+function drawDog(
+  g: G,
+  pal: Paint,
+  x: number,
+  size: number,
+  p: number,
+  stand: number,
+  t: number,
+  alert = 0,
+) {
   g.save();
   g.translate(x, 0);
   g.scale(size, size);
-  const trot = (phase: number) => Math.sin(TAU * (p * 2 + phase)) * 0.55 * (1 - stand);
-  const paw = (ox: number, phase: number, shade: boolean) => {
-    const a = trot(phase);
-    limb(
-      g,
-      pal,
-      ox,
-      -13,
-      ox + Math.sin(a) * 6,
-      -7,
-      ox + Math.sin(a) * 6 + Math.sin(a * 0.4) * 4,
-      -0.8,
-      3,
-      2.4,
-      pal.item,
-      pal.item,
-      // The far pair is in the dog's own shadow, never in its owner's coat colour.
-      shade ? pal.soft : undefined,
-      shade ? pal.soft : undefined,
-    );
-  };
-  paw(-7, 0.5, true);
-  paw(7.5, 0, true);
-  const wag = Math.sin(t * 11) * 0.35;
+  drawDogPaw(g, pal, -7, 0.5, p, stand, true);
+  drawDogPaw(g, pal, 7.5, 0, p, stand, true);
+  const wag = Math.sin(t * (11 + alert * 5)) * (0.35 + alert * 0.2);
   cord(g, pal, pal.item, 2.4 + pal.lw * 2, 2.4, [-10, -16, -15 - wag * 2, -22 - Math.abs(wag) * 2]);
   shape(g, [-11, -19, 4, 9, -20, 4, 11, -11.5, 4, -10, -11, 4], pal, pal.item);
-  paw(-8.5, 0, false);
-  paw(6, 0.5, false);
-  shape(g, [7, -26, 3, 15, -25.5, 3, 19.6, -20.6, 1.8, 15, -17, 3, 8, -17.5, 3], pal, pal.item);
-  shape(g, [8.4, -26.6, 1.2, 11.6, -26.4, 1.2, 9.4, -20.6, 1.4], pal, pal.item);
+  drawDogPaw(g, pal, -8.5, 0, p, stand, false);
+  drawDogPaw(g, pal, 6, 0.5, p, stand, false);
+  g.save();
+  g.translate(10, -19);
+  g.rotate(-alert * 0.16);
+  shape(g, [-3, -7, 3, 5, -6.5, 3, 9.6, -1.6, 1.8, 5, 2, 3, -2, 1.5, 3], pal, pal.item);
+  shape(g, [-1.6, -7.6, 1.2, 1.6, -7.4, 1.2, -0.6, -1.6, 1.4], pal, pal.item);
   g.fillStyle = pal.line;
   g.beginPath();
-  g.arc(14.2, -22.6, 0.7, 0, TAU);
-  g.arc(19.2, -20.8, 0.8, 0, TAU);
+  g.arc(4.2, -3.6, 0.7, 0, TAU);
+  g.arc(9.2, -1.8, 0.8, 0, TAU);
   g.fill();
+  g.restore();
   g.restore();
 }
 
@@ -1655,11 +1744,19 @@ function drawRobot(g: G, pal: Paint, x: number, s: Pose) {
   stroke(g, pal.line, pal.lw * 2.6, [0, -8.4, 0, -12 + bob]);
   box(g, pal, -6.4, -24 + bob, 12.8, 12.4, 3.4, pal.metal);
   box(g, pal, -4.6, -32.6 + bob, 10.4, 7.6, 3, pal.metal);
-  // One eye, looking where it is going.
-  g.globalAlpha = 0.75 + 0.25 * Math.sin(s.t * 2.2) + 0;
+  // Subtle eye glow & active halo when emphasized or turning toward the viewer.
+  const glowR = 1.7 + s.lit * 0.5;
+  if (s.lit > 0.05 || s.turn > 0.2) {
+    g.globalAlpha = 0.24 * Math.max(s.lit, s.turn * 0.6);
+    g.fillStyle = pal.accent;
+    g.beginPath();
+    g.arc(2.6, -28.8 + bob, glowR + 2.4, 0, TAU);
+    g.fill();
+  }
+  g.globalAlpha = 0.75 + 0.25 * Math.sin(s.t * 2.2);
   g.fillStyle = pal.accent;
   g.beginPath();
-  g.arc(2.6, -28.8 + bob, 1.7 + s.lit * 0.5, 0, TAU);
+  g.arc(2.6, -28.8 + bob, glowR, 0, TAU);
   g.fill();
   g.globalAlpha = 1;
   stroke(g, pal.line, pal.lw, [-1.6, -32.6 + bob, -3.4 - Math.sin(s.t * 3.4) * 1.2, -38.6 + bob]);

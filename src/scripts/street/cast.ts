@@ -157,6 +157,8 @@ export function paintFor(look: Look, haze: number, wall: C3, lw: number): Paint 
     metal: at(METAL),
     // The accent keeps its colour at every depth: it is the one thing meant to be found.
     accent: at(look.accent ?? METAL, look.accent ? 0.35 : 1, !look.accent),
+    // Subtle warm amber rim from the streetlamps & site hoarding, tying silhouettes to the night stage.
+    rim: `oklch(0.84 0.075 78 / ${(haze < 0 ? 0.22 : 0.34 * (1 - t * 0.72)).toFixed(2)})`,
     lw,
   };
 }
