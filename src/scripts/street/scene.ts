@@ -8,6 +8,7 @@
  * motion is welcome. Otherwise nothing is scheduled at all: one composed
  * frame stays painted.
  */
+import { createAvatarPresence, type AvatarPresenceSnapshot } from './avatar-presence';
 import { CAST, paintFor, pick } from './cast';
 import { cycleLength, drawFigure, type C3, type Look, type Paint, type Pose } from './figure';
 import {
@@ -29,9 +30,9 @@ interface Lane {
 }
 
 const LANES: readonly Lane[] = [
-  { y: 0.7, scale: 0.47, haze: 0.5, front: false, share: 0.24, pace: 0.86 },
-  { y: 0.785, scale: 0.61, haze: 0.3, front: false, share: 0.26, pace: 0.93 },
-  { y: 0.875, scale: 0.78, haze: 0.13, front: false, share: 0.24, pace: 1 },
+  { y: 0.7, scale: 0.47, haze: 0.52, front: false, share: 0.24, pace: 0.86 },
+  { y: 0.785, scale: 0.61, haze: 0.32, front: false, share: 0.26, pace: 0.93 },
+  { y: 0.875, scale: 0.78, haze: 0.14, front: false, share: 0.24, pace: 1 },
   { y: 0.99, scale: 0.97, haze: 0, front: true, share: 0.2, pace: 1.05 },
   { y: 1.2, scale: 1.34, haze: -0.3, front: true, share: 0.06, pace: 1.15 },
 ];
@@ -47,6 +48,8 @@ interface Walker {
   lane: number;
   x: number;
   dy: number;
+  baseDy: number;
+  targetDy: number;
   dir: 1 | -1;
   /** Pixels per second at full pace, and now. */
   pace: number;
@@ -88,6 +91,7 @@ export interface StreetStats {
   cost: number;
   front: number;
   back: number;
+  vignettes: number;
 }
 
 export interface Street {
@@ -103,6 +107,7 @@ export interface Street {
     front: boolean;
     act: string | null;
   }[];
+  avatar(): AvatarPresenceSnapshot;
   destroy(): void;
 }
 
@@ -124,12 +129,14 @@ export function createStreet(options: StreetOptions): Street {
   const contexts = canvases.map((canvas) => canvas.getContext('2d'));
   const random = rng(options.seed ?? (Date.now() ^ (performance.now() * 1000)) >>> 0);
   const between = (lo: number, hi: number) => lo + random() * (hi - lo);
+  const presence = createAvatarPresence({ avatar, random });
 
   let width = 0;
   let height = 0;
   let dpr = 1;
   let clock = 0;
-  let state: StreetStats['state'] = options.reduce ? 'static' : 'paused';
+  let reduce = options.reduce;
+  let state: StreetStats['state'] = reduce ? 'static' : 'paused';
   let stopClock: (() => void) | undefined;
   let last = 0;
   let visible = false;
@@ -137,23 +144,27 @@ export function createStreet(options: StreetOptions): Street {
   let left = 0;
   let frames = 0;
   let cost = 0;
+  let vignettes = 0;
   let quality: QualityTier = getQualityTier();
   /** 1 at full population; the governor lowers it on a device that struggles. */
   let budget = 1;
   let slowFor = 0;
   let nextEvent = 3;
+  let nextVignetteCheck = 1.4;
+  let lastVignetteAt = -10;
   let shown = -1;
   let destroyed = false;
 
-  // One soft shadow, painted once and stamped under every pair of feet.
+  // One soft shadow, painted once and stamped under every pair of feet and companions.
   const shadow = document.createElement('canvas');
   shadow.width = 128;
   shadow.height = 32;
   const sg = shadow.getContext('2d');
   if (sg) {
     sg.scale(1, 0.25);
-    const fade = sg.createRadialGradient(64, 64, 4, 64, 64, 64);
-    fade.addColorStop(0, 'rgb(4 5 10 / 0.62)');
+    const fade = sg.createRadialGradient(64, 64, 3, 64, 64, 64);
+    fade.addColorStop(0, 'rgb(4 5 10 / 0.68)');
+    fade.addColorStop(0.42, 'rgb(4 5 10 / 0.36)');
     fade.addColorStop(1, 'rgb(4 5 10 / 0)');
     sg.fillStyle = fade;
     sg.fillRect(0, 0, 128, 128);
@@ -163,6 +174,7 @@ export function createStreet(options: StreetOptions): Street {
   const pool: Walker[] = [];
   const takenIds = new Set<string>();
   const heldEggs = new Set<string>();
+  const storyScratch: Walker[] = [];
   const nextSpawn = LANES.map(() => 0);
   const pointer = { x: -1, y: -1, on: false };
   const labels = new Map(options.cast.map((el) => [el.dataset['cast'] ?? '', el]));
@@ -172,8 +184,11 @@ export function createStreet(options: StreetOptions): Street {
     { active: false, minX: 0, minY: 0, maxX: 0, maxY: 0 },
   ];
 
-  // ---------- size ----------
+  // ---------- size & avatar composition corridor ----------
   const unit = (lane: Lane) => height * UNIT * lane.scale;
+  const avatarCoreHalf = () => Math.max(36, height * 0.13);
+  const avatarFlankMin = () => avatarCoreHalf() * 1.15;
+  const avatarFlankMax = () => Math.max(115, width * 0.27);
 
   function resize() {
     const rect = stage.getBoundingClientRect();
@@ -254,6 +269,8 @@ export function createStreet(options: StreetOptions): Street {
     return true;
   }
 
+  const order = (walker: Walker) => walker.lane * 10 + walker.dy / (height || 1);
+
   function add(look: Look, lane: number, x: number, dir: 1 | -1): Walker {
     const def = LANES[lane]!;
     const walker: Walker = pool.pop() ?? {
@@ -262,6 +279,8 @@ export function createStreet(options: StreetOptions): Street {
       lane,
       x,
       dy: 0,
+      baseDy: 0,
+      targetDy: 0,
       dir,
       pace: 0,
       v: 0,
@@ -276,11 +295,14 @@ export function createStreet(options: StreetOptions): Street {
       tall: 0,
     };
     const u = height * UNIT * def.scale * look.h;
+    const baseDy = between(-0.012, 0.012) * height * def.scale;
     walker.look = look;
     walker.lane = lane;
     walker.x = x;
     walker.dir = dir;
-    walker.dy = between(-0.012, 0.012) * height * def.scale;
+    walker.dy = baseDy;
+    walker.baseDy = baseDy;
+    walker.targetDy = baseDy;
     walker.paint = paintFor(
       look,
       def.haze,
@@ -308,8 +330,6 @@ export function createStreet(options: StreetOptions): Street {
     return walker;
   }
 
-  const order = (walker: Walker) => walker.lane * 10 + walker.dy / (height || 1);
-
   function clearAt(lane: number, x: number, gap: number): boolean {
     for (const walker of walkers) {
       if (walker.lane === lane && Math.abs(walker.x - x) < gap + walker.half) return false;
@@ -323,12 +343,14 @@ export function createStreet(options: StreetOptions): Street {
     const dir: 1 | -1 = side ?? (random() < 0.5 ? 1 : -1);
     const margin = height * UNIT * LANES[lane]!.scale * 60;
     const x = dir === 1 ? -margin : width + margin;
-    if (!look && !clearAt(lane, x, margin * 0.6)) return null;
+    if (!look && !clearAt(lane, x, margin * 0.8)) return null;
     return add(chosen, lane, x, dir);
   }
 
-  /** The street as it is when the page arrives: already busy, nobody mid-entrance. */
+  /** The street as it is when the page arrives: already busy, composition-balanced. */
   function populate() {
+    const centre = width * 0.5;
+    const clearHalf = avatarCoreHalf() * 1.15;
     for (let lane = 0; lane < LANES.length; lane += 1) {
       const count = lane === 4 ? 0 : laneTarget(lane);
       for (let i = 0; i < count; i += 1) {
@@ -336,7 +358,13 @@ export function createStreet(options: StreetOptions): Street {
         if (!look) break;
         // One slot each across the width, so the first frame is evenly peopled.
         const slot = width / count;
-        const x = slot * i + between(0.12, 0.88) * slot;
+        let x = slot * i + between(0.14, 0.86) * slot;
+        // Keep the initial frame from stamping a foreground walker over Nikolay's torso.
+        if (lane === 3 && Math.abs(x - centre) < clearHalf) {
+          const pushDir = x < centre ? -1 : 1;
+          const shifted = centre + pushDir * (clearHalf + 14);
+          if (shifted > 24 && shifted < width - 24) x = shifted;
+        }
         add(look, lane, x, random() < 0.5 ? 1 : -1);
       }
       nextSpawn[lane] = lane === 4 ? between(4, 10) : between(0.5, 3);
@@ -344,61 +372,101 @@ export function createStreet(options: StreetOptions): Street {
   }
 
   // ---------- the standing figure ----------
-  const me = {
-    head: '',
-    until: 0,
-    nextLook: between(3, 6),
-    nextBlink: between(2, 5),
-    blinkUntil: 0,
-  };
-
-  function turnHead(to: 'left' | 'right' | 'nod', seconds: number) {
+  function standing() {
     if (!avatar) return;
-    me.head = to;
-    me.until = clock + seconds;
-    avatar.dataset['head'] = to;
-  }
+    const { wantsTarget } = presence.tick(clock, state !== 'running');
+    if (!wantsTarget || state !== 'running') return;
 
-  function standing(dt: number) {
-    if (!avatar) return;
-    if (me.head && clock > me.until) {
-      me.head = '';
-      delete avatar.dataset['head'];
-      me.nextLook = clock + between(4, 10);
-    }
-    if (!me.head && clock > me.nextLook) {
-      // Mostly he watches whoever is passing closest in front of him.
-      const centre = width / 2;
-      let nearest: Walker | null = null;
-      for (const walker of walkers) {
-        if (walker.lane < 2 || Math.abs(walker.x - centre) > width * 0.22) continue;
-        if (!nearest || Math.abs(walker.x - centre) < Math.abs(nearest.x - centre))
-          nearest = walker;
+    const centre = width * 0.5;
+    const maxDist = width * 0.24;
+    let best: Walker | null = null;
+    let bestScore = Infinity;
+    for (const walker of walkers) {
+      if (walker.lane < 2) continue;
+      const dist = Math.abs(walker.x - centre);
+      if (dist > maxDist) continue;
+      // Subtle preference for companions and project cast passing near the middle.
+      const interest = walker.look.egg || walker.look.with ? 0.65 : 1;
+      const score = dist * interest;
+      if (score < bestScore) {
+        bestScore = score;
+        best = walker;
       }
-      if (nearest) turnHead(nearest.x < centre ? 'left' : 'right', between(1.4, 2.6));
-      else me.nextLook = clock + between(2, 5);
     }
-    if (clock > me.nextBlink) {
-      avatar.dataset['blink'] = '';
-      me.blinkUntil = clock + 0.14;
-      me.nextBlink = clock + between(4, 8);
-    } else if (me.blinkUntil && clock > me.blinkUntil) {
-      delete avatar.dataset['blink'];
-      me.blinkUntil = 0;
-    }
-    void dt;
+    if (!best) return;
+    const side = best.x < centre ? 'left' : 'right';
+    const kind =
+      best.look.with === 'dog' || best.look.with === 'pup'
+        ? 'down'
+        : Math.abs(best.x - centre) < width * 0.12
+          ? 'near'
+          : 'soft';
+    presence.glance(clock, side, kind, between(1.5, 2.7));
   }
 
-  // ---------- small things that happen ----------
+  // ---------- small things & micro-storytelling ----------
   function begin(walker: Walker, act: Act, seconds: number) {
     walker.act = act;
     walker.actLeft = seconds;
     walker.rest = seconds + between(8, 20);
   }
 
+  function tryContextualVignette(): boolean {
+    if (clock - lastVignetteAt < 6.5 || state !== 'running') return false;
+    const centre = width * 0.5;
+    const minDist = avatarFlankMin();
+    const maxDist = avatarFlankMax();
+
+    for (const walker of walkers) {
+      if (walker.act || walker.rest > 0 || walker.look.roll || walker.look.run) continue;
+      const dist = Math.abs(walker.x - centre);
+      if (dist < minDist || dist > maxDist) continue;
+      const side = walker.x < centre ? 'left' : 'right';
+
+      // 1. Project cast / courier recognition in the flanking lanes.
+      if (walker.look.egg && (walker.lane === 2 || walker.lane === 3)) {
+        const hasItem = walker.look.hand !== undefined && walker.look.hand !== 'pocket';
+        begin(walker, hasItem ? 'look' : 'wave', 1.65);
+        walker.hold = Math.max(walker.hold, 1.8);
+        if (random() < 0.45) presence.acknowledge(clock, 1.25, 2.1);
+        else presence.glance(clock, side, 'near', 1.85);
+        lastVignetteAt = clock;
+        vignettes += 1;
+        return true;
+      }
+
+      // 2. Dog or pup companion drawing a gentle downward glance.
+      if ((walker.look.with === 'dog' || walker.look.with === 'pup') && walker.lane >= 2) {
+        begin(walker, 'look', 1.6);
+        presence.glance(clock, side, 'down', 1.85);
+        lastVignetteAt = clock;
+        vignettes += 1;
+        return true;
+      }
+
+      // 3. Builder, photographer, or engineer pausing to inspect the site hoarding.
+      if (
+        (walker.look.id === 'builder' ||
+          walker.look.id === 'photographer' ||
+          walker.look.id === 'engineer') &&
+        (walker.lane === 1 || walker.lane === 2)
+      ) {
+        begin(walker, 'look', 1.75);
+        presence.glance(clock, side, 'up', 1.85);
+        lastVignetteAt = clock;
+        vignettes += 1;
+        return true;
+      }
+    }
+    return false;
+  }
+
   function somethingHappens() {
-    const candidates = walkers.filter(
-      (walker) =>
+    const centre = width * 0.5;
+    const clearHalf = avatarCoreHalf() * 1.25;
+    storyScratch.length = 0;
+    for (const walker of walkers) {
+      if (
         walker.lane >= 1 &&
         walker.lane <= 3 &&
         !walker.act &&
@@ -406,32 +474,49 @@ export function createStreet(options: StreetOptions): Street {
         !walker.look.roll &&
         !walker.look.run &&
         walker.x > width * 0.08 &&
-        walker.x < width * 0.92,
-    );
-    if (candidates.length === 0) return;
-    const walker = candidates[Math.floor(random() * candidates.length)]!;
-    // Two people about to pass each other in the same lane may stop to say hello.
-    const other = candidates.find(
-      (candidate) =>
-        candidate !== walker &&
-        candidate.lane === walker.lane &&
-        candidate.dir !== walker.dir &&
-        (candidate.x - walker.x) * walker.dir > 0 &&
-        Math.abs(candidate.x - walker.x) < walker.half * 5,
-    );
+        walker.x < width * 0.92
+      ) {
+        storyScratch.push(walker);
+      }
+    }
+    if (storyScratch.length === 0) return;
+    const walker = storyScratch[Math.floor(random() * storyScratch.length)]!;
+    const overAvatar = walker.lane >= 2 && Math.abs(walker.x - centre) < clearHalf;
+
+    // Two people about to pass each other in the same lane may stop briefly to greet.
+    let other: Walker | undefined;
+    if (!overAvatar) {
+      for (const candidate of storyScratch) {
+        if (
+          candidate !== walker &&
+          candidate.lane === walker.lane &&
+          candidate.dir !== walker.dir &&
+          (candidate.x - walker.x) * walker.dir > 0 &&
+          Math.abs(candidate.x - walker.x) < walker.half * 5 &&
+          Math.abs(candidate.x - centre) >= clearHalf
+        ) {
+          other = candidate;
+          break;
+        }
+      }
+    }
     const roll = random();
     const busy = walker.look.hand !== undefined && walker.look.hand !== 'pocket';
     if (other && roll < 0.5) {
       begin(walker, 'greet', 2.2);
       begin(other, 'greet', 2.2);
-    } else if (roll < 0.3 && !busy) begin(walker, 'phone', between(2.6, 4.6));
-    else if (roll < 0.52 && !busy) {
+    } else if (!overAvatar && roll < 0.3 && !busy) {
+      begin(walker, 'phone', between(2.6, 4.6));
+    } else if (!overAvatar && roll < 0.52 && !busy) {
       begin(walker, 'wave', 2.1);
-      if (walker.lane >= 2 && Math.abs(walker.x - width / 2) < width * 0.3) {
-        turnHead(walker.x < width / 2 ? 'left' : 'right', 2);
+      if (walker.lane >= 2 && Math.abs(walker.x - centre) < width * 0.3) {
+        presence.glance(clock, walker.x < centre ? 'left' : 'right', 'near', 2);
       }
-    } else if (roll < 0.74 && walker.look.back === 'pack' && !busy) begin(walker, 'shrug', 1.3);
-    else begin(walker, 'look', between(1.2, 2.2));
+    } else if (roll < 0.74 && walker.look.back === 'pack' && !busy) {
+      begin(walker, 'shrug', 1.3);
+    } else {
+      begin(walker, 'look', between(1.2, 2.2));
+    }
   }
 
   // ---------- simulation ----------
@@ -447,8 +532,15 @@ export function createStreet(options: StreetOptions): Street {
       for (const walker of walkers) if (walker.lane === lane) count += 1;
       if (count < laneTarget(lane) && clock >= nextSpawn[lane]!) {
         spawn(lane);
-        nextSpawn[lane] = clock + (lane === 4 ? between(7, 16) : between(0.7, 3.2));
+        const burst = lane < 4 && random() < 0.28;
+        nextSpawn[lane] =
+          clock + (lane === 4 ? between(7, 16) : burst ? between(0.45, 1.05) : between(1.3, 3.5));
       }
+    }
+
+    if (clock >= nextVignetteCheck) {
+      tryContextualVignette();
+      nextVignetteCheck = clock + between(1.1, 2.1);
     }
 
     if (clock >= nextEvent) {
@@ -456,16 +548,25 @@ export function createStreet(options: StreetOptions): Street {
       nextEvent = clock + between(2.5, 6);
     }
 
+    const centre = width * 0.5;
+    const coreHalf = avatarCoreHalf();
     let hovered = '';
+    let dyShifted = false;
+
     for (let i = walkers.length - 1; i >= 0; i -= 1) {
       const walker = walkers[i]!;
       const pose = walker.pose;
       const lane = LANES[walker.lane]!;
       const ground = lane.y * height + walker.dy;
       walker.rest -= dt;
+      walker.targetDy = walker.baseDy;
 
       const stopped = walker.act === 'phone' || walker.act === 'wave' || walker.act === 'greet';
       let pace = stopped ? 0 : walker.pace;
+      if (walker.act === 'look' && walker.look.with) pace *= 0.62;
+      if (walker.lane >= 3 && !walker.act && Math.abs(walker.x - centre) < coreHalf) {
+        pace *= 1.08;
+      }
       let turned = walker.act === 'wave' || walker.act === 'look' ? 1 : 0;
 
       // The pointer: whoever it is near looks up, and slows a little.
@@ -480,13 +581,31 @@ export function createStreet(options: StreetOptions): Street {
           if (walker.look.egg) hovered = walker.look.egg;
         }
       }
-      // Nobody walks through the person ahead of them.
+
+      // Believable interpersonal spacing & smooth depth-offset overtaking around stopped walkers.
       if (pace > 0) {
         for (const ahead of walkers) {
           if (ahead === walker || ahead.lane !== walker.lane || ahead.dir !== walker.dir) continue;
           const gap = (ahead.x - walker.x) * walker.dir;
-          if (gap > 0 && gap < walker.half + ahead.half && ahead.v < pace) pace = ahead.v;
+          if (gap <= 0) continue;
+          const minGap = (walker.half + ahead.half) * 1.15;
+          const comfortGap = (walker.half + ahead.half) * 1.78;
+          if (gap >= comfortGap) continue;
+          if (ahead.v < ahead.pace * 0.35 && !walker.act) {
+            const sideShift = ahead.baseDy >= 0 ? -0.015 : 0.015;
+            walker.targetDy = sideShift * height * lane.scale;
+            if (pace > walker.pace * 0.9) pace = walker.pace * 0.9;
+          } else if (ahead.v < pace) {
+            const t = Math.max(0, Math.min(1, (gap - minGap) / Math.max(1, comfortGap - minGap)));
+            const desired = ahead.v + (pace - ahead.v) * t;
+            if (desired < pace) pace = desired;
+          }
         }
+      }
+
+      if (Math.abs(walker.dy - walker.targetDy) > 0.05) {
+        walker.dy = ease(walker.dy, walker.targetDy, 3.5, dt);
+        dyShifted = true;
       }
 
       walker.v = ease(walker.v, pace, stopped ? 5 : 3, dt);
@@ -518,6 +637,20 @@ export function createStreet(options: StreetOptions): Street {
       }
     }
 
+    // Re-settle painter order in O(N) only when an overtaking shift adjusted a lane y.
+    if (dyShifted && walkers.length > 1) {
+      for (let i = 1; i < walkers.length; i += 1) {
+        const cur = walkers[i]!;
+        const curOrder = order(cur);
+        let j = i - 1;
+        while (j >= 0 && order(walkers[j]!) > curOrder) {
+          walkers[j + 1] = walkers[j]!;
+          j -= 1;
+        }
+        walkers[j + 1] = cur;
+      }
+    }
+
     heldEggs.clear();
     for (const walker of walkers) {
       if (walker.look.egg) {
@@ -533,7 +666,7 @@ export function createStreet(options: StreetOptions): Street {
       }
     }
 
-    standing(dt);
+    standing();
 
     if (counter && left !== shown) {
       shown = left;
@@ -584,7 +717,7 @@ export function createStreet(options: StreetOptions): Street {
         const ground = lane.y * height + walker.dy;
         const u = unit(lane) * walker.look.h;
         const lit = walker.pose.lit;
-        const padX = Math.max(walker.half * 1.5, u * 36);
+        const padX = Math.max(walker.half * 1.5, u * 40);
         const topY = ground - walker.tall - 20 * lane.scale - u * 14;
         const botY = ground + u * 10 + 6;
         if (walker.x - padX < minX) minX = walker.x - padX;
@@ -592,9 +725,27 @@ export function createStreet(options: StreetOptions): Street {
         if (topY < minY) minY = topY;
         if (botY > maxY) maxY = botY;
 
-        // Where the figure meets the pavement.
+        // Ground contact shadows coupled to stride width and companion position.
         if (ground < height + 4) {
-          g.drawImage(shadow, walker.x - u * 21, ground - u * 3.4, u * 42, u * 9);
+          const strideSpread =
+            1 + 0.14 * Math.abs(Math.cos(Math.PI * 2 * walker.pose.p)) * (1 - walker.pose.stand);
+          g.drawImage(
+            shadow,
+            walker.x - u * 21 * strideSpread,
+            ground - u * 3.4,
+            u * 42 * strideSpread,
+            u * 9,
+          );
+          if (walker.look.with === 'dog' || walker.look.with === 'pup') {
+            const big = walker.look.with === 'dog';
+            const compX =
+              walker.x + walker.dir * u * ((big ? 36 : 28) + Math.sin(walker.pose.t * 1.3) * 2);
+            const compW = u * (big ? 24 : 17);
+            g.drawImage(shadow, compX - compW * 0.5, ground - u * 2.5, compW, u * 6);
+          } else if (walker.look.with === 'robot') {
+            const compX = walker.x - walker.dir * u * (27 + Math.sin(walker.pose.t * 0.9) * 2);
+            g.drawImage(shadow, compX - u * 8.5, ground - u * 2.4, u * 17, u * 5.6);
+          }
           if (lit > 0.02) {
             g.beginPath();
             g.ellipse(walker.x, ground + u * 0.6, u * 15, u * 2.6, 0, 0, Math.PI * 2);
@@ -665,7 +816,17 @@ export function createStreet(options: StreetOptions): Street {
   }
 
   function sync() {
-    if (destroyed || options.reduce) return;
+    if (destroyed) return;
+    if (reduce) {
+      stopClock?.();
+      stopClock = undefined;
+      presence.reset();
+      if (state !== 'static') {
+        setState('static');
+        draw();
+      }
+      return;
+    }
     const run = visible && !document.hidden;
     if (run && state !== 'running') {
       setState('running');
@@ -680,6 +841,11 @@ export function createStreet(options: StreetOptions): Street {
 
   // ---------- input ----------
   const fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  const reduceMedia = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const onReduceChange = (event: MediaQueryListEvent) => {
+    reduce = event.matches;
+    sync();
+  };
 
   function at(event: PointerEvent) {
     const rect = stage.getBoundingClientRect();
@@ -713,8 +879,13 @@ export function createStreet(options: StreetOptions): Street {
     const rect = stage.getBoundingClientRect();
     const walker = under(event.clientX - rect.left, event.clientY - rect.top);
     if (!walker) return;
-    if (walker.look.egg) walker.hold = 4;
-    else if (!walker.act && !walker.look.roll && !walker.look.run) begin(walker, 'wave', 1.9);
+    if (walker.look.egg) {
+      walker.hold = 4;
+      presence.glance(clock, walker.x < width * 0.5 ? 'left' : 'right', 'near', 1.8, true);
+    } else if (!walker.act && !walker.look.roll && !walker.look.run) {
+      begin(walker, 'wave', 1.9);
+      presence.acknowledge(clock, 1.1, 1.8);
+    }
   }
 
   function summon(slug: string): boolean {
@@ -726,7 +897,12 @@ export function createStreet(options: StreetOptions): Street {
       walker = spawn(3, look, random() < 0.5 ? 1 : -1);
       if (walker) walker.x = walker.dir === 1 ? -walker.half : width + walker.half;
     }
-    if (walker) walker.hold = 6;
+    if (walker) {
+      walker.hold = 6;
+      if (state === 'running') {
+        presence.glance(clock, walker.x < width * 0.5 ? 'left' : 'right', 'near', 2.0, true);
+      }
+    }
     return !!walker;
   }
 
@@ -735,7 +911,7 @@ export function createStreet(options: StreetOptions): Street {
     if (slug) summon(slug);
   };
   const greet = () => {
-    if (state === 'running') turnHead('nod', 1.2);
+    if (state === 'running') presence.acknowledge(clock, 1.3, 2.2);
   };
 
   if (fine) {
@@ -766,6 +942,7 @@ export function createStreet(options: StreetOptions): Street {
     if (width > 0) resize();
   });
   document.addEventListener('visibilitychange', sync);
+  reduceMedia.addEventListener('change', onReduceChange);
 
   // Peoples the street as soon as it has a size (now, unless the stage is collapsed).
   resize();
@@ -777,18 +954,27 @@ export function createStreet(options: StreetOptions): Street {
       for (let t = 0; t < seconds; t += dt) update(dt);
       draw();
     },
-    stats: () => ({
-      state,
-      active: walkers.length,
-      target: population(),
-      spawned,
-      left,
-      pooled: pool.length,
-      frames,
-      cost,
-      front: walkers.filter((walker) => LANES[walker.lane]!.front).length,
-      back: walkers.filter((walker) => !LANES[walker.lane]!.front).length,
-    }),
+    stats: () => {
+      let frontCount = 0;
+      let backCount = 0;
+      for (const walker of walkers) {
+        if (LANES[walker.lane]!.front) frontCount += 1;
+        else backCount += 1;
+      }
+      return {
+        state,
+        active: walkers.length,
+        target: population(),
+        spawned,
+        left,
+        pooled: pool.length,
+        frames,
+        cost,
+        front: frontCount,
+        back: backCount,
+        vignettes,
+      };
+    },
     summon,
     walkers: () =>
       walkers.map((walker) => ({
@@ -799,14 +985,17 @@ export function createStreet(options: StreetOptions): Street {
         front: LANES[walker.lane]!.front,
         act: walker.act,
       })),
+    avatar: () => presence.snapshot(),
     destroy() {
       destroyed = true;
       stopClock?.();
       stopClock = undefined;
+      presence.reset();
       resizer.disconnect();
       watcher.disconnect();
       unobserveQuality();
       document.removeEventListener('visibilitychange', sync);
+      reduceMedia.removeEventListener('change', onReduceChange);
       stage.removeEventListener('pointermove', onMove);
       stage.removeEventListener('pointerleave', onLeave);
       stage.removeEventListener('click', onClick);
@@ -819,6 +1008,7 @@ export function createStreet(options: StreetOptions): Street {
       avatar?.removeEventListener('click', greet);
       walkers.length = 0;
       pool.length = 0;
+      storyScratch.length = 0;
     },
   };
 }
