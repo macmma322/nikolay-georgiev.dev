@@ -742,6 +742,13 @@ const err = (field: string) => `enq-${field}-error`;
     border-color: var(--fg-3);
   }
 
+  input:not([type='radio'], [type='checkbox']):focus-visible,
+  textarea:focus-visible {
+    outline: 2px solid transparent;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in oklch, var(--accent) 16%, transparent);
+  }
+
   [aria-invalid='true'],
   fieldset[aria-invalid='true'] .choice-grid {
     border-color: var(--signal);

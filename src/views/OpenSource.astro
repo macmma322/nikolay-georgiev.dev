@@ -322,11 +322,17 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
     font-size: var(--text-caption);
     line-height: 1.9rem;
     color: var(--fg-2);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .doc:hover .doc-n {
+    color: var(--fg-2);
   }
 
   .doc-n {
     font-family: var(--ff-mono);
     color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
   .facts {
@@ -483,6 +489,11 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
   .repo {
     padding-block: var(--space-s);
     border-bottom: 1px solid var(--line-soft);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .repo:is(:hover, :focus-within) {
+    border-bottom-color: var(--line-strong);
   }
 
   .repo-name {

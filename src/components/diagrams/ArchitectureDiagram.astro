@@ -541,6 +541,9 @@ const headingId = `fig-${d.id}`;
       --dim: 0;
       --lit: 1;
     }
+    .svg .packet.is-lit {
+      filter: drop-shadow(0 0 4px var(--accent));
+    }
   }
 
   .diagram:has(.lg-planned:is(:hover, :focus-visible))

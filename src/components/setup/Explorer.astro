@@ -638,6 +638,27 @@ const icons = [
     fill: var(--ink-0);
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    .art :global([data-part='monitors'].is-on .faint),
+    .art :global([data-part='monitors'].is-hover .faint) {
+      stroke: color-mix(in oklch, var(--accent) 75%, var(--fg));
+      opacity: 0.92;
+    }
+    .art
+      :global(:is([data-part='cooler'], [data-part='gpu'], [data-part='psu']).is-on circle.wire) {
+      transform-box: fill-box;
+      transform-origin: center;
+      stroke-dasharray: 8 4;
+      animation: setup-fan-spin 3.8s linear infinite;
+    }
+  }
+
+  @keyframes setup-fan-spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
   /* ---------- Picker ---------- */
   .picker {
     display: grid;

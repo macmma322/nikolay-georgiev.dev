@@ -138,6 +138,18 @@ if (d.related && detailed && !project) {
     border-block: 1px solid var(--line-soft);
     margin-block-start: -1px;
     min-width: 0;
+    transition: border-color var(--dur-ui) var(--ease-out);
+  }
+
+  .lab.is-built:is(:hover, :focus-within) {
+    border-color: var(--line-strong);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lab:is(:hover, :focus-within) .g-entry {
+      stroke-dashoffset: -12;
+      transition: stroke-dashoffset 900ms var(--ease-out);
+    }
   }
 
   .lab:has(.drawing) {
