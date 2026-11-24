@@ -1,10 +1,31 @@
-import { clips, loadClip } from './clips';
+import { clips, loadClip, type CharacterState, type Clip } from './clips';
 import { idleCycle, sequence, type Pose } from './choreography';
 import { observePlaybackState } from '../playback-state';
 import { getQualityTier, observeQualityTier, type QualityTier } from '../circuit-clock';
 
 const preference = 'nikolay.avatar.motion';
 type Anchor = { element: HTMLElement; pose: Pose };
+export type AvatarLifecycle = 'entering' | 'active' | 'exiting' | 'hidden';
+
+type SavedAnchorState = {
+  plan: ReturnType<typeof sequence>;
+  stepIndex: number;
+  isAmbient: boolean;
+  clip: Clip;
+  frameIndex: number;
+  state: CharacterState;
+  x?: number | undefined;
+  mirror?: boolean | undefined;
+  activeMusic: boolean;
+  savedAt: number;
+};
+
+const ENTER_DURATION_MS = 160;
+const EXIT_DURATION_MS = 220;
+// Hysteresis ratios: require more visible height to newly enter than to stay active.
+const ENTER_TOP_SLACK_RATIO = 0.12;
+const ENTER_BOTTOM_SLACK_RATIO = 0.12;
+const ACTIVE_MIN_VISIBLE_RATIO = 0.44;
 
 function overlaps(a: DOMRect, b: DOMRect) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
@@ -60,18 +81,25 @@ class AvatarRuntime extends HTMLElement {
     const visible = new Set<Element>();
     const skipped = new Set<Anchor>();
     const visits = new Map<Anchor, number>();
+    const savedStates = new WeakMap<Anchor, SavedAnchorState>();
     const said = new Set<string>();
     // Cache layout-invariant clearance and sizes; invalidate only on resize, never on scroll.
     let clearance = new WeakMap<Anchor, boolean>();
     const sizes = new WeakMap<Anchor, { width: number; height: number }>();
     const events = new AbortController();
     const { signal } = events;
+    const runtimeEl = this;
     let active: Anchor | undefined,
+      lastBoundaryAnchor: Anchor | undefined,
+      lifecycle: AvatarLifecycle = 'hidden',
       activeMusic = false,
       token = 0,
       timer = 0,
+      enterTimer = 0,
+      exitTimer = 0,
       remarkTimer = 0,
-      pending = 0;
+      pending = 0,
+      resumeRunner: (() => void) | undefined;
     let lastEgg = -Infinity,
       lastRemark = -Infinity,
       playing = false,
@@ -93,6 +121,20 @@ class AvatarRuntime extends HTMLElement {
       /* Storage can be disabled. */
     }
 
+    function setLifecycle(next: AvatarLifecycle, target?: Anchor) {
+      lifecycle = next;
+      runtimeEl.dataset['lifecycle'] = next;
+      canvas.dataset['lifecycle'] = next;
+      for (const a of anchors) {
+        if (a === target && next !== 'hidden') {
+          a.element.dataset['lifecycle'] = next;
+        } else {
+          delete a.element.dataset['lifecycle'];
+        }
+      }
+    }
+    setLifecycle('hidden');
+
     const scope = (a: Anchor) =>
       a.element.closest('article.chapter,.case-hero,.hero,.finale,section') ??
       a.element.parentElement!;
@@ -113,12 +155,19 @@ class AvatarRuntime extends HTMLElement {
     function cancel() {
       token++;
       clearTimeout(timer);
+      clearTimeout(enterTimer);
+      clearTimeout(exitTimer);
+      enterTimer = 0;
+      exitTimer = 0;
+      resumeRunner = undefined;
       dismiss();
       canvas.getAnimations().forEach((animation) => animation.cancel());
       delete canvas.dataset['idleBreathe'];
+      delete canvas.dataset['exitDir'];
       canvas.remove();
       active = undefined;
       activeMusic = false;
+      setLifecycle('hidden');
       delete document.documentElement.dataset['avatarAway'];
     }
     function isClear(anchor: Anchor, rect: DOMRect) {
@@ -128,17 +177,88 @@ class AvatarRuntime extends HTMLElement {
       clearance.set(anchor, clear);
       return clear;
     }
-    function safe(anchor: Anchor) {
+    function canEnter(anchor: Anchor) {
       const rect = anchor.element.getBoundingClientRect();
-      return (
-        rect.width > 0 &&
-        rect.height > 0 &&
-        rect.top >= headerBottom &&
-        rect.bottom <= innerHeight &&
-        rect.left >= 0 &&
-        rect.right <= viewportWidth &&
-        isClear(anchor, rect)
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      if (rect.left < 0 || rect.right > viewportWidth) return false;
+      if (!isClear(anchor, rect)) return false;
+      // Hysteresis recovery band for an anchor returning from a boundary scroll exit.
+      if (anchor === lastBoundaryAnchor && savedStates.has(anchor)) {
+        const recoverVisible = rect.height * (ACTIVE_MIN_VISIBLE_RATIO + 0.1);
+        return (
+          rect.bottom >= headerBottom + recoverVisible && rect.top <= innerHeight - recoverVisible
+        );
+      }
+      const topSlack = Math.min(14, rect.height * ENTER_TOP_SLACK_RATIO);
+      const bottomSlack = Math.min(14, rect.height * ENTER_BOTTOM_SLACK_RATIO);
+      return rect.top >= headerBottom - topSlack && rect.bottom <= innerHeight + bottomSlack;
+    }
+    function canStayActive(anchor: Anchor, recovering = false) {
+      const rect = anchor.element.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return false;
+      if (rect.left < 0 || rect.right > viewportWidth) return false;
+      if (!isClear(anchor, rect)) return false;
+      const ratio = recovering ? ACTIVE_MIN_VISIBLE_RATIO + 0.1 : ACTIVE_MIN_VISIBLE_RATIO;
+      const minVisible = rect.height * ratio;
+      return rect.bottom >= headerBottom + minVisible && rect.top <= innerHeight - minVisible;
+    }
+    function beginExit(anchor: Anchor) {
+      if (active !== anchor || lifecycle === 'exiting') return;
+      clearTimeout(timer);
+      clearTimeout(enterTimer);
+      timer = 0;
+      enterTimer = 0;
+      dismiss();
+      delete canvas.dataset['idleBreathe'];
+      const rect = anchor.element.getBoundingClientRect();
+      const dir = rect.top < headerBottom + rect.height * 0.5 ? 'up' : 'down';
+      canvas.dataset['exitDir'] = dir;
+      setLifecycle('exiting', anchor);
+      lastBoundaryAnchor = anchor;
+      canvas.getAnimations().forEach((animation) => animation.cancel());
+      canvas.animate(
+        [
+          { opacity: 1, transform: 'translateY(0)' },
+          { opacity: 0, transform: dir === 'up' ? 'translateY(-6px)' : 'translateY(6px)' },
+        ],
+        {
+          duration: EXIT_DURATION_MS,
+          easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+          fill: 'forwards',
+        },
       );
+      exitTimer = window.setTimeout(() => {
+        exitTimer = 0;
+        if (active === anchor && lifecycle === 'exiting') {
+          cancel();
+          schedule();
+        }
+      }, EXIT_DURATION_MS);
+    }
+    function restoreFromExit(anchor: Anchor) {
+      if (active !== anchor || lifecycle !== 'exiting') return;
+      clearTimeout(exitTimer);
+      exitTimer = 0;
+      delete canvas.dataset['exitDir'];
+      canvas.getAnimations().forEach((animation) => animation.cancel());
+      setLifecycle('entering', anchor);
+      canvas.animate(
+        [
+          { opacity: 0.35, transform: 'translateY(-3px)' },
+          { opacity: 1, transform: 'translateY(0)' },
+        ],
+        {
+          duration: ENTER_DURATION_MS,
+          easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+        },
+      );
+      enterTimer = window.setTimeout(() => {
+        enterTimer = 0;
+        if (active === anchor && lifecycle === 'entering') {
+          setLifecycle('active', anchor);
+        }
+      }, ENTER_DURATION_MS);
+      resumeRunner?.();
     }
     function speak(anchor: Anchor, line: string) {
       if (!line || said.has(line) || performance.now() - lastRemark < 45000) return;
@@ -185,19 +305,29 @@ class AvatarRuntime extends HTMLElement {
       const previous = visits.get(anchor);
       const returning =
         !forceMusic && previous !== undefined && performance.now() - previous < 60000;
+      const saved = !forceMusic && returning ? savedStates.get(anchor) : undefined;
       const rare =
-        anchor.pose === 'sit' &&
-        (forceMusic ||
-          (!returning && performance.now() - lastEgg > 75000 && (playing || Math.random() < 0.12)));
+        saved !== undefined
+          ? saved.activeMusic
+          : anchor.pose === 'sit' &&
+            (forceMusic ||
+              (!returning &&
+                performance.now() - lastEgg > 75000 &&
+                (playing || Math.random() < 0.12)));
       activeMusic = rare;
-      if (rare) lastEgg = performance.now();
+      if (rare && !saved) lastEgg = performance.now();
       const cachedSize = sizes.get(anchor);
       const bounds = cachedSize ?? anchor.element.getBoundingClientRect();
       const shortTrack = anchor.pose === 'walk' && bounds.width < bounds.height * 2.7;
       const choreography = sequence(anchor.pose, returning || shortTrack, rare);
-      const initialPlan = returning ? choreography.slice(-1) : choreography;
+      const initialPlan =
+        saved !== undefined ? saved.plan : returning ? choreography.slice(-1) : choreography;
+      const initialIndex =
+        saved !== undefined ? Math.min(saved.stepIndex, initialPlan.length - 1) : 0;
+      const initialAmbient = saved !== undefined ? saved.isAmbient : false;
+      setLifecycle('entering', anchor);
 
-      function runPlan(plan: ReturnType<typeof sequence>, isAmbient: boolean) {
+      function runPlan(plan: ReturnType<typeof sequence>, isAmbient: boolean, startAt = 0) {
         async function draw(i: number) {
           const step = plan[i];
           if (!step || generation !== token) return;
@@ -243,22 +373,59 @@ class AvatarRuntime extends HTMLElement {
           ctx!.restore();
           canvas.dataset['state'] = step.state;
           canvas.dataset['frame'] = String(step.index);
+          savedStates.set(anchor, {
+            plan,
+            stepIndex: i,
+            isAmbient,
+            clip: step.clip,
+            frameIndex: step.index,
+            state: step.state,
+            x: step.x,
+            mirror: step.mirror,
+            activeMusic,
+            savedAt: performance.now(),
+          });
           if (anchor.pose === 'walk' && step.state === 'idle' && quality !== 'low') {
             canvas.dataset['idleBreathe'] = '';
           } else {
             delete canvas.dataset['idleBreathe'];
           }
           if (canvas.parentElement !== anchor.element) {
+            canvas.getAnimations().forEach((animation) => animation.cancel());
             anchor.element.prepend(canvas);
             document.documentElement.dataset['avatarAway'] = '';
             visits.set(anchor, performance.now());
-            if (anchor.pose === 'peek')
+            setLifecycle('entering', anchor);
+            if (anchor.pose === 'peek') {
               canvas.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], {
                 duration: 340,
                 easing: 'ease-out',
               });
+            } else {
+              canvas.animate(
+                [
+                  { opacity: 0, transform: 'translateY(4px)' },
+                  { opacity: 1, transform: 'translateY(0)' },
+                ],
+                {
+                  duration: ENTER_DURATION_MS,
+                  easing: 'cubic-bezier(0.23, 1, 0.32, 1)',
+                },
+              );
+            }
+            clearTimeout(enterTimer);
+            enterTimer = window.setTimeout(
+              () => {
+                enterTimer = 0;
+                if (generation === token && active === anchor && lifecycle === 'entering') {
+                  setLifecycle('active', anchor);
+                }
+              },
+              anchor.pose === 'peek' ? 340 : ENTER_DURATION_MS,
+            );
           }
           if (step.state === 'exit') {
+            setLifecycle('exiting', anchor);
             canvas.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], {
               duration: 250,
               fill: 'forwards',
@@ -287,17 +454,29 @@ class AvatarRuntime extends HTMLElement {
           ) {
             speak(anchor, rare && playing ? musicLine : anchor.element.dataset['line']!);
           }
-          if (i + 1 < plan.length) {
-            timer = window.setTimeout(() => startFrame(i + 1), step.ms);
-          } else if (quality !== 'low') {
-            // Queue a natural, restrained ambient repeat while the cameo stays on screen.
-            const nextLoop = idleCycle(anchor.pose, activeMusic && playing);
-            if (nextLoop) {
-              timer = window.setTimeout(() => {
-                if (generation !== token || !visible.has(anchor.element) || document.hidden) return;
-                runPlan(nextLoop.frames, true);
-              }, nextLoop.pauseMs);
+          const scheduleNext = () => {
+            if (i + 1 < plan.length) {
+              timer = window.setTimeout(() => startFrame(i + 1), step.ms);
+            } else if (quality !== 'low') {
+              // Queue a natural, restrained ambient repeat while the cameo stays on screen.
+              const nextLoop = idleCycle(anchor.pose, activeMusic && playing);
+              if (nextLoop) {
+                timer = window.setTimeout(() => {
+                  if (
+                    generation !== token ||
+                    lifecycle === 'exiting' ||
+                    !visible.has(anchor.element) ||
+                    document.hidden
+                  )
+                    return;
+                  runPlan(nextLoop.frames, true, 0);
+                }, nextLoop.pauseMs);
+              }
             }
+          };
+          resumeRunner = scheduleNext;
+          if (lifecycle !== 'exiting') {
+            scheduleNext();
           }
         }
         function startFrame(i: number) {
@@ -309,10 +488,15 @@ class AvatarRuntime extends HTMLElement {
             }
           });
         }
-        startFrame(0);
+        startFrame(startAt);
       }
 
-      timer = window.setTimeout(() => runPlan(initialPlan, false), 350);
+      // Restore immediately without a 350ms blank pause when returning to a saved anchor.
+      if (saved !== undefined) {
+        runPlan(initialPlan, initialAmbient, initialIndex);
+      } else {
+        timer = window.setTimeout(() => runPlan(initialPlan, initialAmbient, initialIndex), 350);
+      }
     }
     function reconcile() {
       pending = 0;
@@ -330,15 +514,27 @@ class AvatarRuntime extends HTMLElement {
         if (active) cancel();
         return;
       }
-      // Fast path: if the active anchor is still visible and inside safe bounds, keep it.
-      if (active && visible.has(active.element) && !skipped.has(active) && safe(active)) {
-        if (bubble.isConnected && obstructs(bubble.getBoundingClientRect(), scope(active))) {
-          dismiss();
+      if (active && visible.has(active.element) && !skipped.has(active)) {
+        // If currently exiting and user reverses scroll back into the hysteresis recovery zone, restore smoothly.
+        if (lifecycle === 'exiting') {
+          if (canStayActive(active, true)) {
+            restoreFromExit(active);
+          }
+          return;
         }
-        return;
+        // Fast path: if the active anchor is still inside the hysteresis retention zone, keep it.
+        if (canStayActive(active, false)) {
+          if (bubble.isConnected) {
+            const br = bubble.getBoundingClientRect();
+            if (br.top < (headerBottom || 4) || obstructs(br, scope(active))) {
+              dismiss();
+            }
+          }
+          return;
+        }
       }
       const candidates = anchors.filter(
-        (a) => visible.has(a.element) && !skipped.has(a) && safe(a),
+        (a) => visible.has(a.element) && !skipped.has(a) && canEnter(a),
       );
       const selected =
         candidates.length <= 1
@@ -348,9 +544,24 @@ class AvatarRuntime extends HTMLElement {
                 Math.abs(item.element.getBoundingClientRect().top - innerHeight * 0.45);
               return distance(a) - distance(b);
             })[0];
-      if (active !== selected) {
+      if (active && active !== selected) {
+        const rect = active.element.getBoundingClientRect();
+        const stillPartiallyVisible =
+          rect.width > 0 &&
+          rect.height > 0 &&
+          rect.bottom > headerBottom + 4 &&
+          rect.top < innerHeight - 4 &&
+          isClear(active, rect);
+        // When approaching/crossing the header or viewport boundary while still partially visible,
+        // perform a graceful exit rather than yanking the canvas out of the DOM.
+        if (stillPartiallyVisible && canvas.parentElement === active.element) {
+          beginExit(active);
+          return;
+        }
         cancel();
-        if (selected) play(selected);
+      }
+      if (selected && active !== selected) {
+        play(selected);
       }
     }
     function schedule() {

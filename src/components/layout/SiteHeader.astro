@@ -202,6 +202,17 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
     backdrop-filter: blur(14px) saturate(140%);
   }
 
+  .site-header::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: color-mix(in oklch, var(--ink-0) 78%, transparent);
+    border-bottom: 1px solid var(--line-soft);
+    opacity: 0;
+  }
+
   /* Safari before 18 knows only the prefixed property. It lives in its own
      block: written beside the standard one, the minifier keeps just one. */
   @supports not (backdrop-filter: none) {
@@ -215,13 +226,28 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
       animation: none;
       background: Canvas;
     }
+    .site-header::before {
+      display: none;
+    }
   }
 
   @supports (animation-timeline: scroll()) {
     /* Longhands only: the minifier folds a timeline into the `animation`
-       shorthand, which browsers reject, and the header would never settle. */
+       shorthand, which browsers reject, and the header would never settle.
+       Animated via GPU-composited opacity/transform to avoid main-thread
+       background-color and border-bottom-color repaints during scroll. */
     .site-header {
+      background: transparent;
       animation-name: header-settle;
+      animation-timing-function: linear;
+      animation-fill-mode: both;
+      animation-timeline: scroll(root);
+      animation-range: 0 120px;
+    }
+
+    .site-header::before {
+      will-change: opacity;
+      animation-name: header-surface-settle;
       animation-timing-function: linear;
       animation-fill-mode: both;
       animation-timeline: scroll(root);
@@ -231,12 +257,19 @@ const isCurrent = (target: string) => path === target || path.startsWith(`${targ
 
   @keyframes header-settle {
     from {
-      background: color-mix(in oklch, var(--ink-0) 0%, transparent);
-      border-bottom-color: transparent;
+      transform: translate3d(0, 0, 0);
     }
     to {
-      background: color-mix(in oklch, var(--ink-0) 78%, transparent);
-      border-bottom-color: var(--line-soft);
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes header-surface-settle {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
     }
   }
 
