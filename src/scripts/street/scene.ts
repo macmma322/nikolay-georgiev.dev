@@ -12,6 +12,7 @@ import { createAvatarPresence, type AvatarPresenceSnapshot } from './avatar-pres
 import { CAST, paintFor, pick } from './cast';
 import {
   CROWD_ATLAS_FILES,
+  CROWD_NEAR,
   CROWD_SPRITES,
   hasPhotorealSprite,
   type CrowdAtlasTier,
@@ -26,7 +27,7 @@ import {
 } from '../circuit-clock';
 
 interface Lane {
-  /** Ground line as a fraction of the stage height. */
+  /** Ground line as a fraction of the photograph's height. */
   y: number;
   scale: number;
   haze: number;
@@ -36,16 +37,38 @@ interface Lane {
   pace: number;
 }
 
+/*
+ * The lanes lie on the photograph's pavement. Its camera is at eye level with
+ * the horizon 47% down the frame, so a person whose feet are at `y` is
+ * 1.69 * (y - 0.47) of the frame tall, which is where every scale below comes
+ * from. The standing figure is at 0.765, between lanes 2 and 3.
+ */
 const LANES: readonly Lane[] = [
-  { y: 0.7, scale: 0.47, haze: 0.52, front: false, share: 0.24, pace: 0.86 },
-  { y: 0.785, scale: 0.61, haze: 0.32, front: false, share: 0.26, pace: 0.93 },
-  { y: 0.875, scale: 0.78, haze: 0.14, front: false, share: 0.24, pace: 1 },
-  { y: 0.99, scale: 0.97, haze: 0, front: true, share: 0.2, pace: 1.05 },
-  { y: 1.2, scale: 1.34, haze: -0.3, front: true, share: 0.06, pace: 1.15 },
+  { y: 0.607, scale: 0.39, haze: 0.5, front: false, share: 0.24, pace: 0.86 },
+  { y: 0.655, scale: 0.53, haze: 0.3, front: false, share: 0.28, pace: 0.93 },
+  { y: 0.715, scale: 0.7, haze: 0.14, front: false, share: 0.3, pace: 1 },
+  // One person at a time in front of him: the lane that can hide him is the quiet one.
+  { y: 0.825, scale: 1.01, haze: 0, front: true, share: 0.1, pace: 1.05 },
+  { y: 1.03, scale: 1.6, haze: -0.3, front: true, share: 0.06, pace: 1.15 },
 ];
-/** Stage height taken by an adult in a lane of scale 1, per unit of figure height. */
+/** Photograph height taken by an adult in a lane of scale 1, per unit of figure height. */
 const UNIT = 0.0057;
 const WALL: C3 = [0.3, 0.012, 255];
+/** The upright phone crop: the middle of the frame (scripts/street-plate.mjs). */
+const PORTRAIT = { x: 0.275, w: 0.45 };
+/**
+ * Where the light is, across the full frame: the lamps on the wall and the two
+ * posts, each with how far its pool reaches (in frame heights).
+ */
+const LAMPS: readonly { x: number; reach: number }[] = [
+  { x: 0.318, reach: 0.11 },
+  { x: 0.403, reach: 0.16 },
+  { x: 0.614, reach: 0.16 },
+  { x: 0.761, reach: 0.16 },
+  { x: 0.945, reach: 0.12 },
+];
+/** How far the night takes a figure away from a lamp, behind him and in front. */
+const NIGHT = [0.3, 0.46] as const;
 
 type Act = 'phone' | 'wave' | 'look' | 'shrug' | 'greet';
 
@@ -101,7 +124,7 @@ export interface StreetStats {
   back: number;
   vignettes: number;
   photoreal: number;
-  atlases: { core: boolean; city: boolean };
+  atlases: { core: boolean; city: boolean; near: boolean };
   decodedMemoryBytes: number;
   framesPerCharacter: number;
   distinctBaseHumans: number;
@@ -144,8 +167,15 @@ export function createStreet(options: StreetOptions): Street {
   const between = (lo: number, hi: number) => lo + random() * (hi - lo);
   const presence = createAvatarPresence({ avatar, random });
 
+  const plate = stage.querySelector<HTMLElement>('[data-plate]');
   let width = 0;
   let height = 0;
+  /** The photograph's box inside the stage: lanes and sizes are fractions of it. */
+  let px = 0;
+  let py = 0;
+  let pw = 0;
+  let ph = 0;
+  let night: CanvasGradient | null = null;
   let dpr = 1;
   let clock = 0;
   let reduce = options.reduce;
@@ -187,6 +217,14 @@ export function createStreet(options: StreetOptions): Street {
       });
   };
   loadAtlasTier('core');
+  let nearAsked = false;
+  /** The larger cells for the front lanes: only where a figure is drawn big enough to show them. */
+  const wantNear = () => {
+    // Device pixels, not CSS ones: a tablet's small stage is still drawn large.
+    if (nearAsked || quality !== 'high' || width < 700 || ph * dpr < 620) return;
+    nearAsked = true;
+    loadAtlasTier('near');
+  };
   const cityTimer = window.setTimeout(() => {
     if (!destroyed) loadAtlasTier('city');
   }, 110);
@@ -221,33 +259,83 @@ export function createStreet(options: StreetOptions): Street {
   ];
 
   // ---------- size & avatar composition corridor ----------
-  const unit = (lane: Lane) => height * UNIT * lane.scale;
-  const avatarCoreHalf = () => Math.max(36, height * 0.13);
+  const unit = (lane: Lane) => ph * UNIT * lane.scale;
+  const groundOf = (lane: Lane) => py + lane.y * ph;
+  const avatarCoreHalf = () => Math.max(30, ph * 0.1);
   const avatarFlankMin = () => avatarCoreHalf() * 1.1;
   const avatarFlankMax = () => Math.max(128, width * 0.3);
+
+  /**
+   * The night as one horizontal gradient: clear under each lamp, full between
+   * them. Painted over each layer's figures only (source-atop), it is what
+   * makes someone brighten as they walk under a lamp.
+   */
+  function lightNight() {
+    const g = contexts[0];
+    night = null;
+    if (!g || width === 0 || pw === 0) return;
+    const tall = pw / ph < 1.2;
+    const stops: [number, number][] = [];
+    for (const lamp of LAMPS) {
+      const fx = tall ? (lamp.x - PORTRAIT.x) / PORTRAIT.w : lamp.x;
+      const x = (px + fx * pw) / width;
+      const r = (lamp.reach * ph) / width;
+      stops.push([x - r, 1], [x, 0.12], [x + r, 1]);
+    }
+    stops.sort((a, b) => a[0] - b[0]);
+    const gradient = g.createLinearGradient(0, 0, width, 0);
+    let at = -1;
+    for (const [x, a] of stops) {
+      // Pools that overlap keep the brighter of the two; stops must not go back.
+      const offset = Math.max(at, x);
+      if (offset < 0 || offset > 1) continue;
+      gradient.addColorStop(offset, `rgb(9 12 26 / ${a})`);
+      at = offset;
+    }
+    night = gradient;
+  }
 
   function resize() {
     const rect = stage.getBoundingClientRect();
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     if (w === 0 || h === 0) return;
-    const qualityCap = quality === 'low' ? 0.72 : quality === 'balanced' ? 0.85 : 1.1;
-    const areaCap = quality === 'low' ? 200_000 : quality === 'balanced' ? 320_000 : 720_000;
+    // One layout read: where the stylesheet put the photograph.
+    const boxH = plate?.offsetHeight || h;
+    const boxW = plate?.offsetWidth || w;
+    const boxY = plate ? plate.offsetTop : 0;
+    const boxX = plate ? plate.offsetLeft : 0;
+    const qualityCap = quality === 'low' ? 0.75 : quality === 'balanced' ? 1 : 1.5;
+    const areaCap = quality === 'low' ? 360_000 : quality === 'balanced' ? 800_000 : 1_700_000;
     const ratio = Math.min(
       window.devicePixelRatio || 1,
       qualityCap,
       Math.sqrt(areaCap / Math.max(1, w * h)),
     );
-    if (w === width && h === height && Math.abs(ratio - dpr) < 0.01) return;
+    if (
+      w === width &&
+      h === height &&
+      boxH === ph &&
+      boxY === py &&
+      boxW === pw &&
+      Math.abs(ratio - dpr) < 0.01
+    )
+      return;
     // The first real size: until now there was no street to put anyone on.
     const first = width === 0;
     for (const walker of walkers) {
       if (width > 0) walker.x *= w / width;
-      measure(walker, h);
+      measure(walker, boxH);
     }
     width = w;
     height = h;
+    px = boxX;
+    py = boxY;
+    pw = boxW;
+    ph = boxH;
     dpr = ratio;
+    lightNight();
+    wantNear();
     for (let i = 0; i < canvases.length; i += 1) {
       const canvas = canvases[i]!;
       canvas.width = Math.max(1, Math.round(w * dpr));
@@ -275,7 +363,7 @@ export function createStreet(options: StreetOptions): Street {
   function population(): number {
     if (width === 0) return 0;
     const qualityFactor = quality === 'low' ? 0.65 : quality === 'balanced' ? 0.82 : 1;
-    const full = Math.min(16, Math.max(8, Math.round(width / (height * 0.16))));
+    const full = Math.min(16, Math.max(8, Math.round(width / (ph * 0.16))));
     const scaled = Math.round(full * budget * qualityFactor);
     if (width < 500) return Math.min(10, Math.max(5, scaled));
     return Math.max(14, scaled);
@@ -300,8 +388,10 @@ export function createStreet(options: StreetOptions): Street {
   function fits(look: Look, lane: number): boolean {
     // All 5 depth lanes use the 16 photorealistic sprites so vector silhouettes never mix behind them.
     if (!hasPhotorealSprite(look.id)) return false;
+    const close = look.id in CROWD_NEAR;
+    if (LANES[lane]!.front && !close) return false;
     // A project figure belongs where it can be found and pointed at.
-    if (look.egg) return lane === 2 || lane === 3;
+    if (look.egg) return lane === 2 || (close ? lane === 3 : lane === 1);
     if (lane === 4) return !look.roll && !look.run && look.h > 0.8 && !look.with;
     if (lane === 0) return !look.roll;
     return true;
@@ -333,8 +423,8 @@ export function createStreet(options: StreetOptions): Street {
       half: 0,
       tall: 0,
     };
-    const u = height * UNIT * def.scale * look.h;
-    const baseDy = between(-0.012, 0.012) * height * def.scale;
+    const u = ph * UNIT * def.scale * look.h;
+    const baseDy = between(-0.012, 0.012) * ph * def.scale;
     walker.look = look;
     walker.lane = lane;
     walker.x = x;
@@ -346,7 +436,7 @@ export function createStreet(options: StreetOptions): Street {
       look,
       def.haze,
       WALL,
-      Math.max(0.85, 1.25 * def.scale ** 0.5) / (height * UNIT * def.scale * look.h),
+      Math.max(0.85, 1.25 * def.scale ** 0.5) / (ph * UNIT * def.scale * look.h),
     );
     walker.cycle = cycleLength(look) * u;
     walker.pace = look.speed * def.pace * between(0.92, 1.08) * u;
@@ -361,7 +451,7 @@ export function createStreet(options: StreetOptions): Street {
     pose.p = random();
     pose.stand = pose.wave = pose.phone = pose.turn = pose.shrug = pose.lit = 0;
     pose.t = between(0, 60);
-    measure(walker, height);
+    measure(walker, ph);
     // Kept in drawing order: far lanes first, then by where the feet are.
     let at = walkers.length;
     while (at > 0 && order(walkers[at - 1]!) > order(walker)) at -= 1;
@@ -381,7 +471,7 @@ export function createStreet(options: StreetOptions): Street {
     const chosen = look ?? pick(random(), taken(), (candidate) => fits(candidate, lane));
     if (!chosen) return null;
     const dir: 1 | -1 = side ?? (random() < 0.5 ? 1 : -1);
-    const margin = height * UNIT * LANES[lane]!.scale * 60;
+    const margin = ph * UNIT * LANES[lane]!.scale * 60;
     const x = dir === 1 ? -margin : width + margin;
     if (!look && !clearAt(lane, x, margin * 0.8)) return null;
     return add(chosen, lane, x, dir);
@@ -577,7 +667,7 @@ export function createStreet(options: StreetOptions): Street {
         spawn(lane);
         const burst = lane < 4 && random() < 0.28;
         nextSpawn[lane] =
-          clock + (lane === 4 ? between(7, 16) : burst ? between(0.45, 1.05) : between(1.3, 3.5));
+          clock + (lane === 4 ? between(14, 30) : burst ? between(0.45, 1.05) : between(1.3, 3.5));
       }
     }
 
@@ -600,15 +690,16 @@ export function createStreet(options: StreetOptions): Street {
       const walker = walkers[i]!;
       const pose = walker.pose;
       const lane = LANES[walker.lane]!;
-      const ground = lane.y * height + walker.dy;
+      const ground = groundOf(lane) + walker.dy;
       walker.rest -= dt;
       walker.targetDy = walker.baseDy;
 
       const stopped = walker.act === 'phone' || walker.act === 'wave' || walker.act === 'greet';
       let pace = stopped ? 0 : walker.pace;
       if (walker.act === 'look' && walker.look.with) pace *= 0.62;
-      if (walker.lane >= 3 && !walker.act && Math.abs(walker.x - centre) < coreHalf) {
-        pace *= 1.08;
+      // Nobody lingers in front of him: a quicker step across, eased in and out by `v`.
+      if (walker.lane >= 3 && !walker.act && Math.abs(walker.x - centre) < coreHalf * 2) {
+        pace *= 1.3;
       }
       let turned = walker.act === 'wave' || walker.act === 'look' ? 1 : 0;
 
@@ -636,7 +727,7 @@ export function createStreet(options: StreetOptions): Street {
           if (gap >= comfortGap) continue;
           if (ahead.v < ahead.pace * 0.35 && !walker.act) {
             const sideShift = ahead.baseDy >= 0 ? -0.015 : 0.015;
-            walker.targetDy = sideShift * height * lane.scale;
+            walker.targetDy = sideShift * ph * lane.scale;
             if (pace > walker.pace * 0.9) pace = walker.pace * 0.9;
           } else if (ahead.v < pace) {
             const t = Math.max(0, Math.min(1, (gap - minGap) / Math.max(1, comfortGap - minGap)));
@@ -669,7 +760,7 @@ export function createStreet(options: StreetOptions): Street {
         if (walker.actLeft <= 0) walker.act = null;
       }
 
-      const margin = walker.half + height * 0.1;
+      const margin = walker.half + ph * 0.1;
       if (
         (walker.dir === 1 && walker.x > width + margin) ||
         (walker.dir === -1 && walker.x < -margin)
@@ -677,6 +768,14 @@ export function createStreet(options: StreetOptions): Street {
         walkers.splice(i, 1);
         pool.push(walker);
         left += 1;
+        // After someone has crossed in front of him the view stays clear for a
+        // while: longer on a phone, where one person is most of the width.
+        if (LANES[walker.lane]!.front) {
+          nextSpawn[walker.lane] = Math.max(
+            nextSpawn[walker.lane]!,
+            clock + (width < 500 ? between(8, 16) : between(3, 8)),
+          );
+        }
       }
     }
 
@@ -731,7 +830,7 @@ export function createStreet(options: StreetOptions): Street {
     const pose = walker.pose;
     const interacting = pose.turn > 0.36 || pose.wave > 0.28 || pose.phone > 0.28;
     const idleFrame = Math.sin(pose.t * 2.4) >= 0 ? 16 : 17;
-    const frameIdx =
+    const full =
       pose.stand > 0.72
         ? interacting
           ? 19
@@ -741,32 +840,42 @@ export function createStreet(options: StreetOptions): Street {
             ? 19
             : 18
           : Math.floor(((Math.round(pose.p * quantSteps) / quantSteps) % 1) * 16) % 16;
+    // The near tier keeps every other walk frame, then the four still ones.
+    const frameIdx = entry.frames === 20 ? full : full < 16 ? full >> 1 : full - 8;
 
     const sx = frameIdx * entry.w;
     const sy = entry.y;
-    const drawH = u * 100 * (entry.h / 136);
+    const drawH = u * 100 * (152 / 136);
     const drawW = drawH * (entry.w / entry.h);
     const footPadY = drawH * ((entry.h - entry.soleY) / entry.h);
     const centerRatio = walker.look.with ? 0.31 : walker.look.hand === 'bike' ? 0.49 : 0.5;
     const depthAlpha = lane === LANES[0] ? 0.86 : lane === LANES[1] ? 0.94 : 1;
 
-    // Subtle wet-pavement specular reflection beneath foreground/midground pedestrians.
-    if (lane.scale >= 0.75 && ground < height + 4) {
+    // The wet stone under the nearer lanes: the legs turned over at the soles,
+    // upright, strongest at the feet and gone by the knees. Drawn as a few
+    // bands of the same cell, each fainter, so nothing is composited offscreen.
+    if (lane.scale >= 0.5 && ground < height + 4) {
+      const bands = lane.front ? 5 : 3;
+      const band = (entry.soleY * 0.4) / bands;
+      const bandH = band * (drawH / entry.h);
+      const strength = (lane.front ? 0.3 : 0.2) * depthAlpha;
       g.save();
       g.translate(walker.x, ground);
-      g.scale(walker.dir, -0.26);
-      g.globalAlpha = 0.085 * depthAlpha;
-      g.drawImage(
-        sheet,
-        sx,
-        sy,
-        entry.w,
-        entry.h,
-        -drawW * centerRatio,
-        -(drawH - footPadY),
-        drawW,
-        drawH,
-      );
+      g.scale(walker.dir, -0.92);
+      for (let b = 0; b < bands; b += 1) {
+        g.globalAlpha = strength * (1 - b / bands) ** 1.7;
+        g.drawImage(
+          sheet,
+          sx,
+          sy + entry.soleY - (b + 1) * band,
+          entry.w,
+          band,
+          -drawW * centerRatio,
+          -(b + 1) * bandH,
+          drawW,
+          bandH,
+        );
+      }
       g.restore();
     }
 
@@ -839,12 +948,12 @@ export function createStreet(options: StreetOptions): Street {
         const lane = LANES[walker.lane]!;
         if (lane.front !== (layer === 1)) continue;
         if (walker.x < -walker.half * 2 || walker.x > width + walker.half * 2) continue;
-        const ground = lane.y * height + walker.dy;
+        const ground = groundOf(lane) + walker.dy;
         const u = unit(lane) * walker.look.h;
         const lit = walker.pose.lit;
         const padX = Math.max(walker.half * 1.5, u * 40);
         const topY = ground - walker.tall - 20 * lane.scale - u * 14;
-        const botY = ground + u * 10 + 6;
+        const botY = ground + u * 52 + 6;
         if (walker.x - padX < minX) minX = walker.x - padX;
         if (walker.x + padX > maxX) maxX = walker.x + padX;
         if (topY < minY) minY = topY;
@@ -880,8 +989,14 @@ export function createStreet(options: StreetOptions): Street {
             g.globalAlpha = 1;
           }
         }
-        const spriteEntry = CROWD_SPRITES[walker.look.id];
-        const spriteSheet = spriteEntry ? sheets[spriteEntry.atlas] : undefined;
+        let spriteEntry = CROWD_SPRITES[walker.look.id];
+        let spriteSheet = spriteEntry ? sheets[spriteEntry.atlas] : undefined;
+        // From the lane beside him forward, a figure is drawn larger than a base cell.
+        const nearEntry = lane.scale >= 0.7 && sheets.near ? CROWD_NEAR[walker.look.id] : undefined;
+        if (nearEntry && spriteSheet) {
+          spriteEntry = nearEntry;
+          spriteSheet = sheets.near;
+        }
         if (spriteEntry && spriteSheet) {
           drawSpriteWalker(g, walker, lane, ground, u, spriteEntry, spriteSheet);
           spriteCount += 1;
@@ -913,6 +1028,17 @@ export function createStreet(options: StreetOptions): Street {
         }
       }
       box.active = maxX > minX && maxY > minY;
+      // One pass of night over everything this layer just drew, and only that.
+      if (night && box.active) {
+        const nx = Math.max(0, minX - 6);
+        const ny = Math.max(0, minY - 6);
+        g.globalCompositeOperation = 'source-atop';
+        g.globalAlpha = NIGHT[layer]!;
+        g.fillStyle = night;
+        g.fillRect(nx, ny, Math.min(width, maxX + 6) - nx, Math.min(height, maxY + 6) - ny);
+        g.globalAlpha = 1;
+        g.globalCompositeOperation = 'source-over';
+      }
       box.minX = minX;
       box.minY = minY;
       box.maxX = maxX;
@@ -988,7 +1114,7 @@ export function createStreet(options: StreetOptions): Street {
   function under(x: number, y: number): Walker | null {
     for (let i = walkers.length - 1; i >= 0; i -= 1) {
       const walker = walkers[i]!;
-      const ground = LANES[walker.lane]!.y * height + walker.dy;
+      const ground = groundOf(LANES[walker.lane]!) + walker.dy;
       if (Math.abs(walker.x - x) < walker.half && y < ground + 6 && y > ground - walker.tall)
         return walker;
     }
@@ -1027,7 +1153,7 @@ export function createStreet(options: StreetOptions): Street {
     let walker = walkers.find((candidate) => candidate.look === look) ?? null;
     if (!walker && state !== 'static') {
       // Focus can arrive before the visibility observer resumes the street.
-      walker = spawn(3, look, random() < 0.5 ? 1 : -1);
+      walker = spawn(look.id in CROWD_NEAR ? 3 : 2, look, random() < 0.5 ? 1 : -1);
       if (walker) walker.x = walker.dir === 1 ? -walker.half : width + walker.half;
     }
     if (walker) {
@@ -1101,9 +1227,9 @@ export function createStreet(options: StreetOptions): Street {
       const coreBytes = sheets.core
         ? (sheets.core.naturalWidth || 0) * (sheets.core.naturalHeight || 0) * 4
         : 0;
-      const cityBytes = sheets.city
-        ? (sheets.city.naturalWidth || 0) * (sheets.city.naturalHeight || 0) * 4
-        : 0;
+      const cityBytes =
+        (sheets.city ? sheets.city.naturalWidth * sheets.city.naturalHeight * 4 : 0) +
+        (sheets.near ? sheets.near.naturalWidth * sheets.near.naturalHeight * 4 : 0);
       const backdropImg = stage.querySelector<HTMLImageElement>('.stage-backdrop');
       const backdropBytes =
         backdropImg && backdropImg.complete && backdropImg.naturalWidth > 0
@@ -1126,6 +1252,7 @@ export function createStreet(options: StreetOptions): Street {
         atlases: {
           core: !!sheets.core,
           city: !!sheets.city,
+          near: !!sheets.near,
         },
         decodedMemoryBytes: coreBytes + cityBytes + backdropBytes + canvasBytes,
         framesPerCharacter: 20,

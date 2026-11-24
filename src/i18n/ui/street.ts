@@ -41,7 +41,7 @@ export const street = {
   },
   /** What the scene shows, for anyone who cannot see it. */
   description: {
-    en: 'An illustrated street in the evening, in front of buildings that are still going up. People walk past in both directions: commuters, students, tourists, a runner, someone with a dog. Nikolay stands still among them: bearded, in amber glasses, a black hoodie and cargo trousers, hands in his pockets. Some pass in front of him, some behind. A few carry something from one of his projects.',
-    bg: 'Илюстрирана вечерна улица пред сгради, които още се строят. Хора минават в двете посоки: служители, ученици, туристи, бегач, човек с куче. Николай стои неподвижно сред тях: с брада, с кехлибарени очила, черен суитшърт и карго панталон, с ръце в джобовете. Едни минават пред него, други зад него. Неколцина носят по нещо от негов проект.',
+    en: 'A city street at night after rain, in front of a long concrete site hoarding lit by warm lamps, with the city behind it. People walk past in both directions: commuters, students, tourists, a runner, someone with a dog. Nikolay stands still among them: bearded, in amber glasses, a black hoodie and cargo trousers, hands in his pockets. Some pass in front of him, some behind. A few carry something from one of his projects.',
+    bg: 'Градска улица вечер след дъжд, пред дълга бетонна ограда на строеж, осветена от топли лампи, с града зад нея. Хора минават в двете посоки: служители, ученици, туристи, бегач, човек с куче. Николай стои неподвижно сред тях: с брада, с кехлибарени очила, черен суитшърт и карго панталон, с ръце в джобовете. Едни минават пред него, други зад него. Неколцина носят по нещо от негов проект.',
   },
 } as const satisfies Record<string, L | Record<string, L>>;

@@ -99,20 +99,29 @@ test.describe('street: layout', () => {
   test('the scene fits the page and the standing figure stands in it', async ({ page }) => {
     const { stage, errors } = await open(page);
     const box = (await stage.boundingBox())!;
+    // From a laptop up the street is the screen under the header; never taller than it.
     expect(box.height).toBeGreaterThanOrEqual(300);
-    expect(box.height).toBeLessThanOrEqual(540);
+    expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
     // Nothing the scene draws may widen the page.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
     ).toBeLessThanOrEqual(0);
 
     const me = (await page.locator('[data-me]').boundingBox())!;
-    expect(me.height / box.height).toBeGreaterThan(0.6);
+    // The photograph always covers the stage, and he is 52% of it tall, feet on
+    // its pavement 77.6% of the way down, whatever shape the screen is.
+    const plate = (await page.locator('[data-plate]').boundingBox())!;
+    expect(plate.width).toBeGreaterThanOrEqual(box.width - 1);
+    expect(plate.height).toBeGreaterThanOrEqual(box.height - 1);
+    expect(plate.x).toBeLessThanOrEqual(box.x + 1);
+    expect(plate.y).toBeLessThanOrEqual(box.y + 1);
+    expect(Math.abs(me.height / plate.height - 0.52)).toBeLessThan(0.01);
+    expect(Math.abs((me.y + me.height - plate.y) / plate.height - 0.776)).toBeLessThan(0.01);
     expect(me.y).toBeGreaterThanOrEqual(box.y);
     expect(me.y + me.height).toBeLessThanOrEqual(box.y + box.height);
     expect(Math.abs(me.x + me.width / 2 - (box.x + box.width / 2))).toBeLessThan(2);
     // The three layers of the figure have loaded and are the same size.
-    const images = page.locator('[data-me] img');
+    const images = page.locator('[data-me] .me-figure img');
     await expect(images).toHaveCount(3);
     for (const image of await images.all()) {
       await expect
@@ -395,7 +404,11 @@ test.describe('street: without JavaScript', () => {
     const street = page.locator('[data-street]');
     await street.scrollIntoViewIfNeeded();
     await expect(street.getByRole('heading', { level: 2 })).toBeVisible();
-    await expect(street.locator('svg.block')).toBeVisible();
+    const photograph = street.locator('.stage-backdrop');
+    await expect(photograph).toBeVisible();
+    await expect
+      .poll(() => photograph.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
+      .toBe(true);
     await expect(street.locator('[data-me] img').first()).toBeVisible();
     await expect(street.locator('.cast a')).toHaveCount(7);
     await expect(street.locator('[data-to-top]')).toBeVisible();
@@ -451,7 +464,7 @@ test.describe('street: edges of its life', () => {
 });
 
 test.describe('street v2: cast layout, presence, composition & counter', () => {
-  test('project links never wrap internally and avoid desktop orphan row ("The maker — Stemini")', async ({
+  test('project cards keep the role over the name, in one row of seven that ends before the music dock', async ({
     page,
   }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
@@ -478,15 +491,15 @@ test.describe('street v2: cast layout, presence, composition & counter', () => {
         );
         expect(rows).toHaveLength(7);
         for (const r of rows) {
-          // Each link keeps its role and project name on the same baseline line.
+          // Each card is two lines: who carries the project, then its name under it.
           expect(
-            Math.abs(r.roleTop - r.ofTop),
-            `${r.slug} wrapped internally at ${width} (${locale})`,
-          ).toBeLessThan(6);
+            r.ofTop - r.roleTop,
+            `${r.slug} lost its two-line card at ${width} (${locale})`,
+          ).toBeGreaterThan(8);
           expect(
             r.roleHeight,
-            `${r.slug} wrapped inside role at ${width} (${locale})`,
-          ).toBeLessThan(34);
+            `${r.slug} role ran past two lines at ${width} (${locale})`,
+          ).toBeLessThan(40);
         }
         // All 7 project links sit cleanly on one single row at 1366x768 and 1920x1080 (no orphan Stemini).
         const distinctTops = [...new Set(rows.map((r) => r.top))];
@@ -582,7 +595,7 @@ test.describe('street v3: photorealistic crowd, backdrop & project cards', () =>
     await open(page);
     await expect
       .poll(async () => (await stats(page)).atlases, { timeout: 10_000 })
-      .toEqual({ core: true, city: true });
+      .toMatchObject({ core: true, city: true });
     await step(page, 0.25);
     const s = await stats(page);
     expect(s.photoreal).toBeGreaterThan(0);
@@ -590,14 +603,18 @@ test.describe('street v3: photorealistic crowd, backdrop & project cards', () =>
     expect(s.distinctBaseHumans).toBe(16);
     expect(s.decodedMemoryBytes).toBeGreaterThan(0);
 
-    // Photorealistic nighttime street backdrop loads cleanly behind SVG overlays.
+    // The street photograph has loaded, and an upright phone was served its own crop
+    // (naturalWidth is density-corrected for a srcset, so the file is told by its name).
     const backdrop = page.locator('.stage-backdrop');
     await expect(backdrop).toBeVisible();
     await expect
-      .poll(() =>
-        backdrop.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth >= 1920),
-      )
+      .poll(() => backdrop.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
       .toBe(true);
+    const served = await backdrop.evaluate((el: HTMLImageElement) => ({
+      portrait: /street-plate-portrait/.test(el.currentSrc),
+      phone: window.matchMedia('(max-width: 40rem) and (orientation: portrait)').matches,
+    }));
+    expect(served.portrait).toBe(served.phone);
 
     // Every project card carries an SVG archetype icon and sits clear of any floating music dock.
     await expect(page.locator('.cast a .cast-ico')).toHaveCount(7);

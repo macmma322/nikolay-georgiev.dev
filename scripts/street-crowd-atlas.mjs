@@ -1,7 +1,7 @@
 /**
  * Builds the photorealistic nighttime street backdrop and animated crowd sprite atlases
  * for Living World V3.1:
- *   public/street/street-backdrop.webp   (1920x520 atmospheric urban night backdrop)
+ *   public/street/crowd-near.webp        (the front-lane people again, at 2.5x)
  *   public/street/crowd-core.webp        (8 core characters x 20 articulated frames)
  *   public/street/crowd-city.webp        (8 additional city characters x 20 articulated frames)
  *   src/scripts/street/crowd-atlas.ts    (typed frame & atlas metadata imported at build time)
@@ -344,7 +344,11 @@ function stampOverlay(base, overlay, offsetX = 0, offsetY = 0) {
  *   18    : start / stop transition stride
  *   19    : contextual interaction / glance pose
  */
-async function synthesizeCharacterStrip(spec) {
+/**
+ * Rigs one character. `K` scales the cell: the rig works in the source image,
+ * so a larger cell is simply sampled finer. `pick` keeps only some frames.
+ */
+async function synthesizeCharacterStrip(spec, K = 1, pick = null) {
   const {
     id,
     primary,
@@ -364,10 +368,11 @@ async function synthesizeCharacterStrip(spec) {
   if (modify) imgA = await modify(imgA);
 
   const boundsA = measureBounds(imgA, 95);
-  const targetH = 136;
-  const soleY = CELL_H - 6;
+  const cellH = CELL_H * K;
+  const targetH = 136 * K;
+  const soleY = cellH - 6 * K;
   const scale = targetH / boundsA.h;
-  const cellW = wide ? 176 : 114;
+  const cellW = (wide ? 176 : 114) * K;
 
   const srcHumanMaxX = companionGapX ?? boundsA.maxX;
   const srcHumanBoundsMax = Math.min(boundsA.maxX, srcHumanMaxX);
@@ -394,6 +399,7 @@ async function synthesizeCharacterStrip(spec) {
   const tmpPixel = new Uint8Array(4);
 
   for (let f = 0; f < FRAMES; f++) {
+    if (pick && !pick.includes(f)) continue;
     const isIdleA = f === 16;
     const isIdleB = f === 17;
     const isIdle = isIdleA || isIdleB;
@@ -417,12 +423,12 @@ async function synthesizeCharacterStrip(spec) {
             : -Math.cos(theta * 2) * 3.8 + 1.2;
 
     const frontLeads = isIdle || isTransition || isInteract ? true : cosT >= 0;
-    const frameData = new Uint8Array(cellW * CELL_H * 4);
+    const frameData = new Uint8Array(cellW * cellH * 4);
 
     const toDstX = (sx) => (sx - srcCenterX) * scale + dstCenterX;
     const toDstY = (sy) => (sy - boundsA.maxY) * scale + soleY;
 
-    for (let dy = 0; dy < CELL_H; dy++) {
+    for (let dy = 0; dy < cellH; dy++) {
       for (let dx = 0; dx < cellW; dx++) {
         const syBase = boundsA.maxY - (soleY - dy) / scale;
         const sxBase = srcCenterX + (dx - dstCenterX) / scale;
@@ -671,7 +677,20 @@ async function synthesizeCharacterStrip(spec) {
           const isPrimary = s % 2 === 0;
           const col = isPrimary ? 158 : 122;
           const alp = isPrimary ? 88 : 54;
-          drawSegment(frameData, cellW, CELL_H, cx, cy, x1, y1, 0.34, col, col + 6, col + 12, alp);
+          drawSegment(
+            frameData,
+            cellW,
+            cellH,
+            cx,
+            cy,
+            x1,
+            y1,
+            0.34 * K,
+            col,
+            col + 6,
+            col + 12,
+            alp,
+          );
         }
         // Subtle rotating rim reflector glint showing exact angular travel
         const glintAng = rotAngle + 0.4;
@@ -680,12 +699,12 @@ async function synthesizeCharacterStrip(spec) {
         const gx1 = cx + Math.cos(glintAng) * (rad * 0.94);
         const gy1 = cy + Math.sin(glintAng) * (rad * 0.94);
         if (!(gx1 > minCorrDst && gx1 < maxCorrDst)) {
-          drawSegment(frameData, cellW, CELL_H, gx0, gy0, gx1, gy1, 0.65, 245, 198, 122, 165);
+          drawSegment(frameData, cellW, cellH, gx0, gy0, gx1, gy1, 0.65 * K, 245, 198, 122, 165);
         }
       }
     }
 
-    const buf = await sharp(frameData, { raw: { width: cellW, height: CELL_H, channels: 4 } })
+    const buf = await sharp(frameData, { raw: { width: cellW, height: cellH, channels: 4 } })
       .png()
       .toBuffer();
     rawFrames.push(buf);
@@ -694,9 +713,9 @@ async function synthesizeCharacterStrip(spec) {
   return {
     id,
     cellW,
-    cellH: CELL_H,
+    cellH,
     soleY,
-    headTopRatio: +(1 - (targetH + 6) / CELL_H).toFixed(3),
+    headTopRatio: +(1 - (targetH + 6 * K) / cellH).toFixed(3),
     frames: rawFrames,
   };
 }
@@ -917,31 +936,32 @@ const CITY_SPECS = [
   },
 ];
 
-async function packAtlas(fileName, specs) {
+async function packAtlas(fileName, specs, tier, K = 1, pick = null) {
+  const count = pick ? pick.length : FRAMES;
   const results = [];
   for (const spec of specs) {
-    process.stdout.write(`  Rigging ${FRAMES} frames for ${spec.id}...`);
-    const res = await synthesizeCharacterStrip(spec);
+    process.stdout.write(`  Rigging ${count} frames for ${spec.id}...`);
+    const res = await synthesizeCharacterStrip(spec, K, pick);
     results.push(res);
     console.log(` done (${res.cellW}x${res.cellH})`);
   }
 
-  const atlasW = Math.max(...results.map((r) => r.cellW * FRAMES));
-  const atlasH = results.length * CELL_H;
+  const atlasW = Math.max(...results.map((r) => r.cellW * count));
+  const atlasH = results.length * CELL_H * K;
   const overlays = [];
   const entries = {};
 
   results.forEach((res, rowIdx) => {
-    const rowY = rowIdx * CELL_H;
+    const rowY = rowIdx * CELL_H * K;
     res.frames.forEach((frameBuf, colIdx) => {
       overlays.push({ input: frameBuf, left: colIdx * res.cellW, top: rowY });
     });
     entries[res.id] = {
-      atlas: fileName === 'crowd-core.webp' ? 'core' : 'city',
+      atlas: tier,
       y: rowY,
       w: res.cellW,
       h: res.cellH,
-      frames: FRAMES,
+      frames: count,
       soleY: res.soleY,
       headTopRatio: res.headTopRatio,
     };
@@ -957,278 +977,31 @@ async function packAtlas(fileName, specs) {
     },
   })
     .composite(overlays)
-    .webp({ quality: 84, alphaQuality: 92, effort: 6 })
+    .webp({ quality: K > 1 ? 76 : 84, alphaQuality: K > 1 ? 84 : 92, effort: 6 })
     .toFile(outPath);
 
   return { entries, width: atlasW, height: atlasH, fileName };
 }
 
-// ---------- Build Atmospheric Photorealistic Nighttime Street Backdrop ----------
-async function buildBackdrop() {
-  const W = 1920;
-  const H = 520;
-  const BASE = 364;
-
-  let rngState = 20263219;
-  const rand = () => {
-    rngState = (rngState * 1664525 + 1013904223) >>> 0;
-    return rngState / 4294967296;
-  };
-  const bet = (a, b) => a + rand() * (b - a);
-
-  const farTowers = [];
-  for (let x = -20; x < W;) {
-    const w = Math.round(bet(68, 165));
-    const h = Math.round(bet(175, 325));
-    const hasCircuit = rand() < 0.55;
-    farTowers.push(`<rect x="${x}" y="${BASE - h}" width="${w}" height="${h}" fill="#0c121d"/>`);
-    if (hasCircuit) {
-      farTowers.push(
-        `<path d="M${x + 12} ${BASE - h + 16}h${Math.round(w * 0.45)}l12 12v48" fill="none" stroke="#42ccff" stroke-opacity="0.22" stroke-width="1.2"/>`,
-      );
-      farTowers.push(
-        `<circle cx="${x + 12 + Math.round(w * 0.45) + 12}" cy="${BASE - h + 28}" r="1.9" fill="#5ce1ff" opacity="0.52"/>`,
-      );
-    }
-    x += w + Math.round(bet(-6, 12));
-  }
-
-  const facadeSpecs = [
-    { x: -10, w: 250, top: 82, tone: '#171b24', brick: true, warm: 0.48 },
-    { x: 245, w: 265, top: 56, tone: '#1b202b', brick: false, warm: 0.52 },
-    { x: 518, w: 238, top: 102, tone: '#151921', brick: true, warm: 0.4 },
-    { x: 756, w: 408, top: 126, tone: '#12161e', brick: false, warm: 0.25 },
-    { x: 1168, w: 255, top: 74, tone: '#191e28', brick: true, warm: 0.48 },
-    { x: 1430, w: 270, top: 50, tone: '#1c212c', brick: false, warm: 0.54 },
-    { x: 1706, w: 230, top: 88, tone: '#161b23', brick: true, warm: 0.44 },
-  ];
-
-  const facadesSvg = facadeSpecs
-    .map((b) => {
-      const cols = Math.floor((b.w - 36) / 36);
-      const rows = Math.floor((BASE - b.top - 58) / 42);
-      const wins = [];
-      const brickLines = [];
-      if (b.brick) {
-        for (let by = b.top + 12; by < BASE - 50; by += 8) {
-          brickLines.push(
-            `<line x1="${b.x + 2}" y1="${by}" x2="${b.x + b.w - 2}" y2="${by}" stroke="#090c12" stroke-opacity="0.24" stroke-width="0.9"/>`,
-          );
-        }
-      }
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const wx = b.x + 22 + c * 36;
-          const wy = b.top + 24 + r * 42;
-          const roll = rand();
-          const isWarm = roll < b.warm * 0.65;
-          const isCool = !isWarm && roll < b.warm;
-          const fill = isWarm ? 'url(#winWarm)' : isCool ? 'url(#winCool)' : '#090c12';
-          if (isWarm) {
-            wins.push(
-              `<rect x="${wx - 4}" y="${wy - 4}" width="28" height="36" rx="2" fill="#f7b05c" opacity="0.2" filter="url(#softBloom)"/>`,
-            );
-          } else if (isCool) {
-            wins.push(
-              `<rect x="${wx - 3}" y="${wy - 3}" width="26" height="34" rx="2" fill="#59b8ff" opacity="0.14" filter="url(#softBloom)"/>`,
-            );
-          }
-          // Stone lintel & deep inset window frame
-          wins.push(`<rect x="${wx - 2}" y="${wy - 3}" width="24" height="3" fill="#232834"/>`);
-          wins.push(
-            `<rect x="${wx}" y="${wy}" width="20" height="28" rx="1" fill="${fill}" stroke="#0b0e14" stroke-width="1" opacity="0.96"/>`,
-          );
-          if (isWarm) {
-            // Interior curtain / shelf silhouette for depth
-            wins.push(
-              `<path d="M${wx + 10} ${wy}v28 M${wx} ${wy + 13}h20" stroke="#18120c" stroke-opacity="0.55" stroke-width="1.2"/>`,
-            );
-          }
-          wins.push(`<rect x="${wx - 2}" y="${wy + 28}" width="24" height="3" fill="#2a303c"/>`);
-        }
-      }
-      const isCentral = b.x >= 750 && b.x <= 800;
-      const shop = isCentral
-        ? ''
-        : `<rect x="${b.x + 12}" y="${BASE - 48}" width="${b.w - 24}" height="46" fill="#18130e" stroke="#0c0f14" stroke-width="2"/>
-           <rect x="${b.x + 18}" y="${BASE - 42}" width="${b.w - 36}" height="36" fill="url(#shopAmber)" opacity="0.64"/>
-           <!-- Shopfront awning + interior warm ceiling pendant & dark furniture silhouettes -->
-           <polygon points="${b.x + 10},${BASE - 50} ${b.x + b.w - 10},${BASE - 50} ${b.x + b.w - 4},${BASE - 41} ${b.x + 4},${BASE - 41}" fill="#1a222b" stroke="#0b0e14" stroke-width="1"/>
-           <circle cx="${b.x + Math.round(b.w * 0.34)}" cy="${BASE - 36}" r="14" fill="url(#lampPool)" opacity="0.55"/>
-           <circle cx="${b.x + Math.round(b.w * 0.68)}" cy="${BASE - 36}" r="14" fill="url(#lampPool)" opacity="0.45"/>
-           <rect x="${b.x + 26}" y="${BASE - 24}" width="44" height="18" fill="#1b120b" opacity="0.72"/>
-           <rect x="${b.x + Math.round(b.w * 0.56)}" y="${BASE - 28}" width="52" height="22" fill="#140e09" opacity="0.68"/>
-           <line x1="${b.x + Math.round(b.w * 0.44)}" y1="${BASE - 42}" x2="${b.x + Math.round(b.w * 0.44)}" y2="${BASE - 6}" stroke="#0d1016" stroke-width="2.5"/>
-           <ellipse cx="${b.x + b.w / 2}" cy="${BASE + 34}" rx="${b.w * 0.48}" ry="30" fill="url(#lampPool)" opacity="0.5"/>`;
-      return `
-        <rect x="${b.x}" y="${b.top}" width="${b.w}" height="${BASE - b.top}" fill="${b.tone}" stroke="#0b0f15" stroke-width="1.5"/>
-        ${brickLines.join('')}
-        <rect x="${b.x - 4}" y="${b.top - 7}" width="${b.w + 8}" height="8" fill="#10151f" stroke="#080b10" stroke-width="1"/>
-        ${wins.join('')}
-        ${shop}
-      `;
-    })
-    .join('');
-
-  const treePositions = [180, 520, 1340, 1740];
-  const treesSvg = treePositions
-    .map((tx) => {
-      const twigs = `<path d="M${tx} ${BASE + 4} L${tx - 3} ${BASE - 122} M${tx} ${BASE - 72} L${tx - 34} ${BASE - 134} M${tx} ${BASE - 86} L${tx + 32} ${BASE - 140} M${tx - 12} ${BASE - 102} L${tx - 42} ${BASE - 154} M${tx + 10} ${BASE - 110} L${tx + 44} ${BASE - 160}" stroke="#140f0b" stroke-width="6.5" stroke-linecap="round"/>`;
-      const puffs = [];
-      for (let i = 0; i < 155; i++) {
-        const ang = rand() * TAU;
-        const rad = bet(5, 78);
-        const cx = tx + Math.cos(ang) * rad * 1.24;
-        const cy = BASE - 130 + Math.sin(ang) * rad * 0.66;
-        const rx = bet(2.6, 7.2);
-        const ry = bet(1.8, 4.8);
-        const rot = Math.round(bet(0, 180));
-        const warmHit = rand() < 0.64;
-        const col = warmHit
-          ? rand() < 0.42
-            ? '#dd8834'
-            : '#99511d'
-          : rand() < 0.5
-            ? '#49351c'
-            : '#1d261a';
-        puffs.push(
-          `<ellipse cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" transform="rotate(${rot} ${cx.toFixed(1)} ${cy.toFixed(1)})" fill="${col}" opacity="${bet(0.65, 0.94).toFixed(2)}"/>`,
-        );
-      }
-      return `${twigs}<g filter="url(#leafSoft)">${puffs.join('')}</g>`;
-    })
-    .join('');
-
-  const jointLines = [];
-  for (let i = -2; i <= 34; i++) {
-    const xTop = i * 60;
-    const xBot = 960 + (xTop - 960) * 1.58;
-    jointLines.push(
-      `<line x1="${xTop}" y1="${BASE + 8}" x2="${xBot.toFixed(1)}" y2="${H}" stroke="#080b10" stroke-opacity="0.54" stroke-width="1.3"/>`,
-    );
-  }
-
-  const lampXs = [150, 550, 1370, 1760];
-  const wetReflections = lampXs
-    .map(
-      (lx) => `
-      <ellipse cx="${lx + 10}" cy="${BASE + 52}" rx="135" ry="42" fill="url(#lampPool)" opacity="0.62"/>
-      <rect x="${lx - 22}" y="${BASE + 16}" width="58" height="136" fill="url(#wetStreak)" opacity="0.34" filter="url(#wetBlur)"/>
-    `,
-    )
-    .join('');
-
-  const lampsSvg = lampXs
-    .map(
-      (lx) => `
-      <circle cx="${lx + 18}" cy="${BASE - 148}" r="96" fill="url(#lampHalo)" filter="url(#softBloom)"/>
-      <path d="M${lx} ${BASE + 6} V${BASE - 150} h20" fill="none" stroke="#10141c" stroke-width="4.5"/>
-      <rect x="${lx + 11}" y="${BASE - 152}" width="22" height="6" rx="2" fill="#ffe4ad"/>
-    `,
-    )
-    .join('');
-
-  const hazardStripes = [];
-  for (let hx = 760; hx < 1160; hx += 22) {
-    hazardStripes.push(
-      `<polygon points="${hx},${BASE - 24} ${hx + 11},${BASE - 24} ${hx + 1},${BASE} ${hx - 10},${BASE}" fill="#d89635" opacity="0.68"/>`,
-    );
-  }
-
-  const backdropSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-    <defs>
-      <filter id="softBloom" x="-40%" y="-40%" width="180%" height="180%">
-        <feGaussianBlur stdDeviation="8"/>
-      </filter>
-      <filter id="wetBlur" x="-30%" y="-10%" width="160%" height="120%">
-        <feGaussianBlur stdDeviation="5 12"/>
-      </filter>
-      <filter id="leafSoft" x="-10%" y="-10%" width="120%" height="120%">
-        <feGaussianBlur stdDeviation="1.3"/>
-      </filter>
-      <filter id="asphaltGrain" x="0" y="0" width="100%" height="100%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.18 0.55" numOctaves="3" seed="17" result="noise"/>
-        <feColorMatrix type="matrix" values="0 0 0 0 0.08  0 0 0 0 0.1  0 0 0 0 0.14  0 0 0 0.18 0"/>
-      </filter>
-      <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#080d15"/>
-        <stop offset="0.58" stop-color="#111927"/>
-        <stop offset="1" stop-color="#1d2436"/>
-      </linearGradient>
-      <linearGradient id="winWarm" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#ffc876"/>
-        <stop offset="1" stop-color="#b86c28"/>
-      </linearGradient>
-      <linearGradient id="winCool" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#84b5e3"/>
-        <stop offset="1" stop-color="#354f6c"/>
-      </linearGradient>
-      <linearGradient id="shopAmber" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#f2ac58"/>
-        <stop offset="1" stop-color="#75471c"/>
-      </linearGradient>
-      <linearGradient id="pavement" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#1c222d"/>
-        <stop offset="0.45" stop-color="#131822"/>
-        <stop offset="1" stop-color="#080b10"/>
-      </linearGradient>
-      <radialGradient id="lampHalo">
-        <stop offset="0" stop-color="#ffd082" stop-opacity="0.64"/>
-        <stop offset="0.48" stop-color="#d8863c" stop-opacity="0.24"/>
-        <stop offset="1" stop-color="#d8863c" stop-opacity="0"/>
-      </radialGradient>
-      <radialGradient id="lampPool">
-        <stop offset="0" stop-color="#f2a956" stop-opacity="0.58"/>
-        <stop offset="1" stop-color="#f2a956" stop-opacity="0"/>
-      </radialGradient>
-      <linearGradient id="wetStreak" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#f7b76e" stop-opacity="0.76"/>
-        <stop offset="1" stop-color="#0d1118" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="concrete" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0" stop-color="#56524b"/>
-        <stop offset="0.5" stop-color="#3e3c38"/>
-        <stop offset="1" stop-color="#2b2a27"/>
-      </linearGradient>
-      <clipPath id="hoardClip">
-        <rect x="760" y="${BASE - 24}" width="400" height="24"/>
-      </clipPath>
-    </defs>
-
-    <rect width="${W}" height="${BASE}" fill="url(#sky)"/>
-    ${farTowers.join('')}
-    ${facadesSvg}
-    ${treesSvg}
-
-    <!-- Central Construction Hoarding Wall aligned 1:1 with SVG plot -->
-    <rect x="760" y="210" width="400" height="${BASE - 210}" fill="url(#concrete)" stroke="#121418" stroke-width="2"/>
-    <path d="M860 210v${BASE - 210} M960 210v${BASE - 210} M1060 210v${BASE - 210} M760 232h400" stroke="#16181c" stroke-opacity="0.48" stroke-width="1.3"/>
-    <g clip-path="url(#hoardClip)">
-      <rect x="760" y="${BASE - 24}" width="400" height="24" fill="#18191c"/>
-      ${hazardStripes.join('')}
-    </g>
-    <polygon points="848,196 760,364 970,364" fill="#ffc978" opacity="0.18" filter="url(#softBloom)"/>
-    <polygon points="1072,196 950,364 1160,364" fill="#ffc978" opacity="0.18" filter="url(#softBloom)"/>
-
-    <!-- Wet Asphalt Sidewalk with grain and specular pools -->
-    <rect x="0" y="${BASE}" width="${W}" height="${H - BASE}" fill="url(#pavement)"/>
-    <rect x="0" y="${BASE}" width="${W}" height="${H - BASE}" filter="url(#asphaltGrain)"/>
-    <rect x="0" y="${BASE}" width="${W}" height="8" fill="#323844"/>
-    ${jointLines.join('')}
-    <ellipse cx="960" cy="${BASE + 36}" rx="340" ry="52" fill="url(#lampPool)" opacity="0.74" filter="url(#wetBlur)"/>
-    ${wetReflections}
-    ${lampsSvg}
-  </svg>`;
-
-  const backOut = path.join(OUT_DIR, 'street-backdrop.webp');
-  await sharp(Buffer.from(backdropSvg)).webp({ quality: 86, effort: 6 }).toFile(backOut);
-  console.log('Backdrop generated:', backOut);
-}
+/*
+ * The near tier: the people allowed in the two lanes in front of the standing
+ * figure, rigged again at 2.5x with every other walk frame, so they are as
+ * sharp as he is when they pass close. Wide screens only (scene.ts).
+ */
+const NEAR_SCALE = 2.5;
+const NEAR_FRAMES = [0, 2, 4, 6, 8, 10, 12, 14, 16, 17, 18, 19];
+const NEAR_IDS = ['courier', 'kernel', 'traveller', 'dog-walker', 'student', 'grandfather'];
 
 console.log('Generating Living World V3.1 20-frame anatomical street assets...');
-const core = await packAtlas('crowd-core.webp', CORE_SPECS);
-const city = await packAtlas('crowd-city.webp', CITY_SPECS);
-await buildBackdrop();
+const core = await packAtlas('crowd-core.webp', CORE_SPECS, 'core');
+const city = await packAtlas('crowd-city.webp', CITY_SPECS, 'city');
+const near = await packAtlas(
+  'crowd-near.webp',
+  [...CORE_SPECS, ...CITY_SPECS].filter((spec) => NEAR_IDS.includes(spec.id)),
+  'near',
+  NEAR_SCALE,
+  NEAR_FRAMES,
+);
 
 const allEntries = { ...core.entries, ...city.entries };
 const tsSource = `/**
@@ -1236,7 +1009,7 @@ const tsSource = `/**
  * Contains photorealistic sprite strip coordinates for 16 distinct pedestrian identities x 20 frames.
  */
 
-export type CrowdAtlasTier = 'core' | 'city';
+export type CrowdAtlasTier = 'core' | 'city' | 'near';
 
 export interface SpriteStripEntry {
   atlas: CrowdAtlasTier;
@@ -1258,9 +1031,16 @@ export const INTERACT_FRAME = 19;
 export const CROWD_ATLAS_FILES: Record<CrowdAtlasTier, { src: string; width: number; height: number }> = {
   core: { src: '/street/crowd-core.webp', width: ${core.width}, height: ${core.height} },
   city: { src: '/street/crowd-city.webp', width: ${city.width}, height: ${city.height} },
+  near: { src: '/street/crowd-near.webp', width: ${near.width}, height: ${near.height} },
 };
 
 export const CROWD_SPRITES: Record<string, SpriteStripEntry> = ${JSON.stringify(allEntries, null, 2)};
+
+/**
+ * The same people again, larger, for the lanes nearest the camera: every other
+ * walk frame (0..7), then idle A, idle B, transition, interact (8..11).
+ */
+export const CROWD_NEAR: Record<string, SpriteStripEntry> = ${JSON.stringify(near.entries, null, 2)};
 
 export function hasPhotorealSprite(id: string): boolean {
   return id in CROWD_SPRITES;

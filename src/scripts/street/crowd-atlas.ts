@@ -3,7 +3,7 @@
  * Contains photorealistic sprite strip coordinates for 16 distinct pedestrian identities x 20 frames.
  */
 
-export type CrowdAtlasTier = 'core' | 'city';
+export type CrowdAtlasTier = 'core' | 'city' | 'near';
 
 export interface SpriteStripEntry {
   atlas: CrowdAtlasTier;
@@ -28,6 +28,7 @@ export const CROWD_ATLAS_FILES: Record<
 > = {
   core: { src: '/street/crowd-core.webp', width: 3520, height: 1216 },
   city: { src: '/street/crowd-city.webp', width: 3520, height: 1216 },
+  near: { src: '/street/crowd-near.webp', width: 5280, height: 2280 },
 };
 
 export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
@@ -173,6 +174,67 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    headTopRatio: 0.066,
+  },
+};
+
+/**
+ * The same people again, larger, for the lanes nearest the camera: every other
+ * walk frame (0..7), then idle A, idle B, transition, interact (8..11).
+ */
+export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
+  traveller: {
+    atlas: 'near',
+    y: 0,
+    w: 440,
+    h: 380,
+    frames: 12,
+    soleY: 365,
+    headTopRatio: 0.066,
+  },
+  courier: {
+    atlas: 'near',
+    y: 380,
+    w: 285,
+    h: 380,
+    frames: 12,
+    soleY: 365,
+    headTopRatio: 0.066,
+  },
+  kernel: {
+    atlas: 'near',
+    y: 760,
+    w: 285,
+    h: 380,
+    frames: 12,
+    soleY: 365,
+    headTopRatio: 0.066,
+  },
+  'dog-walker': {
+    atlas: 'near',
+    y: 1140,
+    w: 440,
+    h: 380,
+    frames: 12,
+    soleY: 365,
+    headTopRatio: 0.066,
+  },
+  grandfather: {
+    atlas: 'near',
+    y: 1520,
+    w: 285,
+    h: 380,
+    frames: 12,
+    soleY: 365,
+    headTopRatio: 0.066,
+  },
+  student: {
+    atlas: 'near',
+    y: 1900,
+    w: 285,
+    h: 380,
+    frames: 12,
+    soleY: 365,
     headTopRatio: 0.066,
   },
 };
