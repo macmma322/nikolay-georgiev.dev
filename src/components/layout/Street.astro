@@ -276,6 +276,7 @@ const widths = [112, 168, 252, 336, 528];
         <path class="cable" d={`M${crane.x + 214} ${crane.top + 16}v84`} />
         <rect x={crane.x + 207} y={crane.top + 100} width="14" height="10" />
         <rect x={crane.x - 142} y={crane.top + 18} width="34" height="18" />
+        <circle class="crane-beacon" cx={crane.x} cy={crane.top - 3} r="2.6" />
       </g>
 
       {/* The pavement, with its joints running to one vanishing point. */}
@@ -376,7 +377,7 @@ const widths = [112, 168, 252, 336, 528];
   </div>
 
   <div class="container street-foot">
-    <p class="label">{s.castLabel}</p>
+    <p class="label cast-eyebrow">{s.castLabel}</p>
     <ul class="cast" role="list">
       {cast.map((member) => (
         <li>
@@ -391,7 +392,7 @@ const widths = [112, 168, 252, 336, 528];
         </li>
       ))}
     </ul>
-    <p class="tally label" aria-hidden="true">
+    <p class="tally label" aria-hidden="true" title={s.passedNote}>
       {s.passed} <span data-street-count>000</span>
     </p>
   </div>
@@ -455,7 +456,7 @@ const widths = [112, 168, 252, 336, 528];
   :global(html[data-avatar-away]) :is(.me, .me-tag) {
     visibility: hidden;
   }
-  :global(html[data-avatar-still]) .me :is(.me-rise, .me-head, .me-chest, .me-lids) {
+  :global(html[data-avatar-still]) .me :is(.me-figure, .me-rise, .me-head, .me-chest, .me-lids) {
     animation: none !important;
     transition: none !important;
     rotate: none !important;
@@ -728,6 +729,42 @@ const widths = [112, 168, 252, 336, 528];
     stroke-opacity: 0.35;
   }
 
+  .block .crane .crane-beacon {
+    fill: var(--signal);
+    stroke: none;
+    opacity: 0.38;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .stage[data-state='running'] .block .crane .crane-beacon {
+      animation: crane-beacon 4800ms ease-in-out infinite;
+    }
+    .stage[data-state='running'] .block .lamp .halo,
+    .stage[data-state='running'] .block .hoarding .pool {
+      animation: night-lamp-glow 7600ms ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes crane-beacon {
+    0%,
+    60%,
+    100% {
+      opacity: 0.32;
+    }
+    76% {
+      opacity: 0.85;
+    }
+  }
+
+  @keyframes night-lamp-glow {
+    from {
+      opacity: 0.88;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   .block .ground {
     fill: url(#street-ground);
   }
@@ -836,13 +873,23 @@ const widths = [112, 168, 252, 336, 528];
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* Where he meets the pavement: the same soft shadow everyone else has. */
+  /* Dual-layer grounding: ambient pavement pool + tight sole-contact shadow. */
   .me::before {
     content: '';
     position: absolute;
     inset: auto -22% -2.6% -14%;
     height: 7.5%;
-    background: radial-gradient(closest-side, oklch(0.06 0.01 262 / 0.7), transparent);
+    background: radial-gradient(closest-side, oklch(0.06 0.01 262 / 0.72), transparent);
+    pointer-events: none;
+  }
+
+  .me::after {
+    content: '';
+    position: absolute;
+    inset: auto 10% -0.8% 12%;
+    height: 2.6%;
+    background: radial-gradient(closest-side, oklch(0.03 0.008 262 / 0.88), transparent);
+    pointer-events: none;
   }
 
   .me:focus-visible {
@@ -851,13 +898,27 @@ const widths = [112, 168, 252, 336, 528];
     border-radius: var(--radius-s);
   }
 
-  /* Graded a little toward the night around him. */
+  /* Graded a little toward the night around him, pivoting naturally from the planted boots. */
   .me-figure {
     position: absolute;
     inset: 0;
     display: block;
+    transform-origin: 50% 98%;
     filter: brightness(0.93) saturate(0.94) contrast(1.02);
-    transition: filter var(--dur-ui) var(--ease-out);
+    transition:
+      filter var(--dur-ui) var(--ease-out),
+      rotate 1400ms var(--ease-in-out),
+      translate 1400ms var(--ease-in-out);
+  }
+
+  .me[data-stance='left'] .me-figure {
+    rotate: -0.22deg;
+    translate: -0.35% 0;
+  }
+
+  .me[data-stance='right'] .me-figure {
+    rotate: 0.22deg;
+    translate: 0.35% 0;
   }
 
   .me-figure :global(img) {
@@ -875,17 +936,17 @@ const widths = [112, 168, 252, 336, 528];
     inset: 0;
   }
 
-  /* The chest layer widens by about one percent; the head rides on it. */
+  /* The chest layer widens subtly with an asymmetric inhale/exhale; the head rides on it. */
   .me-chest {
     transform-origin: 50% 34%;
   }
 
-  /* The head turns about the base of the neck, by less than a degree. */
+  /* The head turns about the base of the neck, always staying under 1 degree. */
   .me-head {
     transform-origin: 52.1% 16.8%;
     transition:
-      rotate 760ms var(--ease-in-out),
-      translate 760ms var(--ease-in-out);
+      rotate 780ms var(--ease-in-out),
+      translate 780ms var(--ease-in-out);
   }
 
   .me-lids {
@@ -902,19 +963,59 @@ const widths = [112, 168, 252, 336, 528];
   }
 
   .me[data-head='left'] .me-head {
-    rotate: -0.9deg;
-    translate: -0.32% 0;
+    rotate: -0.78deg;
+    translate: -0.28% 0;
   }
 
   .me[data-head='right'] .me-head {
-    rotate: 0.8deg;
-    translate: 0.3% 0;
+    rotate: 0.74deg;
+    translate: 0.26% 0;
+  }
+
+  .me[data-head='left'][data-glance='soft'] .me-head {
+    rotate: -0.52deg;
+    translate: -0.18% 0;
+  }
+
+  .me[data-head='right'][data-glance='soft'] .me-head {
+    rotate: 0.5deg;
+    translate: 0.18% 0;
+  }
+
+  .me[data-head='left'][data-glance='near'] .me-head {
+    rotate: -0.9deg;
+    translate: -0.34% 0;
+  }
+
+  .me[data-head='right'][data-glance='near'] .me-head {
+    rotate: 0.86deg;
+    translate: 0.32% 0;
+  }
+
+  .me[data-head='left'][data-glance='down'] .me-head {
+    rotate: -0.68deg;
+    translate: -0.22% 0.16%;
+  }
+
+  .me[data-head='right'][data-glance='down'] .me-head {
+    rotate: 0.65deg;
+    translate: 0.2% 0.16%;
+  }
+
+  .me[data-head='left'][data-glance='up'] .me-head {
+    rotate: -0.58deg;
+    translate: -0.2% -0.14%;
+  }
+
+  .me[data-head='right'][data-glance='up'] .me-head {
+    rotate: 0.56deg;
+    translate: 0.18% -0.14%;
   }
 
   .me[data-head='nod'] .me-head {
-    rotate: 0.7deg;
-    translate: 0 0.14%;
-    transition-duration: 320ms;
+    rotate: 0.68deg;
+    translate: 0 0.15%;
+    transition-duration: 340ms;
   }
 
   .me:is(:hover, :focus-visible) .me-figure {
@@ -935,6 +1036,7 @@ const widths = [112, 168, 252, 336, 528];
     color: var(--fg);
     text-shadow: 0 1px 6px oklch(0.08 0.01 262);
     pointer-events: none;
+    transition: color var(--dur-ui) var(--ease-out);
   }
 
   .me-tag::before {
@@ -942,6 +1044,7 @@ const widths = [112, 168, 252, 336, 528];
     width: clamp(0.75rem, 2vw, 1.75rem);
     height: 1px;
     background: var(--line-strong);
+    transition: background-color var(--dur-ui) var(--ease-out);
   }
 
   .me-pin {
@@ -949,28 +1052,57 @@ const widths = [112, 168, 252, 336, 528];
     width: 5px;
     height: 5px;
     background: var(--signal);
+    transition:
+      scale var(--dur-ui) var(--ease-out),
+      box-shadow var(--dur-ui) var(--ease-out);
   }
 
-  /* Breathing: in for 2.2 s, out for 2.2 s, and only while the street runs. */
+  .me:is(:hover, :focus-visible, [data-head='nod']) + .me-tag::before {
+    background: var(--fg-2);
+  }
+
+  .me:is(:hover, :focus-visible, [data-head='nod']) + .me-tag .me-pin {
+    scale: 1.25;
+    box-shadow: 0 0 8px var(--signal);
+  }
+
+  /* Natural multi-phase breathing and posture settle while running; suppressed in reduced motion. */
   @media (prefers-reduced-motion: no-preference) {
     .me[data-state='running'] .me-chest {
-      animation: me-breathe 2200ms ease-in-out infinite alternate;
+      animation: me-breathe 4800ms ease-in-out infinite;
     }
     .me[data-state='running'] .me-rise {
-      animation: me-rise 2200ms ease-in-out infinite alternate;
+      animation: me-rise 6400ms ease-in-out infinite;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .me :is(.me-figure, .me-rise, .me-head, .me-chest, .me-lids) {
+      animation: none !important;
+      rotate: none !important;
+      translate: none !important;
     }
   }
 
   @keyframes me-breathe {
-    to {
-      scale: 1.012 1.005;
+    0%,
+    100% {
+      scale: 1 1;
+      translate: 0 0;
+    }
+    42% {
+      scale: 1.011 1.005;
       translate: 0 -0.1%;
     }
   }
 
   @keyframes me-rise {
-    to {
-      translate: 0 -0.13%;
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    48% {
+      translate: 0 -0.14%;
     }
   }
 
@@ -979,26 +1111,51 @@ const widths = [112, 168, 252, 336, 528];
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
-    gap: 0.25rem 1.75rem;
+    gap: 0.25rem 1.5rem;
     padding-block: var(--space-m) var(--space-s);
+  }
+
+  .cast-eyebrow {
+    white-space: nowrap;
   }
 
   .cast {
     display: flex;
     flex-wrap: wrap;
-    gap: 0 1.5rem;
+    gap: 0.1rem clamp(0.48rem, 0.88vw, 1.35rem);
     flex: 1 1 24rem;
   }
 
   .cast a {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.45rem;
+    align-items: center;
+    gap: 0.26rem;
     min-height: 44px;
-    padding-block: 0.6rem;
-    font-size: var(--text-caption);
+    padding-block: 0.5rem;
+    font-size: clamp(0.73rem, 0.65rem + 0.15vw, 0.88rem);
+    line-height: 1.35;
+    white-space: nowrap;
     text-decoration: none;
     color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .cast a::before {
+    content: '';
+    width: 4px;
+    height: 4px;
+    flex: none;
+    background: var(--line-strong);
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      box-shadow var(--dur-fast) var(--ease-out),
+      scale var(--dur-fast) var(--ease-out);
+  }
+
+  .cast .role::after {
+    content: '–';
+    margin-inline-start: 0.26rem;
+    color: var(--line-strong);
     transition: color var(--dur-fast) var(--ease-out);
   }
 
@@ -1017,6 +1174,16 @@ const widths = [112, 168, 252, 336, 528];
     color: var(--fg-2);
   }
 
+  .cast a:is(:hover, :focus-visible, [data-lit])::before {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+    scale: 1.25;
+  }
+
+  .cast a:is(:hover, :focus-visible, [data-lit]) .role::after {
+    color: var(--fg-3);
+  }
+
   .cast a:is(:hover, :focus-visible, [data-lit]) .of {
     color: var(--accent);
     text-decoration-color: var(--accent);
@@ -1024,7 +1191,41 @@ const widths = [112, 168, 252, 336, 528];
 
   .tally {
     margin-inline-start: auto;
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
+    cursor: help;
+  }
+
+  @media (min-width: 60rem) {
+    .street-foot {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: baseline;
+      column-gap: var(--space-l);
+      row-gap: 0.25rem;
+    }
+    .cast-eyebrow {
+      grid-column: 1;
+      grid-row: 1;
+    }
+    .tally {
+      grid-column: 2;
+      grid-row: 1;
+      justify-self: end;
+      margin-inline-start: 0;
+    }
+    .cast {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      flex: none;
+    }
+  }
+
+  @media (max-width: 22rem) {
+    .cast a {
+      white-space: normal;
+      flex-wrap: wrap;
+    }
   }
 
   /* The count only means something while people are walking. */

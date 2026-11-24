@@ -34,6 +34,11 @@ export const street = {
   sign: { en: 'Work in progress', bg: 'В строеж' },
   /** Mono label before the count of people who have walked off the page. */
   passed: { en: 'Passed by', bg: 'Отминали' },
+  /** Clarifies that the counter tallies simulated scene pedestrians. */
+  passedNote: {
+    en: 'Simulated passers-by in this scene',
+    bg: 'Симулирани минувачи в тази сцена',
+  },
   /** What the scene shows, for anyone who cannot see it. */
   description: {
     en: 'An illustrated street in the evening, in front of buildings that are still going up. People walk past in both directions: commuters, students, tourists, a runner, someone with a dog. Nikolay stands still among them: bearded, in amber glasses, a black hoodie and cargo trousers, hands in his pockets. Some pass in front of him, some behind. A few carry something from one of his projects.',
