@@ -9,6 +9,7 @@ import DeskArt from '@/components/setup/DeskArt.astro';
 import InsideArt from '@/components/setup/InsideArt.astro';
 import SecondaryArt from '@/components/setup/SecondaryArt.astro';
 import LaptopArt from '@/components/setup/LaptopArt.astro';
+import EntertainmentArt from '@/components/setup/EntertainmentArt.astro';
 import { setupEcosystem } from '@/data/diagrams/setup';
 import { setupConnections, setupFuture, setupHardware } from '@/data/diagrams/setup-views';
 import {
@@ -18,14 +19,16 @@ import {
   reuseLimits,
   roadmap,
   secondaryRoles,
+  setupCategories,
   tools,
   type Stage,
 } from '@/data/setup';
-import { useI18n } from '@/i18n';
+import { useI18n, type L } from '@/i18n';
 import { setup } from '@/i18n/ui/setup';
 import { getProjects } from '@/lib/projects';
 
-const { locale, t, href } = useI18n(Astro);
+const { locale, l, t, href } = useI18n(Astro);
+const text = (value: string | L) => (typeof value === 'string' ? value : l(value));
 const u = t(setup);
 const projects = await getProjects(locale);
 const project = (slug: string) => projects.find((p) => p.id === slug);
@@ -52,6 +55,33 @@ const ecoViews = [
     </p>
     <p class="disclosure">{u.disclosure}</p>
   </section>
+
+  <nav class="container categories" aria-label={u.categories.label}>
+    <ol role="list" class="category-grid reveal stagger">
+      {setupCategories.map((cat, index) => (
+        <li>
+          <a class="category-card" href={cat.href} data-setup-category={cat.id}>
+            <span class="category-top">
+              <span class="label">0{index + 1}</span>
+              <span class="category-arrow" aria-hidden="true">
+                →
+              </span>
+            </span>
+            <span class="category-title">{t(cat.title)}</span>
+            <span class="category-domains">{t(cat.domains)}</span>
+            <dl class="category-facts">
+              {cat.facts.map((fact) => (
+                <div>
+                  <dt class="label">{t(fact.label)}</dt>
+                  <dd>{text(fact.value)}</dd>
+                </div>
+              ))}
+            </dl>
+          </a>
+        </li>
+      ))}
+    </ol>
+  </nav>
 
   <section id="workstation" class="container group" aria-labelledby="g-workstation">
     <SectionHeader
@@ -88,7 +118,7 @@ const ecoViews = [
       views={[
         {
           view: 'secondary',
-          label: u.secondary.label,
+          label: u.secondary.pcLabel,
           art: SecondaryArt,
           modes: ['cutaway', 'exploded'],
           upgrade: true,
@@ -114,20 +144,43 @@ const ecoViews = [
         </ul>
       </div>
     </div>
+
+    <div id="laptop" class="sub-station" aria-labelledby="g-laptop">
+      <SectionHeader
+        label={u.laptop.label}
+        id="g-laptop"
+        title={u.laptop.title}
+        lede={u.laptop.lede}
+      />
+      <Explorer
+        id="laptop"
+        views={[{ view: 'laptop', label: u.laptop.viewLabel, art: LaptopArt, modes: ['cutaway'] }]}
+        parts={partsIn('laptop')}
+      />
+    </div>
   </section>
 
-  <section id="laptop" class="container group" aria-labelledby="g-laptop">
+  <section id="entertainment" class="container group" aria-labelledby="g-entertainment">
     <SectionHeader
-      label={u.laptop.label}
-      id="g-laptop"
-      title={u.laptop.title}
-      lede={u.laptop.lede}
+      label={u.entertainment.label}
+      id="g-entertainment"
+      title={u.entertainment.title}
+      lede={u.entertainment.lede}
     />
     <Explorer
-      id="laptop"
-      views={[{ view: 'laptop', label: u.laptop.label, art: LaptopArt, modes: ['cutaway'] }]}
-      parts={partsIn('laptop')}
+      id="entertainment"
+      views={[
+        {
+          view: 'entertainment',
+          label: u.entertainment.viewLabel,
+          art: EntertainmentArt,
+          power: true,
+          lighting: true,
+        },
+      ]}
+      parts={partsIn('entertainment')}
     />
+    <p class="station-note">{u.entertainment.note}</p>
   </section>
 
   <section id="ecosystem" class="container group" aria-labelledby="g-ecosystem">
@@ -366,10 +419,117 @@ const ecoViews = [
 
   .group {
     padding-top: var(--space-2xl);
+    scroll-margin-top: calc(var(--header-h) + var(--space-s));
+  }
+
+  .sub-station {
+    margin-top: var(--space-2xl);
+    scroll-margin-top: calc(var(--header-h) + var(--space-s));
   }
 
   .schematic {
     margin-top: var(--space-s);
+  }
+
+  .station-note {
+    margin-top: var(--space-s);
+    max-width: 66ch;
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  /* ---------- Three setup categories ---------- */
+  .categories {
+    padding-top: var(--space-l);
+  }
+
+  .category-grid {
+    display: grid;
+    gap: var(--space-m);
+  }
+
+  @media (min-width: 60rem) {
+    .category-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+
+  .category-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xs);
+    height: 100%;
+    padding: var(--space-m);
+    border: 1px solid var(--line-soft);
+    border-top: 2px solid var(--steel-dim);
+    border-radius: var(--radius-s);
+    background: var(--ink-1);
+    color: var(--fg-2);
+    text-decoration: none;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
+  }
+
+  .category-card:is(:hover, :focus-visible) {
+    border-color: var(--line-strong);
+    border-top-color: var(--signal);
+    color: var(--fg);
+  }
+
+  .category-card:active {
+    scale: 0.99;
+  }
+
+  .category-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .category-arrow {
+    color: var(--fg-3);
+    transition:
+      translate var(--dur-ui) var(--ease-out),
+      color var(--dur-fast) var(--ease-out);
+  }
+
+  .category-card:is(:hover, :focus-visible) .category-arrow {
+    translate: 3px 0;
+    color: var(--fg);
+  }
+
+  .category-title {
+    margin-top: var(--space-3xs);
+    font-family: var(--ff-display);
+    font-size: var(--step-1);
+    font-stretch: var(--wide-2);
+    font-weight: var(--w-bold);
+    letter-spacing: var(--track-heading);
+    color: var(--fg);
+  }
+
+  .category-domains {
+    font-size: var(--text-caption);
+    color: var(--fg-3);
+  }
+
+  .category-facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(5.2rem, 1fr));
+    gap: var(--space-xs);
+    margin-top: auto;
+    padding-top: var(--space-s);
+    border-top: 1px solid var(--line-soft);
+  }
+
+  .category-facts dd {
+    margin-top: 0.15rem;
+    font-weight: var(--w-semibold);
+    font-size: var(--text-caption);
+    color: var(--fg);
+    overflow-wrap: anywhere;
   }
 
   /* ---------- Secondary PC lists ---------- */

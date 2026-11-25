@@ -15,7 +15,7 @@ export const setupHardware: Diagram = {
     bg: 'Всички машини и техниката около тях. Вторият компютър е мой, но още няма роля, затова е пунктиран.',
   },
   cols: 5,
-  rows: 2,
+  rows: 3,
   nodes: [
     {
       id: 'audio',
@@ -99,10 +99,25 @@ export const setupHardware: Diagram = {
       col: 4,
       row: 1,
     },
+    {
+      id: 'entertainment',
+      label: { en: 'Entertainment station', bg: 'Кът за развлечение' },
+      sub: {
+        en: 'PS5 Slim Digital 825 GB, Philips 55″ QLED,\n2 × DualSense and charging station',
+        bg: 'PS5 Slim Digital 825 GB, Philips 55″ QLED,\n2 × DualSense и зарядна станция',
+      },
+      kind: 'hardware',
+      col: 1,
+      row: 2,
+      colSpan: 3,
+    },
   ],
   edges: [],
   tiers: [
-    { label: { en: 'Machines', bg: 'Машини' }, nodes: ['main', 'laptop', 'secondary'] },
+    {
+      label: { en: 'Machines', bg: 'Машини' },
+      nodes: ['main', 'laptop', 'secondary', 'entertainment'],
+    },
     {
       label: { en: 'Around them', bg: 'Около тях' },
       nodes: ['audio', 'displays', 'input', 'webcam', 'printer', 'bench'],

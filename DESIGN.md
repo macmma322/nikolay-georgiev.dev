@@ -212,7 +212,14 @@ software rendering with `localStorage['ng-setup:3d'] = 'software'`. Rules:
   the 3D version of "the rest steps back". Numbered pins repeat the list's
   numbers and select on click.
 - Planned kit is a ghost: translucent steel with dashed edges.
-- Reduced motion makes camera moves and exploded views instant.
+- The entertainment station adds a television power toggle, a night/daylight
+  lighting switch and per-device camera inspection poses; its lightweight
+  console-style home screen (original icons and tiles, Caelora as the featured
+  game) updates only while the stage is on screen, powered on, in a visible tab
+  and outside `prefers-reduced-motion`. The 3-sided Ambilight is one additive
+  wall-wash plane whose edge colours come from a 32 × 18 sample of the screen
+  every 1.2 s: no real-time lights and no per-frame readback.
+- Reduced motion makes camera moves, lighting shifts and exploded views instant.
 
 ## Icons
 

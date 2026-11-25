@@ -1,0 +1,106 @@
+---
+/**
+ * The entertainment station, drawn as a front elevation schematic for the
+ * accessible / no-WebGL fallback. Each hardware item is a <g data-part> whose
+ * id matches src/data/setup.ts, paired with its numbered marker.
+ */
+import Mark from './Mark.astro';
+---
+
+<svg class="setup-art" viewBox="0 0 800 470" focusable="false">
+  <line class="floor" x1="16" y1="446" x2="784" y2="446"></line>
+
+  <!-- Right-hand curtains -->
+  <g class="curtains">
+    <rect class="faint" x="646" y="28" width="124" height="416"></rect>
+    {Array.from({ length: 8 }, (_, i) => (
+      <line class="faint" x1={660 + i * 14} y1="28" x2={660 + i * 14} y2="444" />
+    ))}
+  </g>
+
+  <!-- Light-oak cabinet (left open bay with shelf, two right doors with top handles) & left platform -->
+  <g class="furniture">
+    <!-- Left low console platform -->
+    <rect class="ink" x="92" y="388" width="126" height="10" rx="2"></rect>
+    <rect class="ink" x="100" y="398" width="110" height="48"></rect>
+
+    <!-- Light-oak cabinet -->
+    <rect class="ink" x="236" y="276" width="396" height="11" rx="2"></rect>
+    <rect class="ink" x="244" y="287" width="380" height="151"></rect>
+    <rect class="wire" x="250" y="438" width="368" height="8"></rect>
+    <!-- Open storage compartment on the left (two cubbies) -->
+    <rect class="screen" x="254" y="296" width="114" height="62"></rect>
+    <rect class="ink" x="254" y="358" width="114" height="7"></rect>
+    <rect class="screen" x="254" y="365" width="114" height="64"></rect>
+    <!-- Middle and right closed doors + symmetric black horizontal handles -->
+    <rect class="ink" x="376" y="295" width="116" height="135" rx="1"></rect>
+    <rect class="ink" x="498" y="295" width="116" height="135" rx="1"></rect>
+    <rect class="key" x="456" y="308" width="26" height="4" rx="2"></rect>
+    <rect class="key" x="510" y="308" width="26" height="4" rx="2"></rect>
+    <!-- Vertical oak grain lines -->
+    <path
+      class="faint"
+      d="M402 298c4 36-4 72 2 130M434 298c-3 42 5 84-1 130M468 298c3 38-3 80 1 130M526 298c4 40-4 82 2 130M558 298c-3 36 4 78-2 130M590 298c3 42-3 84 1 130"
+    ></path>
+  </g>
+
+  <!-- 2: Philips 55-inch QLED 4K Smart TV -->
+  <g data-part="tv">
+    <!-- Angled feet -->
+    <path class="wire thick" d="M312 276l14-20M556 276l-14-20"></path>
+    <!-- Thin bezel & 16:9 QLED screen -->
+    <rect class="ink" x="258" y="54" width="352" height="204" rx="3"></rect>
+    <rect class="screen" x="264" y="60" width="340" height="190"></rect>
+    <!-- PlayStation-inspired screen motifs -->
+    <path class="faint" d="M272 222c84-54 240-54 324 0M282 236c78-44 226-44 304 0"></path>
+    <path class="faint" d="M378 126h112M398 142h72"></path>
+    {Array.from({ length: 5 }, (_, i) => (
+      <rect class="faint" x={308 + i * 52} y="168" width="42" height="36" rx="4" />
+    ))}
+    <Mark n={2} x={628} y={84} />
+  </g>
+
+  <!-- 1: Sony PS5 Slim Digital Edition (vertical, four-panel split) -->
+  <g data-part="ps5">
+    <!-- Central black curved spine -->
+    <rect class="screen" x="172" y="232" width="16" height="154" rx="3"></rect>
+    <!-- Left upper & lower removable white panels -->
+    <polygon class="ink" points="158,224 172,232 172,308 160,308"></polygon>
+    <polygon class="ink" points="160,312 172,312 172,386 162,386"></polygon>
+    <!-- Right upper & lower removable white panels -->
+    <polygon class="ink" points="202,224 188,232 188,308 200,308"></polygon>
+    <polygon class="ink" points="200,312 188,312 188,386 198,386"></polygon>
+    <!-- Base stand ring & front USB-C ports -->
+    <rect class="wire" x="158" y="386" width="44" height="2"></rect>
+    <line class="faint" x1="180" y1="348" x2="180" y2="352"></line>
+    <line class="faint" x1="180" y1="357" x2="180" y2="361"></line>
+    <Mark n={1} x={180} y={206} />
+  </g>
+
+  <!-- 5: DualSense Charging Station: one dock, two slots in a row -->
+  <g data-part="charger">
+    <rect class="ink" x="114" y="376" width="22" height="12" rx="3"></rect>
+    <line class="wire" x1="116" y1="377" x2="134" y2="377"></line>
+    <Mark n={5} x={150} y={382} />
+  </g>
+
+  <!-- 3: DualSense Wireless Controller — White (rear slot, upright, grips up) -->
+  <g data-part="dualsense-white">
+    <path
+      class="ink"
+      d="M102 374h32c3 0 4-3 4-6l-1-16c0-4-6-5-7 0l-2 8h-16l-2-8c-1-5-7-4-7 0l-1 16c0 3 1 6 4 6z"
+    ></path>
+    <Mark n={3} x={98} y={330} />
+  </g>
+
+  <!-- 4: DualSense Wireless Controller — Midnight Black (front slot) -->
+  <g data-part="dualsense-black">
+    <path
+      class="ink"
+      d="M109 377h32c3 0 4-3 4-6l-1-16c0-4-6-5-7 0l-2 8h-16l-2-8c-1-5-7-4-7 0l-1 16c0 3 1 6 4 6z"
+    ></path>
+    <circle class="wire" cx="119" cy="370" r="2.5"></circle>
+    <circle class="wire" cx="131" cy="370" r="2.5"></circle>
+    <Mark n={4} x={140} y={334} />
+  </g>
+</svg>

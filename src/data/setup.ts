@@ -20,7 +20,15 @@ import type { L } from '@/i18n';
 export type Source = 'machine' | 'docs' | 'owner';
 /** current: owned and in use · spare: owned, not in use · past: replaced · planned: not bought */
 export type Status = 'current' | 'spare' | 'past' | 'planned';
-export type View = 'desk' | 'inside' | 'secondary' | 'laptop';
+export type View = 'desk' | 'inside' | 'secondary' | 'laptop' | 'entertainment';
+
+export interface SetupCategory {
+  id: 'workstation' | 'secondary' | 'entertainment';
+  href: `#${string}`;
+  title: L;
+  domains: L;
+  facts: readonly { label: L; value: string | L }[];
+}
 
 export interface Part {
   id: string;
@@ -818,10 +826,189 @@ export const parts: readonly Part[] = [
     status: 'current',
     source: 'docs',
   },
+
+  // ---------- Entertainment station ----------
+  {
+    id: 'ps5',
+    view: 'entertainment',
+    n: 1,
+    kind: t('Console', 'Конзола'),
+    maker: 'Sony',
+    model: 'PlayStation 5 Slim Digital Edition',
+    purpose: t(
+      'Gaming and media away from the development desk, standing upright on the small light-oak cabinet to the left of the TV cabinet.',
+      'Игри и медия извън работното бюро\u00a0– изправена вертикално върху малкия шкаф от светъл дъб вляво от шкафа на телевизора.',
+    ),
+    specs: [
+      t(
+        '825 GB custom SSD · AMD Zen 2 (8 cores) and RDNA 2 GPU',
+        '825 GB специализиран SSD · AMD Zen 2 (8\u00a0ядра) и RDNA 2 графика',
+      ),
+      t(
+        'Slim Digital chassis (35.8 × 8.0 × 21.6 cm): four removable panels, two front USB-C ports',
+        'Slim Digital корпус (35,8 × 8,0 × 21,6\u00a0см): четири сменяеми панела, два предни порта USB-C',
+      ),
+    ],
+    workflow: t(
+      'Kept in its factory Digital configuration: neither the optional Blu-ray disc drive nor an expansion M.2 SSD has been bought.',
+      'Остава в стандартната си Digital конфигурация: нито допълнителното оптично устройство, нито втори M.2 SSD са купувани.',
+    ),
+    status: 'current',
+    source: 'owner',
+    link: 'https://www.playstation.com/en-gb/ps5/digital-edition-825-gb/',
+  },
+  {
+    id: 'tv',
+    view: 'entertainment',
+    n: 2,
+    kind: t('Television', 'Телевизор'),
+    maker: 'Philips',
+    model: t(
+      '55PUS8450/12 · 55-inch 4K QLED Ambilight TV',
+      '55PUS8450/12 · 55-инчов 4K QLED Ambilight телевизор',
+    ),
+    purpose: t(
+      'Centred above the light-oak cabinet on angled feet for console sessions and films, with soft screen and rear illumination across the wall.',
+      'Разположен в центъра върху светлия дъбов шкаф на наклонени крачета за конзолни сесии и филми, с меко осветяване към стената.',
+    ),
+    specs: [
+      t(
+        '55-inch (139 cm) 4K Ultra HD QLED, 3840 × 2160, HDR10+',
+        '55\u00a0инча (139\u00a0см) 4K Ultra HD QLED, 3840 × 2160, HDR10+',
+      ),
+      t(
+        '3-sided Ambilight, HDMI 2.1 (VRR, ALLM, eARC), Dolby Atmos, Titan OS',
+        'Тристранен Ambilight, HDMI 2.1 (VRR, ALLM, eARC), Dolby Atmos, Titan OS',
+      ),
+      t(
+        '122.6 × 77.7 × 29.7 cm on angled side feet (80.2 cm stance)',
+        '122,6 × 77,7 × 29,7\u00a0см с наклонените странични крачета (80,2\u00a0см отстояние)',
+      ),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: t(
+      'https://www.philips.co.uk/c-p/55PUS8450_12/qled-4k-ambilight-tv',
+      'https://www.philips.bg/c-p/55PUS8450_12/qled-4k-ambilight-tv',
+    ),
+  },
+  {
+    id: 'dualsense-white',
+    view: 'entertainment',
+    n: 3,
+    kind: t('Second controller', 'Втори контролер'),
+    maker: 'Sony',
+    model: t('DualSense Wireless Controller · White', 'DualSense безжичен контролер · бял'),
+    purpose: t(
+      'Second wireless controller for local two-player sessions, charging in the rear slot of the shared dock.',
+      'Втори безжичен контролер за локални игри за двама, зарежда се в задния слот на общата станция.',
+    ),
+    specs: [
+      t(
+        'Two-tone white and black shell, haptic feedback, adaptive L2/R2 triggers',
+        'Двуцветен бяло-черен корпус, хаптична обратна връзка, адаптивни спусъци L2/R2',
+      ),
+      t(
+        'Touchpad, built-in microphone, speaker and USB-C (16.0 × 6.6 × 10.6 cm)',
+        'Тъчпад, вграден микрофон, високоговорител и USB-C (16,0 × 6,6 × 10,6\u00a0см)',
+      ),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: t(
+      'https://www.playstation.com/en-gb/accessories/dualsense-wireless-controller/',
+      'https://www.playstation.com/bg-bg/accessories/dualsense-wireless-controller/',
+    ),
+  },
+  {
+    id: 'dualsense-black',
+    view: 'entertainment',
+    n: 4,
+    kind: t('Primary controller', 'Основен контролер'),
+    maker: 'Sony',
+    model: t(
+      'DualSense Wireless Controller · Midnight Black',
+      'DualSense безжичен контролер · черен',
+    ),
+    purpose: t(
+      'My primary controller, charging in the front slot of the dock beside the console.',
+      'Основният ми контролер, зарежда се в предния слот на станцията до конзолата.',
+    ),
+    specs: [
+      t(
+        'Matte Midnight Black finish, haptic feedback, adaptive L2/R2 triggers',
+        'Матово черно покритие Midnight Black, хаптична обратна връзка, адаптивни спусъци L2/R2',
+      ),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: t(
+      'https://www.playstation.com/en-gb/accessories/dualsense-wireless-controller/',
+      'https://www.playstation.com/bg-bg/accessories/dualsense-wireless-controller/',
+    ),
+  },
+  {
+    id: 'charger',
+    view: 'entertainment',
+    n: 5,
+    kind: t('Charging dock', 'Зарядна станция'),
+    maker: 'Sony',
+    model: t('DualSense Charging Station', 'Двойна зарядна станция DualSense'),
+    purpose: t(
+      'Cradles and charges both DualSense controllers next to the PS5 Slim while leaving the console’s front USB-C ports free.',
+      'Държи и зарежда едновременно двата контролера DualSense до PS5 Slim, като оставя свободни предните USB-C портове на конзолата.',
+    ),
+    specs: [
+      t(
+        'Dual click-in pogo-pin cradles, dedicated mains adapter (5.2 × 6.2 × 15.9 cm)',
+        'Две контактни гнезда за зареждане и собствено захранване (5,2 × 6,2 × 15,9\u00a0см)',
+      ),
+    ],
+    status: 'current',
+    source: 'owner',
+    link: 'https://www.playstation.com/en-gb/accessories/dualsense-charging-station/',
+  },
+];
+
+/** The three consistent setup categories across the page. */
+export const setupCategories: readonly SetupCategory[] = [
+  {
+    id: 'workstation',
+    href: '#workstation',
+    title: t('Main Workstation', 'Основна работна станция'),
+    domains: t('Development · Local AI · Audio', 'Разработка · Локален AI · Аудио'),
+    facts: [
+      { label: t('System', 'Система'), value: 'Ryzen 9 · RTX 3080' },
+      { label: t('Displays', 'Екрани'), value: '2 × 27″ IPS' },
+      { label: t('Memory', 'Памет'), value: '64 GB DDR4' },
+    ],
+  },
+  {
+    id: 'secondary',
+    href: '#secondary',
+    title: t('Secondary Workstation', 'Втора работна станция'),
+    domains: t('Spare desktop · Portable Linux', 'Резервен компютър · Лаптоп с Linux'),
+    facts: [
+      { label: t('Desktop', 'Настолен'), value: 'i7-4790K · 1080 Ti' },
+      { label: t('Portable', 'Лаптоп'), value: 'Nitro AN515-52' },
+      { label: t('System', 'Система'), value: 'Ubuntu LTS' },
+    ],
+  },
+  {
+    id: 'entertainment',
+    href: '#entertainment',
+    title: t('Entertainment Station', 'Станция за развлечение'),
+    domains: t('Gaming · Media · Relaxation', 'Игри · Медия · Почивка'),
+    facts: [
+      { label: t('Platform', 'Платформа'), value: 'PS5 Slim' },
+      { label: t('Display', 'Екран'), value: '55″ QLED' },
+      { label: t('Storage', 'Диск'), value: '825 GB' },
+    ],
+  },
 ];
 
 /** The views of the explorers, in page order. */
-export const views: readonly View[] = ['desk', 'inside', 'secondary', 'laptop'];
+export const views: readonly View[] = ['desk', 'inside', 'secondary', 'laptop', 'entertainment'];
 export const partsIn = (view: View) => parts.filter((p) => p.view === view);
 
 /** Possible roles for the secondary PC. None of them runs today. */

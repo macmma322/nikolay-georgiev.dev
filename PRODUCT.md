@@ -100,7 +100,12 @@ wireless communication, sensors, motor control), with no component list
 500 GB HDDs) and the laptop's storage (Samsung 970 EVO, a Toshiba HDD) and
 current Ubuntu version are owner-stated or unverified; say so on the page.
 The Stream Deck is an MK.2 (owner, 2026-10-27; its
-profile shows a 5 × 3 layout). Never
+profile shows a 5 × 3 layout). The entertainment station (PS5 Slim Digital
+Edition 825 GB, two DualSense controllers in White and Midnight Black, the
+DualSense Charging Station and a Philips 55PUS8450/12 55-inch 4K QLED Ambilight
+TV) is arranged from a photograph of the real room: neither the optional PS5
+disc drive nor an expansion M.2 SSD is included because neither has been
+bought. Never
 publish serials, MAC or IP addresses, Bluetooth device names or local paths.
 
 ## CV
