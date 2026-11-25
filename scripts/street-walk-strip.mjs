@@ -22,6 +22,7 @@ import { mkdir } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import prettier from 'prettier';
 import sharp from 'sharp';
 
 const OUT = path.join(
@@ -301,7 +302,14 @@ try {
     clip: { frames: frames.length, loop: [loop.s, loop.e], creepPerFrame: +creep.toFixed(2) },
   };
   const sorted = Object.fromEntries(Object.entries(meta).sort(([a], [b]) => a.localeCompare(b)));
-  writeFileSync(metaFile, `${JSON.stringify(sorted, null, 2)}\n`);
+  // In the project's own style: CI checks the formatting of every file.
+  writeFileSync(
+    metaFile,
+    await prettier.format(JSON.stringify(sorted), {
+      ...(await prettier.resolveConfig(metaFile)),
+      filepath: metaFile,
+    }),
+  );
   console.log(id, JSON.stringify(meta[id]));
 } finally {
   rmSync(tmp, { recursive: true, force: true });

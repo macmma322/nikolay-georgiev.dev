@@ -14,6 +14,7 @@
  *
  * Usage: node scripts/street-crowd-atlas.mjs
  */
+import prettier from 'prettier';
 import sharp from 'sharp';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -1099,5 +1100,13 @@ export function hasPhotorealSprite(id: string): boolean {
 }
 `;
 
-await writeFile(META_OUT, tsSource, 'utf8');
+// In the project's own style: CI checks the formatting of every file.
+await writeFile(
+  META_OUT,
+  await prettier.format(tsSource, {
+    ...(await prettier.resolveConfig(META_OUT)),
+    filepath: META_OUT,
+  }),
+  'utf8',
+);
 console.log('Metadata written:', META_OUT);
