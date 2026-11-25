@@ -325,15 +325,15 @@ export function buildEntertainment(m: Materials): SceneDef {
     focusPoses: {
       ps5: { position: [-42, 44, 60], target: [-70, 34, -5], fov: 32 },
       tv: { position: [14, 86, 176], target: [14, 84, 0], fov: 32 },
-      'dualsense-white': { position: [-102, 44, 34], target: [-95, 28, -5.5], fov: 32 },
-      'dualsense-black': { position: [-56, 38, 28], target: [-88.8, 27, -0.5], fov: 32 },
+      'dualsense-white': { position: [-102, 42, 34], target: [-95, 26, -5.5], fov: 32 },
+      'dualsense-black': { position: [-56, 36, 28], target: [-88.8, 25, -0.5], fov: 32 },
       charger: { position: [-64, 34, 30], target: [-91, 22, -2], fov: 32 },
     },
     anchors: {
       ps5: [-70, 57, -5],
       tv: [74, 124.5, 1],
-      'dualsense-white': [-104, 37, -8],
-      'dualsense-black': [-80, 36, 3],
+      'dualsense-white': [-104, 35, -8],
+      'dualsense-black': [-80, 34, 3],
       charger: [-85.5, 22, 4],
     },
     setPower(k) {
@@ -1473,8 +1473,8 @@ function buildDualSense(
 
 /** The two USB-C slots sit along the dock's length: + is the front slot. */
 const DOCK_SLOT_Z = 4.1;
-/** Height of the rear-edge centre of a docked controller (its USB-C port). */
-const DOCK_SEAT_Y = 6.05;
+/** Height of the deck top where a docked controller's body rests. */
+const DOCK_SEAT_Y = 6.3;
 
 function buildChargingStation(m: Materials, whiteMat: THREE.Material, blackMat: THREE.Material) {
   // 5.2 cm wide × 6.2 cm high × 15.9 cm long
@@ -1506,7 +1506,7 @@ function buildChargingStation(m: Materials, whiteMat: THREE.Material, blackMat: 
   for (const z of [-DOCK_SLOT_Z, DOCK_SLOT_Z]) {
     g.add(
       box(2.4, 0.3, 4.4, m.rubber, 0.12, [0, 6.22, z]),
-      box(0.85, 0.5, 0.26, m.steel, 0.1, [0, DOCK_SEAT_Y + 0.4, z]),
+      box(0.85, 0.5, 0.26, m.steel, 0.1, [0, 6.45, z]),
     );
   }
   // Charge indicator at the front end
@@ -1514,11 +1514,15 @@ function buildChargingStation(m: Materials, whiteMat: THREE.Material, blackMat: 
   return g;
 }
 
+/** Lower-centre edge of the body between the grips, in the pad's local z (outline + bevel). */
+const PAD_CROTCH_Z = 2.99;
+
 /**
- * Stands a controller upright in a dock slot, as the real station holds it:
- * rear edge down on the USB-C plug, face toward the dock's front, grips up,
- * leaning back a few degrees. The controller stays its own part, so it is
- * placed at the slot's world transform rather than parented to the dock.
+ * Stands a controller upright in a dock slot the way the owner keeps them:
+ * touchpad on top, grips down astride the dock, face toward the dock's front,
+ * leaning back a few degrees, resting on the deck by the lower centre of its
+ * body. The controller stays its own part, so it is placed at the slot's
+ * world transform rather than parented to the dock.
  */
 function dockController(dock: THREE.Object3D, pad: THREE.Group, slotZ: number) {
   const seat = place(new THREE.Group(), [0, DOCK_SEAT_Y, slotZ], [-0.1, 0, 0]);
@@ -1527,10 +1531,7 @@ function dockController(dock: THREE.Object3D, pad: THREE.Group, slotZ: number) {
   const part = new THREE.Group();
   part.applyMatrix4(seat.matrixWorld);
   dock.remove(seat);
-  // local (x, y, z) → (-x, z, y): face (+y) to the front, grips (+z) up
-  pad.rotation.x = -Math.PI / 2;
-  const turn = place(new THREE.Group(), [0, -PAD_EDGE_Z, -PAD_MID], [0, Math.PI, 0]);
-  turn.add(pad);
-  part.add(turn);
+  // local (x, y, z) → (x, -z, y): face (+y) to the front, grips (+z) down
+  part.add(place(pad, [0, PAD_CROTCH_Z, -PAD_MID], [Math.PI / 2, 0, 0]));
   return part;
 }
