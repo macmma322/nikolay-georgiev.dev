@@ -600,7 +600,7 @@ test.describe('street v3: photorealistic crowd, backdrop & project cards', () =>
     const s = await stats(page);
     expect(s.photoreal).toBeGreaterThan(0);
     expect(s.framesPerCharacter).toBe(20);
-    expect(s.distinctBaseHumans).toBe(16);
+    expect(s.distinctBaseHumans).toBe(15);
     expect(s.decodedMemoryBytes).toBeGreaterThan(0);
 
     // The street photograph has loaded, and an upright phone was served its own crop

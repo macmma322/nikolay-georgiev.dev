@@ -13,6 +13,8 @@ export interface SpriteStripEntry {
   frames: number;
   soleY: number;
   headTopRatio: number;
+  /** Ground covered in one loop of the walk frames, in figure heights: set for people built from film. */
+  stride?: number;
 }
 
 export const ATLAS_FRAMES = 20;
@@ -39,6 +41,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.382,
     headTopRatio: 0.066,
   },
   trainee: {
@@ -66,6 +69,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.446,
     headTopRatio: 0.066,
   },
   angler: {
@@ -102,6 +106,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.381,
     headTopRatio: 0.066,
   },
   'pup-walker': {
@@ -129,6 +134,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.54,
     headTopRatio: 0.066,
   },
   manager: {
@@ -156,6 +162,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.749,
     headTopRatio: 0.066,
   },
   commuter: {
@@ -190,6 +197,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
+    stride: 0.382,
     headTopRatio: 0.066,
   },
   courier: {
@@ -199,6 +207,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
+    stride: 0.446,
     headTopRatio: 0.066,
   },
   kernel: {
@@ -217,6 +226,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
+    stride: 0.381,
     headTopRatio: 0.066,
   },
   grandfather: {
@@ -226,6 +236,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
+    stride: 0.54,
     headTopRatio: 0.066,
   },
   student: {
@@ -235,6 +246,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
+    stride: 0.749,
     headTopRatio: 0.066,
   },
 };

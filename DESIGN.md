@@ -190,13 +190,20 @@ doesn't."
   rides on it, turns by under a degree toward whoever passes, and blinks every
   4 to 8 s. The artwork is never redrawn or warped. Replace the source and
   re-run the script to change him; the polygons in it follow the new art.
-- **The crowd** is 16 photographed people, rigged offline into sprite atlases
-  by `scripts/street-crowd-atlas.mjs` (`crowd-core`, `crowd-city`). Six of
-  them are rigged again at 2.5x (`crowd-near`, wide screens only) and only
-  those six walk in the two lanes in front of him, so nobody close is softer
-  than he is. Five lanes; two canvases sandwich the figure, so the near lanes
-  pass in front of him and the far ones behind. Nobody is on the street twice.
-  Seven carry something from a project.
+- **The crowd** is 16 photographed people in sprite atlases built by
+  `scripts/street-crowd-atlas.mjs` (`crowd-core`, `crowd-city`). Six of them
+  are built again at 2.5x (`crowd-near`, wide screens only) and only those six
+  walk in the two lanes in front of him, so nobody close is softer than he is.
+  Five lanes; two canvases sandwich the figure, so the near lanes pass in
+  front of him and the far ones behind. Nobody is on the street twice. Seven
+  carry something from a project.
+- **Walking is filmed where it can be.** Five of the six near people walk from
+  film: a cut-out animated on a green background, cut into sixteen frames by
+  `scripts/street-walk-strip.mjs` (`src/assets/media/street/crowd-walk`). The
+  script measures the ground under their planted feet, and the scene advances
+  their frames by that distance, so feet do not slide. The rest are still
+  rigged from one photograph each; a character gets film only from a clean,
+  high-resolution, side-on cut-out.
 - **Text lights its drawing, again.** The seven labels under the scene are
   links to the case studies. Pointing at or focusing one brings its figure on
   and lights it in the project's colour; pointing at the figure lights the

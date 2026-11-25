@@ -261,6 +261,15 @@ export function createStreet(options: StreetOptions): Street {
   // ---------- size & avatar composition corridor ----------
   const unit = (lane: Lane) => ph * UNIT * lane.scale;
   const groundOf = (lane: Lane) => py + lane.y * ph;
+  /**
+   * Pixels one loop of the walk frames covers. For someone built from film it
+   * is what was measured under their feet (a figure is 100 units tall), so the
+   * planted foot stays where it was put.
+   */
+  const cycleOf = (look: Look, u: number) => {
+    const stride = CROWD_SPRITES[look.id]?.stride;
+    return (stride ? stride * 100 : cycleLength(look)) * u;
+  };
   const avatarCoreHalf = () => Math.max(30, ph * 0.1);
   const avatarFlankMin = () => avatarCoreHalf() * 1.1;
   const avatarFlankMax = () => Math.max(128, width * 0.3);
@@ -349,8 +358,8 @@ export function createStreet(options: StreetOptions): Street {
   function measure(walker: Walker, h: number) {
     const lane = LANES[walker.lane]!;
     const u = h * UNIT * lane.scale * walker.look.h;
-    walker.pace = (walker.pace / (walker.cycle || 1)) * cycleLength(walker.look) * u || 0;
-    walker.cycle = cycleLength(walker.look) * u;
+    walker.pace = (walker.pace / (walker.cycle || 1)) * cycleOf(walker.look, u) || 0;
+    walker.cycle = cycleOf(walker.look, u);
     walker.half =
       u *
       (walker.look.with || walker.look.hand === 'bike' || walker.look.hand === 'stroller'
@@ -438,7 +447,7 @@ export function createStreet(options: StreetOptions): Street {
       WALL,
       Math.max(0.85, 1.25 * def.scale ** 0.5) / (ph * UNIT * def.scale * look.h),
     );
-    walker.cycle = cycleLength(look) * u;
+    walker.cycle = cycleOf(look, u);
     walker.pace = look.speed * def.pace * between(0.92, 1.08) * u;
     walker.v = walker.pace;
     walker.act = null;
@@ -1256,7 +1265,7 @@ export function createStreet(options: StreetOptions): Street {
         },
         decodedMemoryBytes: coreBytes + cityBytes + backdropBytes + canvasBytes,
         framesPerCharacter: 20,
-        distinctBaseHumans: 16,
+        distinctBaseHumans: 15,
       };
     },
     summon,

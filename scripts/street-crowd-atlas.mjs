@@ -15,7 +15,7 @@
  * Usage: node scripts/street-crowd-atlas.mjs
  */
 import sharp from 'sharp';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -23,6 +23,13 @@ const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const SRC_DIR = path.join(ROOT, 'src/assets/media/street/crowd-src');
 const OUT_DIR = path.join(ROOT, 'public/street');
 const META_OUT = path.join(ROOT, 'src/scripts/street/crowd-atlas.ts');
+/**
+ * People filmed walking (scripts/street-walk-strip.mjs): sixteen walk frames
+ * each, in the near tier's cell. Anyone listed here is built from the film and
+ * skips the rig below, whatever its spec says.
+ */
+const WALK_DIR = path.join(ROOT, 'src/assets/media/street/crowd-walk');
+const WALK = JSON.parse(await readFile(path.join(WALK_DIR, 'walk.json'), 'utf8').catch(() => '{}'));
 const FRAMES = 20;
 const CELL_H = 152;
 const TAU = Math.PI * 2;
@@ -349,6 +356,7 @@ function stampOverlay(base, overlay, offsetX = 0, offsetY = 0) {
  * so a larger cell is simply sampled finer. `pick` keeps only some frames.
  */
 async function synthesizeCharacterStrip(spec, K = 1, pick = null) {
+  if (WALK[spec.id]) return fromWalkStrip(spec.id, WALK[spec.id], K, pick);
   const {
     id,
     primary,
@@ -721,6 +729,47 @@ async function synthesizeCharacterStrip(spec, K = 1, pick = null) {
 }
 
 // ---------- Build Derived Prop Overlays (SVG -> Shaded Raster) ----------
+/**
+ * A character from film. Frames 0..15 are the strip; the four still frames are
+ * the one where the feet are together, and a moment after it for the
+ * transition, so stopping does not jump back to a mid-stride photograph.
+ */
+async function fromWalkStrip(id, walk, K, pick) {
+  const cellH = CELL_H * K;
+  const cellW = (walk.wide ? 176 : 114) * K;
+  const { data, info } = await sharp(path.join(WALK_DIR, `${id}.webp`))
+    .ensureAlpha()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const strip = gradeClothing({
+    data: new Uint8Array(data),
+    width: info.width,
+    height: info.height,
+  });
+  const srcW = info.width / walk.frames;
+  const frames = [];
+  for (let f = 0; f < FRAMES; f++) {
+    if (pick && !pick.includes(f)) continue;
+    const from = f < 16 ? f : f === 18 ? (walk.still + 2) % 16 : walk.still;
+    frames.push(
+      await sharp(strip.data, { raw: { width: strip.width, height: strip.height, channels: 4 } })
+        .extract({ left: from * srcW, top: 0, width: srcW, height: info.height })
+        .resize(cellW, cellH, { kernel: 'lanczos3' })
+        .png()
+        .toBuffer(),
+    );
+  }
+  return {
+    id,
+    cellW,
+    cellH,
+    soleY: cellH - 6 * K,
+    headTopRatio: +(1 - (142 * K) / cellH).toFixed(3),
+    stride: walk.stride,
+    frames,
+  };
+}
+
 async function buildProps() {
   // Fishing rod top extension & amber tip glow (KOBAIT) in 212x512 canvas
   const anglerRodTipSvg = `<svg xmlns="http://www.w3.org/2000/svg" width="212" height="512" viewBox="0 0 212 512">
@@ -963,6 +1012,7 @@ async function packAtlas(fileName, specs, tier, K = 1, pick = null) {
       h: res.cellH,
       frames: count,
       soleY: res.soleY,
+      ...(res.stride ? { stride: res.stride } : {}),
       headTopRatio: res.headTopRatio,
     };
   });
@@ -1019,6 +1069,8 @@ export interface SpriteStripEntry {
   frames: number;
   soleY: number;
   headTopRatio: number;
+  /** Ground covered in one loop of the walk frames, in figure heights: set for people built from film. */
+  stride?: number;
 }
 
 export const ATLAS_FRAMES = ${FRAMES};
