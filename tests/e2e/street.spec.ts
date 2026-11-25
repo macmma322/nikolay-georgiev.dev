@@ -144,7 +144,7 @@ test.describe('street: layout', () => {
     const links = page
       .locator('.street-nav a, .cast a, .site-footer .baseline a')
       .filter({ visible: true });
-    const wide = page.viewportSize()!.width >= 960;
+    const wide = page.viewportSize()!.width >= 1100;
     expect(await links.count()).toBeGreaterThanOrEqual(wide ? 9 : 15);
     if (wide) {
       await expect(page.locator('.street-nav ul')).toBeHidden();
