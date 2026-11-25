@@ -29,15 +29,50 @@ interface Lane {
 }
 
 const LANES: readonly Lane[] = [
-  { y: 0.7, scale: 0.47, haze: 0.5, front: false, share: 0.24, pace: 0.86 },
-  { y: 0.785, scale: 0.61, haze: 0.3, front: false, share: 0.26, pace: 0.93 },
-  { y: 0.875, scale: 0.78, haze: 0.13, front: false, share: 0.24, pace: 1 },
+  { y: 0.7, scale: 0.47, haze: 0.58, front: false, share: 0.24, pace: 0.86 },
+  { y: 0.785, scale: 0.61, haze: 0.36, front: false, share: 0.26, pace: 0.93 },
+  { y: 0.875, scale: 0.78, haze: 0.18, front: false, share: 0.24, pace: 1 },
   { y: 0.99, scale: 0.97, haze: 0, front: true, share: 0.2, pace: 1.05 },
   { y: 1.2, scale: 1.34, haze: -0.3, front: true, share: 0.06, pace: 1.15 },
 ];
 /** Stage height taken by an adult in a lane of scale 1, per unit of figure height. */
 const UNIT = 0.0057;
 const WALL: C3 = [0.3, 0.012, 255];
+
+/** Illustrated painterly foreground pedestrian sprite sheet (4 archetypes × 8 walk frames). */
+const FG_CELL_W = 180;
+const FG_CELL_H = 324;
+const FG_COLS = 8;
+const FG_ROWS = 4;
+const FG_GROUND_RATIO = 207 / 216;
+const FG_HEIGHT_UNIT = 114;
+
+let fgAtlasPromise: Promise<HTMLImageElement> | null = null;
+
+export function loadForegroundCrowdAtlas(): Promise<HTMLImageElement> {
+  if (!fgAtlasPromise) {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = '/avatar/crowd-fg.webp';
+    fgAtlasPromise = img
+      .decode()
+      .then(() => img)
+      .catch((err: unknown) => {
+        fgAtlasPromise = null;
+        throw err;
+      });
+  }
+  return fgAtlasPromise;
+}
+
+function fgArchetypeFor(id: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < id.length; i += 1) {
+    h ^= id.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % FG_ROWS;
+}
 
 type Act = 'phone' | 'wave' | 'look' | 'shrug' | 'greet';
 
@@ -63,6 +98,8 @@ interface Walker {
   hold: number;
   half: number;
   tall: number;
+  /** Row index into /avatar/crowd-fg.webp for painterly foreground walkers, or -1 for procedural. */
+  fgSprite: number;
 }
 
 export interface StreetOptions {
@@ -144,6 +181,7 @@ export function createStreet(options: StreetOptions): Street {
   let nextEvent = 3;
   let shown = -1;
   let destroyed = false;
+  let fgAtlas: HTMLImageElement | null = null;
 
   // One soft shadow, painted once and stamped under every pair of feet.
   const shadow = document.createElement('canvas');
@@ -274,6 +312,7 @@ export function createStreet(options: StreetOptions): Street {
       hold: 0,
       half: 0,
       tall: 0,
+      fgSprite: -1,
     };
     const u = height * UNIT * def.scale * look.h;
     walker.look = look;
@@ -281,11 +320,15 @@ export function createStreet(options: StreetOptions): Street {
     walker.x = x;
     walker.dir = dir;
     walker.dy = between(-0.012, 0.012) * height * def.scale;
+    walker.fgSprite =
+      def.front && !look.egg && !look.roll && !look.run && !look.with && look.h >= 0.85
+        ? fgArchetypeFor(look.id)
+        : -1;
     walker.paint = paintFor(
       look,
       def.haze,
       WALL,
-      Math.max(0.85, 1.25 * def.scale ** 0.5) / (height * UNIT * def.scale * look.h),
+      Math.max(0.45, 0.72 * def.scale ** 0.5) / (height * UNIT * def.scale * look.h),
     );
     walker.cycle = cycleLength(look) * u;
     walker.pace = look.speed * def.pace * between(0.92, 1.08) * u;
@@ -401,6 +444,7 @@ export function createStreet(options: StreetOptions): Street {
       (walker) =>
         walker.lane >= 1 &&
         walker.lane <= 3 &&
+        walker.fgSprite < 0 &&
         !walker.act &&
         walker.rest <= 0 &&
         !walker.look.roll &&
@@ -606,14 +650,32 @@ export function createStreet(options: StreetOptions): Street {
         }
         g.save();
         g.translate(walker.x, ground);
-        g.scale(walker.dir * u, u);
-        drawFigure(
-          g,
-          walker.look,
-          walker.paint,
-          walker.pose,
-          walker.lane >= (quality === 'low' ? 2 : 1),
-        );
+        if (walker.fgSprite >= 0 && fgAtlas) {
+          g.scale(walker.dir, 1);
+          const col = Math.floor((((walker.pose.p % 1) + 1) % 1) * FG_COLS) % FG_COLS;
+          const spriteH = u * FG_HEIGHT_UNIT;
+          const spriteW = (spriteH * FG_CELL_W) / FG_CELL_H;
+          g.drawImage(
+            fgAtlas,
+            col * FG_CELL_W,
+            walker.fgSprite * FG_CELL_H,
+            FG_CELL_W,
+            FG_CELL_H,
+            -spriteW * 0.5,
+            -spriteH * FG_GROUND_RATIO,
+            spriteW,
+            spriteH,
+          );
+        } else {
+          g.scale(walker.dir * u, u);
+          drawFigure(
+            g,
+            walker.look,
+            walker.paint,
+            walker.pose,
+            walker.lane >= (quality === 'low' ? 2 : 1),
+          );
+        }
         g.restore();
         if (lit > 0.02) {
           // A drafting tick over the head, in the project's colour.
@@ -714,7 +776,8 @@ export function createStreet(options: StreetOptions): Street {
     const walker = under(event.clientX - rect.left, event.clientY - rect.top);
     if (!walker) return;
     if (walker.look.egg) walker.hold = 4;
-    else if (!walker.act && !walker.look.roll && !walker.look.run) begin(walker, 'wave', 1.9);
+    else if (walker.fgSprite < 0 && !walker.act && !walker.look.roll && !walker.look.run)
+      begin(walker, 'wave', 1.9);
   }
 
   function summon(slug: string): boolean {
@@ -769,8 +832,28 @@ export function createStreet(options: StreetOptions): Street {
 
   // Peoples the street as soon as it has a size (now, unless the stage is collapsed).
   resize();
+  const initialRect = stage.getBoundingClientRect();
+  if (
+    initialRect.width > 0 &&
+    initialRect.height > 0 &&
+    initialRect.bottom >= -80 &&
+    initialRect.top <= window.innerHeight + 80
+  ) {
+    visible = true;
+  }
   setState(state);
+  sync();
   draw();
+
+  void loadForegroundCrowdAtlas()
+    .then((img) => {
+      if (destroyed) return;
+      fgAtlas = img;
+      draw();
+    })
+    .catch(() => {
+      // Procedural foreground fallback remains active if the atlas fails to load.
+    });
 
   return {
     step(seconds, dt = 1 / 30) {

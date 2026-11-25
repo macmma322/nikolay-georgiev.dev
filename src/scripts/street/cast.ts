@@ -132,25 +132,35 @@ const css = (c: C3) => `oklch(${c[0].toFixed(3)} ${c[1].toFixed(3)} ${c[2]})`;
 export function paintFor(look: Look, haze: number, wall: C3, lw: number): Paint {
   const target: C3 = haze >= 0 ? wall : [0.1, 0.004, 255];
   const t = Math.abs(haze);
-  // Evening light: everything a little deeper and quieter than its daylight colour.
+  // Evening light: muted, cohesive atmospheric tones so background crowds support Nikolay without cartoon contrast.
   const at = (c: C3, k = 1, grade = true): string => {
-    const l = grade ? c[0] * 0.84 : c[0];
-    const ch = grade ? c[1] * 0.8 : c[1];
+    const l = grade ? c[0] * 0.78 : c[0];
+    const ch = grade ? c[1] * 0.72 : c[1];
     return css([l + (target[0] - l) * t * k, ch + (target[1] - ch) * t * k, c[2]]);
   };
-  const dark = (c: C3): C3 => [c[0] * 0.81, c[1] * 1.05, c[2]];
+  const dark = (c: C3): C3 => [c[0] * 0.76, c[1] * 1.04, c[2]];
+  const light = (c: C3): C3 => [Math.min(0.95, c[0] * 1.14 + 0.03), c[1] * 0.94 + 0.01, c[2]];
+  const lineAlpha = Math.max(0.18, 0.42 * (1 - t * 0.55));
   return {
-    line: at(OUTLINE, 0.7),
-    soft: `oklch(0.1 0.012 40 / ${(0.5 * (1 - t * 0.5)).toFixed(2)})`,
+    line: `oklch(${(OUTLINE[0] + (target[0] - OUTLINE[0]) * t * 0.75).toFixed(3)} 0.012 258 / ${lineAlpha.toFixed(2)})`,
+    soft: `oklch(0.12 0.012 258 / ${(0.34 * (1 - t * 0.55)).toFixed(2)})`,
+    rim: `oklch(0.85 0.095 76 / ${(0.36 * (1 - t * 0.62)).toFixed(2)})`,
     skin: at(look.skin),
-    skinDark: at([look.skin[0] * 0.82, look.skin[1] * 1.1, look.skin[2] - 6]),
+    skinDark: at([look.skin[0] * 0.8, look.skin[1] * 1.08, look.skin[2] - 6]),
+    skinLight: at([
+      Math.min(0.95, look.skin[0] * 1.07 + 0.02),
+      look.skin[1] * 0.95,
+      look.skin[2] + 3,
+    ]),
     hair: at(look.hair),
     hairLight: at([Math.min(0.92, look.hair[0] + 0.16), look.hair[1], look.hair[2]]),
-    sole: at([0.86, 0.01, 85]),
+    sole: at([0.82, 0.012, 82]),
     top: at(look.top),
     topDark: at(dark(look.top)),
+    topLight: at(light(look.top)),
     bottom: at(look.bottom),
     bottomDark: at(dark(look.bottom)),
+    bottomLight: at(light(look.bottom)),
     shoe: at(look.shoe),
     item: at(look.item ?? ITEM),
     under: at(look.under ?? UNDER),
