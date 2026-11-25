@@ -43,11 +43,11 @@ export const seo = {
   },
   about: {
     title: {
-      en: 'About: software engineer based in Varna',
-      bg: 'За мен: софтуерен инженер от Варна',
+      en: 'About: software engineer near Varna',
+      bg: 'За мен: софтуерен инженер край Варна',
     },
     description: {
-      en: 'Nikolay Georgiev, software engineer in Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
+      en: 'Nikolay Georgiev, software engineer near Varna and junior backend developer at DXC, builds full-stack platforms in React, Next.js, Node.js and PostgreSQL.',
       bg: 'Николай Георгиев, софтуерен инженер от Варна и младши бекенд разработчик в DXC, изгражда full-stack платформи с React, Next.js, Node.js и PostgreSQL.',
     },
   },

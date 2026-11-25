@@ -147,7 +147,6 @@ const widths = [112, 168, 252, 336, 528];
   </div>
 
   <div class="stage" data-stage data-state="static">
-    <slot name="circuit" />
     <div class="plate" data-plate>
       <picture>
         <source media={PHONE} type="image/avif" srcset={plate.tallAvif} sizes="100vw" />
@@ -478,8 +477,7 @@ const widths = [112, 168, 252, 336, 528];
       align-content: start;
     }
     .street-nav ul {
-      justify-content: end;
-      gap: 0 1.25rem;
+      display: none;
     }
     .street-nav a {
       font-size: var(--text-caption);
@@ -520,11 +518,6 @@ const widths = [112, 168, 252, 336, 528];
       --crop-w: 0.45;
       --stage-h: clamp(22rem, 122vw, 78svh);
     }
-  }
-
-  /* The circuitry belongs to the drawn pages, not to a photograph. */
-  .stage > :global(circuit-field) {
-    display: none;
   }
 
   .plate {

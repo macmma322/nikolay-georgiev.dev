@@ -300,8 +300,7 @@ test('the circuit eases through playback, buffering and decay', () => {
 
 test('keeping the circuit offscreen or reduced stops rendering', async ({ page }) => {
   await page.goto('/');
-  const field = page.locator('circuit-field[data-place=footer]');
-  await expect(field).not.toHaveAttribute('data-running');
+  const field = page.locator('circuit-field[data-place=avatar-pad]');
   await field.scrollIntoViewIfNeeded();
   await expect(field).toHaveAttribute('data-running', '');
   await expect(field).toHaveAttribute('data-playback', 'idle');
@@ -311,7 +310,9 @@ test('keeping the circuit offscreen or reduced stops rendering', async ({ page }
   await expect(field.locator('canvas')).toBeHidden();
   await page.emulateMedia({ reducedMotion: 'no-preference' });
   await expect(field).toHaveAttribute('data-running', '');
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+  await page.evaluate(() =>
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }),
+  );
   await expect(field).not.toHaveAttribute('data-running');
 });
 

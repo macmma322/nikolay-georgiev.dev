@@ -139,8 +139,17 @@ test.describe('street: layout', () => {
 
   test('the footer keeps its links, and nothing covers them', async ({ page }) => {
     await open(page);
-    const links = page.locator('.street-nav a, .cast a, .site-footer .baseline a');
-    expect(await links.count()).toBeGreaterThanOrEqual(15);
+    // From a laptop up the header carries the page links and the footer keeps
+    // only the way back; on a phone the footer lists them again.
+    const links = page
+      .locator('.street-nav a, .cast a, .site-footer .baseline a')
+      .filter({ visible: true });
+    const wide = page.viewportSize()!.width >= 960;
+    expect(await links.count()).toBeGreaterThanOrEqual(wide ? 9 : 15);
+    if (wide) {
+      await expect(page.locator('.street-nav ul')).toBeHidden();
+      await expect(page.locator('header nav a').first()).toBeVisible();
+    }
     for (const link of await links.all()) {
       await link.scrollIntoViewIfNeeded();
       // The element under the middle of each link is the link (or its text).

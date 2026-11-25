@@ -23,6 +23,14 @@
     "still": 0,
     "clip": { "frames": 73, "loop": [13, 61], "creepPerFrame": -0.04 }
   },
+  "kernel": {
+    "frames": 16,
+    "wide": false,
+    "centre": 0.5,
+    "stride": 0.972,
+    "still": 3,
+    "clip": { "frames": 73, "loop": [23, 63], "creepPerFrame": -0.15 }
+  },
   "student": {
     "frames": 16,
     "wide": false,
