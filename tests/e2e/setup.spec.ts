@@ -85,6 +85,8 @@ test.describe('3D views', () => {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/setup');
     const pane = page.locator('[data-view-pane="desk"]');
+    // The category cards put the first model below the fold; it mounts on approach.
+    await pane.scrollIntoViewIfNeeded();
     await expect(pane).toHaveAttribute('data-live', '', { timeout: 20_000 });
     await expect(pane.locator('.art')).toBeHidden();
     await expect(pane.locator('canvas.stage-gl')).toBeVisible();
@@ -125,6 +127,7 @@ test.describe('3D views', () => {
   const liveDesk = async (page: Page) => {
     await page.goto('/setup');
     const explorer = page.locator('[data-explorer="workstation"]');
+    await explorer.scrollIntoViewIfNeeded();
     await expect(explorer.locator('[data-view-pane="desk"]')).toHaveAttribute('data-live', '', {
       timeout: 30_000,
     });
