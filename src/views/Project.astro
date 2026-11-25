@@ -257,17 +257,26 @@ const media = p.media.map((m, i) => {
             </h2>
             <div class="media-grid">
               {media.map((m) => (
-                <figure class:list={['media reveal photo', { wide: m.wide, solo: m.solo }]}>
-                  <Image
-                    src={m.src}
-                    alt={m.alt}
-                    widths={m.wide ? [640, 960, 1280, 1920] : [480, 720, 960]}
-                    sizes={
-                      m.wide ? '(min-width: 1200px) 1100px, 94vw' : '(min-width: 900px) 540px, 94vw'
-                    }
-                    loading="lazy"
-                    decoding="async"
-                  />
+                <figure
+                  class:list={[
+                    'media reveal photo',
+                    { wide: m.wide, solo: m.solo, 'is-living': entry.id === 'caelora' },
+                  ]}
+                >
+                  <div class="media-frame">
+                    <Image
+                      src={m.src}
+                      alt={m.alt}
+                      widths={m.wide ? [640, 960, 1280, 1920] : [480, 720, 960]}
+                      sizes={
+                        m.wide
+                          ? '(min-width: 1200px) 1100px, 94vw'
+                          : '(min-width: 900px) 540px, 94vw'
+                      }
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
                   <figcaption>{m.caption}</figcaption>
                 </figure>
               ))}
@@ -1105,6 +1114,43 @@ const media = p.media.map((m, i) => {
     border: 1px solid var(--line-soft);
     border-radius: var(--radius-m);
     background: var(--ink-1);
+  }
+
+  .media-frame {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-m);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .media.is-living .media-frame::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border-radius: inherit;
+      background: linear-gradient(
+        118deg,
+        transparent 18%,
+        color-mix(in oklch, var(--accent) 14%, transparent) 42%,
+        color-mix(in oklch, var(--fg) 10%, transparent) 52%,
+        transparent 76%
+      );
+      opacity: 0.48;
+      transform: translateX(-18%);
+      animation: living-canopy-light 11s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes living-canopy-light {
+    from {
+      transform: translateX(-22%) translateY(-4%);
+      opacity: 0.24;
+    }
+    to {
+      transform: translateX(22%) translateY(4%);
+      opacity: 0.56;
+    }
   }
 
   .media figcaption {

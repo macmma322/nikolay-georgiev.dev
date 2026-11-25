@@ -161,4 +161,61 @@ const link = `M${antenna.x} ${antenna.y}Q262 12 ${boatAntenna.x} ${boatAntenna.y
       display: none;
     }
   }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .link {
+      stroke-dasharray: 10 16;
+      animation: kobait-radio 3.4s linear infinite;
+    }
+    .dot {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: kobait-beacon 2.4s ease-in-out infinite alternate;
+    }
+    [data-part='failsafe'] rect.wire {
+      animation: kobait-frame-step 3.8s ease-in-out infinite;
+    }
+    [data-part='failsafe'] rect.wire:nth-of-type(2) {
+      animation-delay: 0.4s;
+    }
+    [data-part='failsafe'] rect.wire:nth-of-type(3) {
+      animation-delay: 0.8s;
+    }
+    [data-part='failsafe'] rect.wire:nth-of-type(4) {
+      animation-delay: 1.2s;
+    }
+    .stop {
+      animation: kobait-beacon 3.8s ease-in-out infinite;
+    }
+  }
+
+  @keyframes kobait-radio {
+    to {
+      stroke-dashoffset: -52;
+    }
+  }
+
+  @keyframes kobait-beacon {
+    from {
+      opacity: 0.48;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.22);
+    }
+  }
+
+  @keyframes kobait-frame-step {
+    0%,
+    60%,
+    100% {
+      stroke: var(--steel-dim);
+      opacity: 0.55;
+    }
+    25% {
+      stroke: var(--accent);
+      opacity: 1;
+    }
+  }
 </style>

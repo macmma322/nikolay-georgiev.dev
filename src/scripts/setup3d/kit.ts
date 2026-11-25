@@ -274,6 +274,7 @@ export function fan(size: number, m: Materials, opts: { light?: boolean; depth?:
   hub.rotation.x = Math.PI / 2;
 
   const blades = new THREE.Group();
+  blades.userData.fanRotor = true;
   const bladeShape = new THREE.Shape();
   bladeShape.moveTo(0, 0);
   bladeShape.quadraticCurveTo(r * 0.5, r * 0.18, r * 0.95, r * 0.05);

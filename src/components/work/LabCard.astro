@@ -146,9 +146,30 @@ if (d.related && detailed && !project) {
   }
 
   @media (prefers-reduced-motion: no-preference) {
+    .drawing .g-entry {
+      stroke-dasharray: 10 6;
+      animation: lab-ledger-balance 4.2s linear infinite;
+    }
     .lab:is(:hover, :focus-within) .g-entry {
-      stroke-dashoffset: -12;
-      transition: stroke-dashoffset 900ms var(--ease-out);
+      animation-duration: 1.6s;
+    }
+    .lab.is-built .state {
+      animation: lab-active-pulse 3.6s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes lab-ledger-balance {
+    to {
+      stroke-dashoffset: -32;
+    }
+  }
+
+  @keyframes lab-active-pulse {
+    from {
+      opacity: 0.78;
+    }
+    to {
+      opacity: 1;
     }
   }
 

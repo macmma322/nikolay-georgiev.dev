@@ -177,6 +177,7 @@ test('header boundary hysteresis, spatial occlusion, graceful exit and scroll re
   const canvas = anchor.locator('canvas');
   await expect(canvas).toBeVisible();
   await expect(runtime).toHaveAttribute('data-lifecycle', 'active', { timeout: 3000 });
+  await expect(canvas).toHaveAttribute('data-settled', 'true', { timeout: 7000 });
   const settledState = await canvas.getAttribute('data-state');
   const settledFrame = await canvas.getAttribute('data-frame');
 

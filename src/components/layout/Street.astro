@@ -691,6 +691,28 @@ const widths = [112, 168, 252, 336, 528];
     transform: translateZ(0);
   }
 
+  .block
+    :is(
+      .far,
+      .wall,
+      .cornice,
+      .roof,
+      .pane,
+      .sill,
+      .shop,
+      .tree,
+      .lamp,
+      .ground,
+      .joint,
+      .kerb,
+      .hoarding .board,
+      .hoarding .seam,
+      .hoarding .cone,
+      .hoarding .post
+    ) {
+    opacity: 0;
+  }
+
   .block .far {
     fill: oklch(0.21 0.022 272 / 0.2);
     stroke: oklch(0.21 0.022 272 / 0.24);

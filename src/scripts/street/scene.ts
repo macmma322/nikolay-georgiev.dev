@@ -102,6 +102,9 @@ export interface StreetStats {
   vignettes: number;
   photoreal: number;
   atlases: { core: boolean; city: boolean };
+  decodedMemoryBytes: number;
+  framesPerCharacter: number;
+  distinctBaseHumans: number;
 }
 
 export interface Street {
@@ -228,8 +231,8 @@ export function createStreet(options: StreetOptions): Street {
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
     if (w === 0 || h === 0) return;
-    const qualityCap = quality === 'low' ? 0.72 : quality === 'balanced' ? 0.85 : 1.25;
-    const areaCap = quality === 'low' ? 200_000 : quality === 'balanced' ? 320_000 : 1_150_000;
+    const qualityCap = quality === 'low' ? 0.72 : quality === 'balanced' ? 0.85 : 1.1;
+    const areaCap = quality === 'low' ? 200_000 : quality === 'balanced' ? 320_000 : 720_000;
     const ratio = Math.min(
       window.devicePixelRatio || 1,
       qualityCap,
@@ -272,7 +275,7 @@ export function createStreet(options: StreetOptions): Street {
   function population(): number {
     if (width === 0) return 0;
     const qualityFactor = quality === 'low' ? 0.65 : quality === 'balanced' ? 0.82 : 1;
-    const full = Math.min(32, Math.max(8, Math.round(width / (height * 0.16))));
+    const full = Math.min(16, Math.max(8, Math.round(width / (height * 0.16))));
     const scaled = Math.round(full * budget * qualityFactor);
     if (width < 500) return Math.min(10, Math.max(5, scaled));
     return Math.max(14, scaled);
@@ -295,10 +298,10 @@ export function createStreet(options: StreetOptions): Street {
   }
 
   function fits(look: Look, lane: number): boolean {
+    // All 5 depth lanes use the 16 photorealistic sprites so vector silhouettes never mix behind them.
+    if (!hasPhotorealSprite(look.id)) return false;
     // A project figure belongs where it can be found and pointed at.
     if (look.egg) return lane === 2 || lane === 3;
-    // Foreground and mid-ground lanes around Nikolay stay 100% photorealistic for visual cohesion.
-    if (lane >= 2 && !hasPhotorealSprite(look.id)) return false;
     if (lane === 4) return !look.roll && !look.run && look.h > 0.8 && !look.with;
     if (lane === 0) return !look.roll;
     return true;
@@ -714,7 +717,7 @@ export function createStreet(options: StreetOptions): Street {
     }
   }
 
-  /** Renders a photorealistic sprite cell when loaded; returns true if painted. */
+  /** Renders a photorealistic 20-frame sprite cell; frames 0..15 walk, 16..17 idle, 18 transition, 19 interact. */
   function drawSpriteWalker(
     g: CanvasRenderingContext2D,
     walker: Walker,
@@ -724,17 +727,20 @@ export function createStreet(options: StreetOptions): Street {
     entry: SpriteStripEntry,
     sheet: HTMLImageElement,
   ) {
-    // Distance-tiered animation sampling: 24 fps near, 18 fps mid, 12 fps far,
-    // while walker position still interpolates smoothly at full 60 fps.
-    const quantSteps = lane.front ? 24 : lane === LANES[2] ? 18 : 12;
+    const quantSteps = lane.front ? 32 : lane === LANES[2] ? 24 : 16;
     const pose = walker.pose;
     const interacting = pose.turn > 0.36 || pose.wave > 0.28 || pose.phone > 0.28;
+    const idleFrame = Math.sin(pose.t * 2.4) >= 0 ? 16 : 17;
     const frameIdx =
-      pose.stand > 0.62
+      pose.stand > 0.72
         ? interacting
-          ? 9
-          : 8
-        : Math.floor(((Math.round(pose.p * quantSteps) / quantSteps) % 1) * 8) % 8;
+          ? 19
+          : idleFrame
+        : pose.stand > 0.22
+          ? interacting
+            ? 19
+            : 18
+          : Math.floor(((Math.round(pose.p * quantSteps) / quantSteps) % 1) * 16) % 16;
 
     const sx = frameIdx * entry.w;
     const sy = entry.y;
@@ -742,7 +748,7 @@ export function createStreet(options: StreetOptions): Street {
     const drawW = drawH * (entry.w / entry.h);
     const footPadY = drawH * ((entry.h - entry.soleY) / entry.h);
     const centerRatio = walker.look.with ? 0.31 : walker.look.hand === 'bike' ? 0.49 : 0.5;
-    const depthAlpha = lane === LANES[0] ? 0.72 : lane === LANES[1] ? 0.88 : 1;
+    const depthAlpha = lane === LANES[0] ? 0.86 : lane === LANES[1] ? 0.94 : 1;
 
     // Subtle wet-pavement specular reflection beneath foreground/midground pedestrians.
     if (lane.scale >= 0.75 && ground < height + 4) {
@@ -1092,6 +1098,18 @@ export function createStreet(options: StreetOptions): Street {
         if (LANES[walker.lane]!.front) frontCount += 1;
         else backCount += 1;
       }
+      const coreBytes = sheets.core
+        ? (sheets.core.naturalWidth || 0) * (sheets.core.naturalHeight || 0) * 4
+        : 0;
+      const cityBytes = sheets.city
+        ? (sheets.city.naturalWidth || 0) * (sheets.city.naturalHeight || 0) * 4
+        : 0;
+      const backdropImg = stage.querySelector<HTMLImageElement>('.stage-backdrop');
+      const backdropBytes =
+        backdropImg && backdropImg.complete && backdropImg.naturalWidth > 0
+          ? backdropImg.naturalWidth * backdropImg.naturalHeight * 4
+          : 0;
+      const canvasBytes = canvases[0].width * canvases[0].height * 4 * canvases.length;
       return {
         state,
         active: walkers.length,
@@ -1109,6 +1127,9 @@ export function createStreet(options: StreetOptions): Street {
           core: !!sheets.core,
           city: !!sheets.city,
         },
+        decodedMemoryBytes: coreBytes + cityBytes + backdropBytes + canvasBytes,
+        framesPerCharacter: 20,
+        distinctBaseHumans: 16,
       };
     },
     summon,

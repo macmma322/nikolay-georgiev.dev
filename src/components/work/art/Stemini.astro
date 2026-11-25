@@ -103,7 +103,7 @@ const bracket = `M${LEDGER.x0} ${LEDGER.y - 8}V${LEDGER.y}H${LEDGER.x1}V${LEDGER
   <g class="part" data-part="prompt">
     <rect class="hit no-lit" x="36" y="166" width="82" height="104" />
     <path class="wire words" d={`M44 ${FLOW - 14}H104M44 ${FLOW}H92M44 ${FLOW + 14}H74`}></path>
-    <path class="wire" d={`M82 ${FLOW + 7}V${FLOW + 21}`}></path>
+    <path class="wire cursor" d={`M82 ${FLOW + 7}V${FLOW + 21}`}></path>
     <path class="wire" d={arrow(112, 122)}></path>
     <text x="44" y={LABEL} class="t">
       {a.prompt}
@@ -190,7 +190,7 @@ const bracket = `M${LEDGER.x0} ${LEDGER.y - 8}V${LEDGER.y}H${LEDGER.x1}V${LEDGER
       {a.adapters}
     </text>
     <path class="wire" d={printer}></path>
-    <rect x="572" y="314" width="18" height="12" class="ink" />
+    <rect x="572" y="314" width="18" height="12" class="ink toolhead" />
     <rect x="562" y="374" width="38" height="5" class="ink" />
     <text x="608" y="412" text-anchor="end" class="t">
       {a.printer}
@@ -231,5 +231,61 @@ const bracket = `M${LEDGER.x0} ${LEDGER.y - 8}V${LEDGER.y}H${LEDGER.x1}V${LEDGER
   .words {
     stroke-width: 3;
     stroke-linecap: round;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .cursor {
+      animation: stemini-cursor 1.1s steps(2, start) infinite;
+    }
+    [data-part='mesh'] path.wire {
+      stroke-dasharray: 12 10;
+      animation: stemini-mesh-scan 5.6s linear infinite;
+    }
+    [data-part='slice'] ellipse.wire {
+      animation: stemini-slice-pass 3.6s ease-in-out infinite;
+    }
+    [data-part='slice'] ellipse.wire:nth-of-type(2n) {
+      animation-delay: 0.45s;
+    }
+    [data-part='slice'] ellipse.wire:nth-of-type(3n) {
+      animation-delay: 0.9s;
+    }
+    .toolhead {
+      animation: stemini-gantry 4.8s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes stemini-cursor {
+    to {
+      opacity: 0.12;
+    }
+  }
+
+  @keyframes stemini-mesh-scan {
+    to {
+      stroke-dashoffset: -44;
+    }
+  }
+
+  @keyframes stemini-slice-pass {
+    0%,
+    65%,
+    100% {
+      stroke: var(--steel-dim);
+      opacity: 0.55;
+    }
+    30% {
+      stroke: var(--accent);
+      opacity: 1;
+    }
+  }
+
+  @keyframes stemini-gantry {
+    from {
+      transform: translateX(-8px);
+    }
+    to {
+      transform: translateX(8px);
+    }
   }
 </style>

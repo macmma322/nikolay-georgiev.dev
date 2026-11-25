@@ -22,6 +22,9 @@ interface Stats {
   vignettes: number;
   photoreal: number;
   atlases: { core: boolean; city: boolean };
+  decodedMemoryBytes: number;
+  framesPerCharacter: number;
+  distinctBaseHumans: number;
 }
 interface Walker {
   id: string;
@@ -583,6 +586,9 @@ test.describe('street v3: photorealistic crowd, backdrop & project cards', () =>
     await step(page, 0.25);
     const s = await stats(page);
     expect(s.photoreal).toBeGreaterThan(0);
+    expect(s.framesPerCharacter).toBe(20);
+    expect(s.distinctBaseHumans).toBe(16);
+    expect(s.decodedMemoryBytes).toBeGreaterThan(0);
 
     // Photorealistic nighttime street backdrop loads cleanly behind SVG overlays.
     const backdrop = page.locator('.stage-backdrop');

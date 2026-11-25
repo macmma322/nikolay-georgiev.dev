@@ -373,6 +373,7 @@ class AvatarRuntime extends HTMLElement {
           ctx!.restore();
           canvas.dataset['state'] = step.state;
           canvas.dataset['frame'] = String(step.index);
+          canvas.dataset['settled'] = i === plan.length - 1 ? 'true' : 'false';
           savedStates.set(anchor, {
             plan,
             stepIndex: i,

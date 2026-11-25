@@ -350,19 +350,28 @@ class CircuitField extends HTMLElement {
       { threshold: [0, 0.25, 0.5, 1] },
     );
 
-    // Pause background canvas drawing when the opaque street footer fills the viewport.
+    // Pause background canvas drawing when the opaque street footer enters the viewport.
     let occlusionObserver: IntersectionObserver | undefined;
     if (background) {
       const opaqueFooter = document.querySelector<HTMLElement>(
         '.site-footer:not(.bare) [data-stage]',
       );
       if (opaqueFooter) {
+        const footerRect = opaqueFooter.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        if (footerRect.height > 0 && footerRect.top < vh) {
+          const visibleFooter = Math.max(
+            0,
+            Math.min(vh, footerRect.bottom) - Math.max(0, footerRect.top),
+          );
+          occluded = visibleFooter / Math.min(footerRect.height, vh) >= 0.2;
+        }
         occlusionObserver = new IntersectionObserver(
           ([entry]) => {
-            occluded = (entry?.intersectionRatio ?? 0) >= 0.45;
+            occluded = (entry?.intersectionRatio ?? 0) >= 0.2;
             sync();
           },
-          { threshold: [0, 0.45, 0.8] },
+          { threshold: [0, 0.2, 0.45, 0.8] },
         );
         occlusionObserver.observe(opaqueFooter);
       }

@@ -250,6 +250,35 @@ const nextPath = usable.map((r) => box(r, ROW.next - 8, 16)).join('');
     stroke-width: 1.4;
   }
 
+  @media (prefers-reduced-motion: no-preference) {
+    .sort {
+      stroke-dasharray: 8 14;
+      animation: malrynth-sort 4.6s linear infinite;
+    }
+    .owned {
+      animation: malrynth-own 4.2s ease-in-out infinite alternate;
+    }
+    .guide {
+      stroke-dasharray: 6 10;
+      animation: malrynth-sort 6s linear infinite;
+    }
+  }
+
+  @keyframes malrynth-sort {
+    to {
+      stroke-dashoffset: -44;
+    }
+  }
+
+  @keyframes malrynth-own {
+    from {
+      opacity: 0.72;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
   .mark {
     fill: var(--steel);
   }

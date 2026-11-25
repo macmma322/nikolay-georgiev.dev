@@ -39,7 +39,7 @@ const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
     <text x="24" y="83" class="t">
       {a.browser}
     </text>
-    <path d="M104 78H232M226 74l6 4-6 4" class="wire" />
+    <path d="M104 78H232M226 74l6 4-6 4" class="wire flow" />
     <text x="110" y="66" class="t t-minor">
       SAME ORIGIN
     </text>
@@ -47,7 +47,7 @@ const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
     <text x="248" y="83" class="t-strong">
       NEXT.JS BFF
     </text>
-    <path d="M364 94V134M360 128l4 6 4-6" class="wire" />
+    <path d="M364 94V134M360 128l4 6 4-6" class="wire flow" />
   </g>
 
   <!-- "Built to run as several web replicas"; "39 domain modules behind a single middleware pipeline" -->
@@ -115,12 +115,12 @@ const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
     <text x="494" y="83" class="t-strong">
       STRIPE
     </text>
-    <path d="M524 94V184H450M456 180l-6 4 6 4" class="wire" />
-    <path d="M552 94V234H438M444 230l-6 4 6 4" class="wire" />
+    <path d="M524 94V184H450M456 180l-6 4 6 4" class="wire flow" />
+    <path d="M552 94V234H438M444 230l-6 4 6 4" class="wire flow" />
     <text x="564" y="164" class="t-strong">
       ×2
     </text>
-    <path d="M358 252L370 312M382 252L370 312" class="wire" />
+    <path d="M358 252L370 312M382 252L370 312" class="wire flow" />
     <circle cx="370" cy="317" r="5" class="key" />
     <text x="358" y="322" text-anchor="end" class="t t-minor">
       UNIQUE
@@ -178,5 +178,44 @@ const ties = sheets.map((s, i) => ({ x: s.x, y: i === 2 ? 208 : s.y + 6 }));
   .marker {
     fill: var(--accent);
     stroke: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .flow {
+      stroke-dasharray: 10 18;
+      animation: zone-flow 4.2s linear infinite;
+    }
+    .key {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: zone-key-lock 2.6s ease-in-out infinite alternate;
+    }
+    .effect {
+      stroke-dasharray: 8 10;
+      animation: zone-effect 2.6s linear infinite;
+    }
+  }
+
+  @keyframes zone-flow {
+    to {
+      stroke-dashoffset: -56;
+    }
+  }
+
+  @keyframes zone-key-lock {
+    from {
+      stroke: var(--fg-2);
+      transform: scale(0.92);
+    }
+    to {
+      stroke: var(--accent);
+      transform: scale(1.16);
+    }
+  }
+
+  @keyframes zone-effect {
+    to {
+      stroke-dashoffset: -36;
+    }
   }
 </style>

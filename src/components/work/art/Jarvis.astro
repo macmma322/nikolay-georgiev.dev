@@ -67,7 +67,7 @@ const brokenRail = (y: number) => `M440 ${y}H${leaderX - 6}M${leaderX + 6} ${y}H
   <g class="part" data-part="lanes">
     {Object.values(lane).map((y) => (
       <>
-        <path d={`M74 ${y}H374`} class="wire" />
+        <path d={`M74 ${y}H374`} class="wire lane" />
         <circle cx="378" cy={y} r="4" class="term" />
       </>
     ))}
@@ -93,7 +93,10 @@ const brokenRail = (y: number) => `M440 ${y}H${leaderX - 6}M${leaderX + 6} ${y}H
       {a.answer}
     </text>
     <!-- DEEP: "a bounded agent loop": the lane closes a loop around the call and the tools -->
-    <path d={`M204 ${lane.deep}V346a8 8 0 0 0 8 8H314a8 8 0 0 0 8-8V${lane.deep}`} class="wire" />
+    <path
+      d={`M204 ${lane.deep}V346a8 8 0 0 0 8 8H314a8 8 0 0 0 8-8V${lane.deep}`}
+      class="wire bounded-loop"
+    />
     <path d="M272 350l-7 4 7 4" class="wire" />
     <text x="238" y="376" class="t t-minor">
       21 TOOLS
@@ -226,5 +229,43 @@ const brokenRail = (y: number) => `M440 ${y}H${leaderX - 6}M${leaderX + 6} ${y}H
     fill: none;
     stroke: var(--steel-dim);
     stroke-width: 1;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .lane,
+    .bounded-loop {
+      stroke-dasharray: 12 20;
+      animation: jarvis-lane-flow 4.4s linear infinite;
+    }
+    .lane:nth-of-type(2) {
+      animation-delay: -1.4s;
+    }
+    .lane:nth-of-type(3) {
+      animation-delay: -2.8s;
+    }
+    .gate {
+      animation: jarvis-pulse 3.6s ease-in-out infinite alternate;
+    }
+    .op {
+      animation: jarvis-pulse 2.8s ease-in-out infinite alternate;
+    }
+    .op:nth-of-type(2n) {
+      animation-delay: -1.1s;
+    }
+  }
+
+  @keyframes jarvis-lane-flow {
+    to {
+      stroke-dashoffset: -64;
+    }
+  }
+
+  @keyframes jarvis-pulse {
+    from {
+      opacity: 0.45;
+    }
+    to {
+      opacity: 1;
+    }
   }
 </style>

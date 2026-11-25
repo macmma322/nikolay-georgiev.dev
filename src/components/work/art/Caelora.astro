@@ -245,4 +245,54 @@ const arrow = (x1: number, y1: number, x2: number, y2: number) => {
   .box {
     fill: transparent;
   }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .leaf {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: caelora-sway 4.8s ease-in-out infinite alternate;
+    }
+    .leaf:nth-of-type(2n) {
+      animation-delay: -1.6s;
+      animation-duration: 5.6s;
+    }
+    .leaf:nth-of-type(3n) {
+      animation-delay: -3.1s;
+    }
+    .skeleton {
+      stroke-dasharray: 12 20;
+      animation: caelora-sap 4.2s linear infinite;
+    }
+    .knot {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: caelora-knot 3.2s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes caelora-sway {
+    from {
+      transform: translateY(0) rotate(-1.6deg);
+    }
+    to {
+      transform: translateY(-2px) rotate(1.8deg);
+    }
+  }
+
+  @keyframes caelora-sap {
+    to {
+      stroke-dashoffset: -64;
+    }
+  }
+
+  @keyframes caelora-knot {
+    from {
+      opacity: 0.65;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1.25);
+    }
+  }
 </style>
