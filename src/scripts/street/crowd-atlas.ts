@@ -141,7 +141,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
-    stride: 0.54,
+    stride: 0.76,
     headTopRatio: 0.066,
   },
   manager: {
@@ -248,7 +248,7 @@ export const CROWD_NEAR: Record<string, SpriteStripEntry> = {
     h: 380,
     frames: 12,
     soleY: 365,
-    stride: 0.54,
+    stride: 0.76,
     headTopRatio: 0.066,
   },
   student: {
