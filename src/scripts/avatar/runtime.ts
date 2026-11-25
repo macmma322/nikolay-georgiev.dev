@@ -26,6 +26,7 @@ const EXIT_DURATION_MS = 220;
 const ENTER_TOP_SLACK_RATIO = 0.12;
 const ENTER_BOTTOM_SLACK_RATIO = 0.12;
 const ACTIVE_MIN_VISIBLE_RATIO = 0.44;
+const STEPPING = new Set<CharacterState>(['walk-left', 'walk-right', 'stop', 'turn', 'exit']);
 
 function overlaps(a: DOMRect, b: DOMRect) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
@@ -386,8 +387,10 @@ class AvatarRuntime extends HTMLElement {
             activeMusic,
             savedAt: performance.now(),
           });
-          if (anchor.pose === 'walk' && step.state === 'idle' && quality !== 'low') {
+          // Breathe in every held pose; walking, turning and the peek move on their own.
+          if (quality !== 'low' && anchor.pose !== 'peek' && !STEPPING.has(step.state)) {
             canvas.dataset['idleBreathe'] = '';
+            canvas.dataset['pose'] = anchor.pose;
           } else {
             delete canvas.dataset['idleBreathe'];
           }
