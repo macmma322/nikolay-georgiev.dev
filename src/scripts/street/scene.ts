@@ -375,7 +375,9 @@ export function createStreet(options: StreetOptions): Street {
     const full = Math.min(16, Math.max(8, Math.round(width / (ph * 0.16))));
     const scaled = Math.round(full * budget * qualityFactor);
     if (width < 500) return Math.min(10, Math.max(5, scaled));
-    return Math.max(14, scaled);
+    // A wide street stays busy; a narrow or zoomed-in one is not forced to hold
+    // fourteen people, which packed them shoulder to shoulder.
+    return Math.max(width >= 1000 ? 14 : 8, scaled);
   }
 
   function laneTarget(index: number): number {
@@ -957,6 +959,10 @@ export function createStreet(options: StreetOptions): Street {
         const lane = LANES[walker.lane]!;
         if (lane.front !== (layer === 1)) continue;
         if (walker.x < -walker.half * 2 || walker.x > width + walker.half * 2) continue;
+        // A drawn figure over a photograph reads as a cartoon: until someone's
+        // photographs have decoded, they are simply not on the street yet.
+        const atlas = CROWD_SPRITES[walker.look.id]?.atlas;
+        if (atlas && !sheets[atlas]) continue;
         const ground = groundOf(lane) + walker.dy;
         const u = unit(lane) * walker.look.h;
         const lit = walker.pose.lit;

@@ -197,13 +197,12 @@ doesn't."
   Five lanes; two canvases sandwich the figure, so the near lanes pass in
   front of him and the far ones behind. Nobody is on the street twice. Seven
   carry something from a project.
-- **Walking is filmed where it can be.** Five of the six near people walk from
-  film: a cut-out animated on a green background, cut into sixteen frames by
+- **Walking is filmed.** All sixteen people walk from film: a clean side-on
+  cut-out animated on a green background, cut into sixteen frames by
   `scripts/street-walk-strip.mjs` (`src/assets/media/street/crowd-walk`). The
   script measures the ground under their planted feet, and the scene advances
-  their frames by that distance, so feet do not slide. The rest are still
-  rigged from one photograph each; a character gets film only from a clean,
-  high-resolution, side-on cut-out.
+  their frames by that distance, so feet do not slide. A new character gets a
+  cut-out and a clip first; there is no rigged fallback in the atlases.
 - **Text lights its drawing, again.** The seven labels under the scene are
   links to the case studies. Pointing at or focusing one brings its figure on
   and lights it in the project's colour; pointing at the figure lights the

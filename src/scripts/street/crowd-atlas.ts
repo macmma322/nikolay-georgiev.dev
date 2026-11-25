@@ -51,6 +51,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.476,
     headTopRatio: 0.066,
   },
   companion: {
@@ -60,6 +61,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.922,
     headTopRatio: 0.066,
   },
   courier: {
@@ -79,6 +81,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 1.055,
     headTopRatio: 0.066,
   },
   kernel: {
@@ -98,6 +101,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.809,
     headTopRatio: 0.066,
   },
   'dog-walker': {
@@ -117,6 +121,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.332,
     headTopRatio: 0.066,
   },
   cyclist: {
@@ -126,6 +131,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.409,
     headTopRatio: 0.066,
   },
   grandfather: {
@@ -145,6 +151,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.98,
     headTopRatio: 0.066,
   },
   photographer: {
@@ -154,6 +161,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.715,
     headTopRatio: 0.066,
   },
   student: {
@@ -173,6 +181,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.96,
     headTopRatio: 0.066,
   },
   builder: {
@@ -182,6 +191,7 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = {
     h: 152,
     frames: 20,
     soleY: 146,
+    stride: 0.908,
     headTopRatio: 0.066,
   },
 };

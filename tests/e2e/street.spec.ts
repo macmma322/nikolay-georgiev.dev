@@ -63,6 +63,10 @@ async function open(page: Page, path = '/about', seed = '7') {
   const stage = page.locator('[data-stage]');
   await stage.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
   await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
+  // People are drawn only from their photographs: wait until those have decoded.
+  await expect
+    .poll(() => page.evaluate(() => window.__street!.stats().atlases), { timeout: 15_000 })
+    .toMatchObject({ core: true, city: true });
   return { stage, errors };
 }
 

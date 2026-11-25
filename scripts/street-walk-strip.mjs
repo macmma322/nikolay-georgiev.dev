@@ -41,6 +41,8 @@ if (!id || !clip) {
 }
 const wide = flags.includes('--wide');
 const centre = flags.includes('--centre') ? Number(flags[flags.indexOf('--centre') + 1]) : 0.5;
+/** The person's share of the first frame's height, when something they carry rises above them (a rod). */
+const person = flags.includes('--person') ? Number(flags[flags.indexOf('--person') + 1]) : 1;
 const cellW = wide ? 440 : 285;
 
 const smooth = (lo, hi, v) => {
@@ -202,7 +204,7 @@ try {
 
   const ground = Math.round(median(frames.map((f) => f.maxY)));
   // The first frame is the cut-out the clip was made from: its height is the figure's.
-  const figure = frames[0].maxY - frames[0].minY;
+  const figure = (frames[0].maxY - frames[0].minY) * person;
 
   // Ground speed: follow each foot while it is down and fit a line through it.
   let open = [];
