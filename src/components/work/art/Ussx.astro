@@ -118,7 +118,7 @@ const defaultMark = `M${LOCALE.x - 2 * LOCALE.step - 11} ${LOCALE.y + 7}h22`;
 
   <g class="part" data-part="apply">
     <rect class="hit no-lit" x="40" y="360" width={door - 12 - 40} height="62" />
-    <path class="wire" d={railApply}></path>
+    <path class="wire rail" d={railApply}></path>
     <path class="wire" d={ticks('apply')}></path>
     {stages
       .filter((s) => s.part === 'apply')
@@ -131,9 +131,9 @@ const defaultMark = `M${LOCALE.x - 2 * LOCALE.step - 11} ${LOCALE.y + 7}h22`;
 
   <g class="part" data-part="class">
     <rect class="hit no-lit" x={door - 12} y="360" width={604 - door + 12} height="62" />
-    <path class="wire" d={railClass}></path>
+    <path class="wire rail" d={railClass}></path>
     <path class="wire" d={ticks('class')}></path>
-    <path class="wire" d={doorLeaf}></path>
+    <path class="wire door-leaf" d={doorLeaf}></path>
     <path class="faint" d={doorSwing}></path>
     <path class="wire" d={railEnd}></path>
     {stages
@@ -215,5 +215,58 @@ const defaultMark = `M${LOCALE.x - 2 * LOCALE.step - 11} ${LOCALE.y + 7}h22`;
 
   :global(.project-plate.compact) [data-part='locales'] {
     display: none;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .ring.accent {
+      animation: ussx-focus-pulse 3.4s ease-in-out infinite alternate;
+    }
+    .key {
+      animation: ussx-key-tap 3.4s ease-in-out infinite;
+    }
+    .rail {
+      stroke-dasharray: 10 18;
+      animation: ussx-rail-flow 4.4s linear infinite;
+    }
+    .door-leaf {
+      transform-box: fill-box;
+      transform-origin: bottom left;
+      animation: ussx-door-swing 5.2s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes ussx-focus-pulse {
+    from {
+      opacity: 0.52;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes ussx-key-tap {
+    0%,
+    72%,
+    100% {
+      stroke: var(--line-strong);
+    }
+    84% {
+      stroke: var(--accent);
+    }
+  }
+
+  @keyframes ussx-rail-flow {
+    to {
+      stroke-dashoffset: -56;
+    }
+  }
+
+  @keyframes ussx-door-swing {
+    from {
+      rotate: 0deg;
+    }
+    to {
+      rotate: 22deg;
+    }
   }
 </style>

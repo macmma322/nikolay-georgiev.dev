@@ -498,6 +498,20 @@ const showLegend = legend && !compact;
       :is(path, line, polyline):is(.wire, .faint, .accent) {
       animation: none;
     }
+
+    /* Ambient heartbeat on finished/case-study accent circuits while active. */
+    .project-plate:not(.compact) .plate-svg .accent {
+      animation: plate-accent-pulse 4.4s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes plate-accent-pulse {
+    from {
+      opacity: 0.78;
+    }
+    to {
+      opacity: 1;
+    }
   }
 
   @keyframes plate-part {

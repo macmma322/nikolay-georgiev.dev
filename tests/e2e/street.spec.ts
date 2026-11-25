@@ -19,6 +19,12 @@ interface Stats {
   cost: number;
   front: number;
   back: number;
+  vignettes: number;
+  photoreal: number;
+  atlases: { core: boolean; city: boolean };
+  decodedMemoryBytes: number;
+  framesPerCharacter: number;
+  distinctBaseHumans: number;
 }
 interface Walker {
   id: string;
@@ -28,11 +34,19 @@ interface Walker {
   front: boolean;
   act: string | null;
 }
+interface AvatarSnapshot {
+  mode: string;
+  head: string;
+  glance: string;
+  stance: string;
+  blinking: boolean;
+}
 interface Street {
   step(seconds: number, dt?: number): void;
   stats(): Stats;
   summon(slug: string): boolean;
   walkers(): Walker[];
+  avatar(): AvatarSnapshot;
 }
 declare global {
   interface Window {
@@ -49,6 +63,10 @@ async function open(page: Page, path = '/about', seed = '7') {
   const stage = page.locator('[data-stage]');
   await stage.evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
   await expect(page.locator('[data-street]')).toHaveAttribute('data-ready', '');
+  // People are drawn only from their photographs: wait until those have decoded.
+  await expect
+    .poll(() => page.evaluate(() => window.__street!.stats().atlases), { timeout: 15_000 })
+    .toMatchObject({ core: true, city: true });
   return { stage, errors };
 }
 
@@ -85,20 +103,29 @@ test.describe('street: layout', () => {
   test('the scene fits the page and the standing figure stands in it', async ({ page }) => {
     const { stage, errors } = await open(page);
     const box = (await stage.boundingBox())!;
+    // From a laptop up the street is the screen under the header; never taller than it.
     expect(box.height).toBeGreaterThanOrEqual(300);
-    expect(box.height).toBeLessThanOrEqual(540);
+    expect(box.height).toBeLessThanOrEqual(page.viewportSize()!.height);
     // Nothing the scene draws may widen the page.
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
     ).toBeLessThanOrEqual(0);
 
     const me = (await page.locator('[data-me]').boundingBox())!;
-    expect(me.height / box.height).toBeGreaterThan(0.6);
+    // The photograph always covers the stage, and he is 52% of it tall, feet on
+    // its pavement 77.6% of the way down, whatever shape the screen is.
+    const plate = (await page.locator('[data-plate]').boundingBox())!;
+    expect(plate.width).toBeGreaterThanOrEqual(box.width - 1);
+    expect(plate.height).toBeGreaterThanOrEqual(box.height - 1);
+    expect(plate.x).toBeLessThanOrEqual(box.x + 1);
+    expect(plate.y).toBeLessThanOrEqual(box.y + 1);
+    expect(Math.abs(me.height / plate.height - 0.52)).toBeLessThan(0.01);
+    expect(Math.abs((me.y + me.height - plate.y) / plate.height - 0.776)).toBeLessThan(0.01);
     expect(me.y).toBeGreaterThanOrEqual(box.y);
     expect(me.y + me.height).toBeLessThanOrEqual(box.y + box.height);
     expect(Math.abs(me.x + me.width / 2 - (box.x + box.width / 2))).toBeLessThan(2);
     // The three layers of the figure have loaded and are the same size.
-    const images = page.locator('[data-me] img');
+    const images = page.locator('[data-me] .me-figure img');
     await expect(images).toHaveCount(3);
     for (const image of await images.all()) {
       await expect
@@ -116,8 +143,17 @@ test.describe('street: layout', () => {
 
   test('the footer keeps its links, and nothing covers them', async ({ page }) => {
     await open(page);
-    const links = page.locator('.street-nav a, .cast a, .site-footer .baseline a');
-    expect(await links.count()).toBeGreaterThanOrEqual(15);
+    // From a laptop up the header carries the page links and the footer keeps
+    // only the way back; on a phone the footer lists them again.
+    const links = page
+      .locator('.street-nav a, .cast a, .site-footer .baseline a')
+      .filter({ visible: true });
+    const wide = page.viewportSize()!.width >= 1100;
+    expect(await links.count()).toBeGreaterThanOrEqual(wide ? 9 : 15);
+    if (wide) {
+      await expect(page.locator('.street-nav ul')).toBeHidden();
+      await expect(page.locator('header nav a').first()).toBeVisible();
+    }
     for (const link of await links.all()) {
       await link.scrollIntoViewIfNeeded();
       // The element under the middle of each link is the link (or its text).
@@ -381,7 +417,11 @@ test.describe('street: without JavaScript', () => {
     const street = page.locator('[data-street]');
     await street.scrollIntoViewIfNeeded();
     await expect(street.getByRole('heading', { level: 2 })).toBeVisible();
-    await expect(street.locator('svg.block')).toBeVisible();
+    const photograph = street.locator('.stage-backdrop');
+    await expect(photograph).toBeVisible();
+    await expect
+      .poll(() => photograph.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
+      .toBe(true);
     await expect(street.locator('[data-me] img').first()).toBeVisible();
     await expect(street.locator('.cast a')).toHaveCount(7);
     await expect(street.locator('[data-to-top]')).toBeVisible();
@@ -433,5 +473,176 @@ test.describe('street: edges of its life', () => {
       .evaluate((el) => el.scrollIntoView({ block: 'center', behavior: 'instant' }));
     await page.waitForTimeout(400);
     expect((await stats(page)).frames).toBe(frames);
+  });
+});
+
+test.describe('street v2: cast layout, presence, composition & counter', () => {
+  test('project cards keep the role over the name, in one row of seven that ends before the music dock', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
+    for (const [width, height] of [
+      [1920, 1080],
+      [1366, 768],
+    ] as const) {
+      for (const locale of locales) {
+        await page.setViewportSize({ width, height });
+        await open(page, localize('/about', locale));
+        const rows = await page.locator('.cast a').evaluateAll((links) =>
+          links.map((a) => {
+            const rect = a.getBoundingClientRect();
+            const roleRect = a.querySelector('.role')!.getBoundingClientRect();
+            const ofRect = a.querySelector('.of')!.getBoundingClientRect();
+            return {
+              slug: a.getAttribute('data-cast'),
+              top: Math.round(rect.top),
+              roleTop: Math.round(roleRect.top),
+              ofTop: Math.round(ofRect.top),
+              roleHeight: Math.round(roleRect.height),
+            };
+          }),
+        );
+        expect(rows).toHaveLength(7);
+        for (const r of rows) {
+          // Each card is two lines: who carries the project, then its name under it.
+          expect(
+            r.ofTop - r.roleTop,
+            `${r.slug} lost its two-line card at ${width} (${locale})`,
+          ).toBeGreaterThan(8);
+          expect(
+            r.roleHeight,
+            `${r.slug} role ran past two lines at ${width} (${locale})`,
+          ).toBeLessThan(40);
+        }
+        // All 7 project links sit cleanly on one single row at 1366x768 and 1920x1080 (no orphan Stemini).
+        const distinctTops = [...new Set(rows.map((r) => r.top))];
+        expect(distinctTops.length, `${locale} cast links wrapped at ${width}x${height}`).toBe(1);
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        ).toBeLessThanOrEqual(0);
+      }
+    }
+  });
+
+  test('mobile viewports (390x844 and 320x740) stay overflow-free with readable cast links', async ({
+    page,
+  }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop', 'Exact viewport matrix runs once.');
+    for (const [width, height] of [
+      [390, 844],
+      [320, 740],
+    ] as const) {
+      for (const locale of locales) {
+        await page.setViewportSize({ width, height });
+        await open(page, localize('/about', locale));
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth),
+        ).toBeLessThanOrEqual(0);
+        const me = (await page.locator('[data-me]').boundingBox())!;
+        const tag = (await page.locator('.me-tag').boundingBox())!;
+        expect(me.x).toBeGreaterThanOrEqual(0);
+        expect(tag.x).toBeGreaterThanOrEqual(0);
+        expect(tag.x + tag.width).toBeLessThanOrEqual(width + 1);
+      }
+    }
+  });
+
+  test('composition corridor keeps initial foreground pedestrians off center torso and triggers contextual vignettes', async ({
+    page,
+  }) => {
+    const { stage } = await open(page);
+    const box = (await stage.boundingBox())!;
+    const centre = box.width / 2;
+    const clearHalf = Math.max(36, box.height * 0.13);
+    const initialFrontCenter = await page.evaluate(
+      ({ c, ch }) => window.__street!.walkers().some((w) => w.lane === 3 && Math.abs(w.x - c) < ch),
+      { c: centre, ch: clearHalf },
+    );
+    expect(initialFrontCenter).toBe(false);
+
+    // Step 120 simulated seconds: contextual micro-storytelling vignettes trigger with cooldowns.
+    await step(page, 120);
+    const after = await stats(page);
+    expect(after.vignettes).toBeGreaterThanOrEqual(1);
+  });
+
+  test('avatar presence cycles natural stance, blinks, glances when summoning, and clears in still mode', async ({
+    page,
+  }) => {
+    await open(page);
+    await expect.poll(async () => (await stats(page)).state).toBe('running');
+    await step(page, 18);
+    const snap = await page.evaluate(() => window.__street!.avatar());
+    expect(['neutral', 'glance', 'acknowledge', 'inspect']).toContain(snap.mode);
+
+    // Hovering/focusing a cast link summons the character and directs Nikolay toward them.
+    const label = page.locator('.cast a[data-cast="stemini"]');
+    await label.focus();
+    await expect
+      .poll(() => page.evaluate(() => window.__street!.avatar().head))
+      .toMatch(/^(left|right)$/);
+    const turn = await page
+      .locator('.me-head')
+      .evaluate((el) => Math.abs(parseFloat(getComputedStyle(el).rotate)) || 0);
+    expect(turn).toBeLessThan(1);
+
+    // Simulated counter matches stats().left and carries its clarifying scene tooltip.
+    await step(page, 25);
+    const s = await stats(page);
+    await expect(page.locator('[data-street-count]')).toHaveText(String(s.left).padStart(3, '0'));
+    await expect(page.locator('.tally')).toHaveAttribute('title', /.+/);
+
+    // Toggling reduced motion dynamically pauses to static and clears presence attributes.
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'static');
+    await expect(page.locator('[data-me]')).not.toHaveAttribute('data-head', /.+/);
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await expect(page.locator('[data-stage]')).toHaveAttribute('data-state', 'running');
+  });
+});
+
+test.describe('street v3: photorealistic crowd, backdrop & project cards', () => {
+  test('loads core and extended sprite atlases, renders photorealistic walkers and backdrop, and clears music dock', async ({
+    page,
+  }) => {
+    await open(page);
+    await expect
+      .poll(async () => (await stats(page)).atlases, { timeout: 10_000 })
+      .toMatchObject({ core: true, city: true });
+    await step(page, 0.25);
+    const s = await stats(page);
+    expect(s.photoreal).toBeGreaterThan(0);
+    expect(s.framesPerCharacter).toBe(20);
+    expect(s.distinctBaseHumans).toBe(15);
+    expect(s.decodedMemoryBytes).toBeGreaterThan(0);
+
+    // The street photograph has loaded, and an upright phone was served its own crop
+    // (naturalWidth is density-corrected for a srcset, so the file is told by its name).
+    const backdrop = page.locator('.stage-backdrop');
+    await expect(backdrop).toBeVisible();
+    await expect
+      .poll(() => backdrop.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
+      .toBe(true);
+    const served = await backdrop.evaluate((el: HTMLImageElement) => ({
+      portrait: /street-plate-portrait/.test(el.currentSrc),
+      phone: window.matchMedia('(max-width: 40rem) and (orientation: portrait)').matches,
+    }));
+    expect(served.portrait).toBe(served.phone);
+
+    // Every project card carries an SVG archetype icon and sits clear of any floating music dock.
+    await expect(page.locator('.cast a .cast-ico')).toHaveCount(7);
+    const dockOverlap = await page.evaluate(() => {
+      const dock = document.querySelector<HTMLElement>('.music-dock');
+      if (!dock) return false;
+      const dr = dock.getBoundingClientRect();
+      if (dr.width === 0 || dr.height === 0) return false;
+      return Array.from(document.querySelectorAll<HTMLElement>('.cast a')).some((a) => {
+        a.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const ar = a.getBoundingClientRect();
+        const r = dock.getBoundingClientRect();
+        return ar.left < r.right && ar.right > r.left && ar.top < r.bottom && ar.bottom > r.top;
+      });
+    });
+    expect(dockOverlap).toBe(false);
   });
 });

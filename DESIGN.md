@@ -158,26 +158,51 @@ moves things between two resting states (view transitions, line draws), and
 ## The street
 
 The footer of every page ends on an evening street (`components/layout/Street.astro`,
-`scripts/street`): a block that is still going up, people walking past, and the
-owner standing still in front of a lit site hoarding. "The page ends. The
-building doesn't."
+`scripts/street`): a wet pavement in front of a lit concrete hoarding, people
+walking past, and the owner standing still. "The page ends. The building
+doesn't."
 
-- **One world.** The standing figure is the owner's approved illustration; the
-  rest is drawn to meet it, not the other way round. Passers-by are drawn in
-  code (profiles, tapered limbs, two-tone shading, a dark warm outline), the
-  block is an SVG built at build time, and one light, one grain and one
-  vignette lie over all three. Dashed storeys are planned, as in the diagrams.
+- **One photograph.** The street is a single night photograph
+  (`src/assets/media/street/street-plate.webp`, the owner's approved concept
+  with the people and interface taken out). It is never rebuilt from shapes:
+  no drawn skyline, window grids, gradient pavement or circuitry over it.
+  `scripts/street-plate.mjs` cuts its phone crop and the two canopies that
+  sway. From a laptop up the stage is the screen under the header, with the
+  words in its dark upper corners and the project cards along its foot; on a
+  phone the words and cards sit above and below an upright crop.
+- **One perspective.** `.plate` is the photograph's own box; it always covers
+  the stage and is cropped, never stretched. The figure, the lanes, the lamps
+  and the stencil are fractions of that box, so feet stay on the pavement at
+  any screen shape. The horizon is 47% down the frame: someone whose feet are
+  at `y` is `1.69 * (y - 0.47)` of the frame tall. New lanes follow that line.
+- **One light.** Warm from the lamps on the wall, cool everywhere else. Each
+  canvas layer gets one pass of night that clears under each lamp, so people
+  brighten as they walk under one. Reflections are upright, strongest at the
+  soles and gone by the knees. No blur, blend mode or filter sits over the
+  moving canvases; the cards are a plain translucent fill for that reason.
+- **What moves by itself** is small and slow: the canopies by a fraction of a
+  degree, the mast light, a far crossing signal, two windows that go dark, the
+  wall lamps breathing. No rain, no particles, nothing that loops in step.
+- **The stencil on the wall is live text**, so it reads in either language.
 - **The figure** is three stacked layers of one image, cut by
   `scripts/street-avatar.mjs` from `src/assets/media/street/source`: body,
   chest and head. The chest widens by about 1% on a 4.4 s breath, the head
   rides on it, turns by under a degree toward whoever passes, and blinks every
   4 to 8 s. The artwork is never redrawn or warped. Replace the source and
   re-run the script to change him; the polygons in it follow the new art.
-- **The crowd** is 45 people described as data (`cast.ts`), each with a real
-  walk cycle: feet are planted by inverse kinematics, so they do not slide.
+- **The crowd** is 16 photographed people in sprite atlases built by
+  `scripts/street-crowd-atlas.mjs` (`crowd-core`, `crowd-city`). Six of them
+  are built again at 2.5x (`crowd-near`, wide screens only) and only those six
+  walk in the two lanes in front of him, so nobody close is softer than he is.
   Five lanes; two canvases sandwich the figure, so the near lanes pass in
-  front of him and the far ones behind. Nobody is on the street twice.
-  Seven of them carry something from a project and are cast rarely.
+  front of him and the far ones behind. Nobody is on the street twice. Seven
+  carry something from a project.
+- **Walking is filmed.** All sixteen people walk from film: a clean side-on
+  cut-out animated on a green background, cut into sixteen frames by
+  `scripts/street-walk-strip.mjs` (`src/assets/media/street/crowd-walk`). The
+  script measures the ground under their planted feet, and the scene advances
+  their frames by that distance, so feet do not slide. A new character gets a
+  cut-out and a clip first; there is no rigged fallback in the atlases.
 - **Text lights its drawing, again.** The seven labels under the scene are
   links to the case studies. Pointing at or focusing one brings its figure on
   and lights it in the project's colour; pointing at the figure lights the
@@ -188,7 +213,7 @@ building doesn't."
   device that cannot keep up gets fewer people, once. Phones get about half
   the crowd of a desktop.
 - **Reduced motion:** one composed still frame, no breathing, no count.
-  **No JavaScript:** the block and the figure, which is a finished picture.
+  **No JavaScript:** the photograph and the figure, which is a finished picture.
 - The canvases are hidden from assistive technology; a written description of
   the scene is not. The figure is a button; the project figures are reachable
   through their labels. Nothing in the scene takes the wheel, a drag or a

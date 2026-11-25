@@ -434,18 +434,110 @@ const nodes: Record<string, [number, number, number][]> = {
       animation: fade-in var(--dur-content) var(--ease-out) 440ms backwards;
     }
 
-    /* The realtime signal flows only while its layer is lit. */
-    .plate[data-layer='realtime'] .etch path {
-      animation: signal 6s linear infinite paused;
+    /* Circuit trace signals flow across all plates and accelerate when a layer is lit. */
+    .plate .etch path {
+      stroke-dasharray: 8 18;
+      animation: signal 8.5s linear infinite;
     }
+    .plate[data-layer='realtime'] .etch path {
+      stroke-dasharray: 6 5;
+      animation-duration: 3.4s;
+    }
+    .plate .etch circle {
+      transform-box: fill-box;
+      transform-origin: center;
+      transition: transform var(--dur-ui) var(--ease-out);
+      animation: node-pulse 4.6s ease-in-out infinite alternate;
+    }
+    .plate:nth-child(2) .etch path {
+      animation-delay: -1.4s;
+    }
+    .plate:nth-child(3) .etch path {
+      animation-delay: -2.8s;
+    }
+    .plate:nth-child(4) .etch path {
+      animation-delay: -4.2s;
+    }
+    .plate:nth-child(5) .etch path {
+      animation-delay: -5.6s;
+    }
+    .plate:nth-child(6) .etch path {
+      animation-delay: -7s;
+    }
+    .plate[data-lit],
+    .stack:has(
+        [data-layer='web'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='web']:hover
+      )
+      .plate[data-layer='web']
+      .etch
+      circle,
+    .stack:has(
+        [data-layer='backend'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='backend']:hover
+      )
+      .plate[data-layer='backend']
+      .etch
+      circle,
+    .stack:has(
+        [data-layer='ai'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='ai']:hover
+      )
+      .plate[data-layer='ai']
+      .etch
+      circle,
+    .stack:has(
+        [data-layer='hardware'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='hardware']:hover
+      )
+      .plate[data-layer='hardware']
+      .etch
+      circle {
+      transform: scale(1.22);
+    }
+    .stack:has(
+        [data-layer='web'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='web']:hover
+      )
+      .plate[data-layer='web']
+      .etch
+      path,
+    .stack:has(
+        [data-layer='backend'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='backend']:hover
+      )
+      .plate[data-layer='backend']
+      .etch
+      path,
     .stack:has(
         [data-layer='realtime'] a:is(:hover, :focus-visible, :active),
         .plate[data-layer='realtime']:hover
       )
       .plate[data-layer='realtime']
       .etch
+      path,
+    .stack:has(
+        [data-layer='ai'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='ai']:hover
+      )
+      .plate[data-layer='ai']
+      .etch
+      path,
+    .stack:has(
+        [data-layer='hardware'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='hardware']:hover
+      )
+      .plate[data-layer='hardware']
+      .etch
+      path,
+    .stack:has(
+        [data-layer='system'] a:is(:hover, :focus-visible, :active),
+        .plate[data-layer='system']:hover
+      )
+      .plate[data-layer='system']
+      .etch
       path {
-      animation-play-state: running;
+      animation-duration: 2.2s;
     }
   }
 
@@ -535,7 +627,16 @@ const nodes: Record<string, [number, number, number][]> = {
 
   @keyframes signal {
     to {
-      stroke-dashoffset: -110;
+      stroke-dashoffset: -104;
+    }
+  }
+
+  @keyframes node-pulse {
+    from {
+      opacity: 0.72;
+    }
+    to {
+      opacity: 1;
     }
   }
 

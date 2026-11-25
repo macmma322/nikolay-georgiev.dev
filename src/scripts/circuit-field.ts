@@ -66,6 +66,18 @@ function sampleTrace(trace: MeasuredTrace, distance: number, out: SamplePoint) {
   out.index = index;
 }
 
+/** Shared cache of measured circuit trace geometry keyed by board kind and seed. */
+const traceCache = new Map<string, readonly MeasuredTrace[]>();
+function getMeasuredTraces(background: boolean, seed: number): readonly MeasuredTrace[] {
+  const key = `${background ? 'bg' : 'fg'}:${seed}`;
+  let cached = traceCache.get(key);
+  if (!cached) {
+    cached = (background ? makeBackdropBoard(seed) : makeCircuitBoard(seed)).map(measureTrace);
+    traceCache.set(key, cached);
+  }
+  return cached;
+}
+
 /** Shared pre-rendered soft glow sprite so ticks never allocate CanvasGradients. */
 let glowSprite: HTMLCanvasElement | undefined;
 function getGlowSprite() {
@@ -91,22 +103,23 @@ class CircuitField extends HTMLElement {
   connectedCallback() {
     if (this.#dispose) return;
     const canvas = this.querySelector('canvas');
-    const context = canvas?.getContext('2d');
-    if (!canvas || !context || !('IntersectionObserver' in window) || !('ResizeObserver' in window))
-      return;
+    if (!canvas || !('IntersectionObserver' in window) || !('ResizeObserver' in window)) return;
 
     const seed = Number(this.dataset['seed']);
     const place = this.dataset['place'] ?? '';
     const background = place === 'background';
     const footer = place === 'footer';
     const designHeight = background ? backdropHeight : circuitHeight;
-    const traces = (background ? makeBackdropBoard(seed) : makeCircuitBoard(seed)).map(
-      measureTrace,
-    );
     const colors = background ? backgroundPalette : palette;
-    const glow = getGlowSprite();
     const head: SamplePoint = { x: 0, y: 0, index: 1 };
     const tail: SamplePoint = { x: 0, y: 0, index: 1 };
+
+    // Lazily allocated on the first active draw tick so offscreen fields cost ~0ms at startup.
+    let context: CanvasRenderingContext2D | null = null;
+    let traces: readonly MeasuredTrace[] | undefined;
+    let glow: HTMLCanvasElement | undefined;
+    let resizeObserving = false;
+    let bufferDirty = true;
 
     let playback: PlaybackState = 'idle';
     let quality: QualityTier = getQualityTier();
@@ -139,7 +152,14 @@ class CircuitField extends HTMLElement {
     };
 
     const sizeBuffer = () => {
-      if (!visible || occluded || !width || !height || motion.matches) return;
+      if (!visible || occluded || motion.matches) return;
+      if (!width || !height) {
+        const rect = this.getBoundingClientRect();
+        width = rect.width;
+        height = rect.height;
+      }
+      if (!width || !height) return;
+      bufferDirty = false;
       mobile = width < 600;
       const qualityCap = quality === 'low' ? 0.8 : quality === 'balanced' ? 1 : mobile ? 1 : 1.25;
       const maxWidth = footer
@@ -181,6 +201,17 @@ class CircuitField extends HTMLElement {
       const elapsed = now - last;
       if (elapsed < frameInterval()) return;
       last = now;
+      if (!context) {
+        context = canvas.getContext('2d');
+        if (!context) return;
+      }
+      if (!traces) traces = getMeasuredTraces(background, seed);
+      if (!glow) glow = getGlowSprite();
+      if (bufferDirty) {
+        sizeBuffer();
+        return;
+      }
+      if (!width || !height) return;
       const step = Math.min(elapsed / 1000, 0.08);
       const { mode, strength, audio } = electricalInput;
       reactivity.setState(mode === 'player' ? playback : 'idle');
@@ -285,8 +316,12 @@ class CircuitField extends HTMLElement {
       const drawing = active && !occluded;
       this.toggleAttribute('data-running', active);
       if (drawing && !frame) {
-        sizeBuffer();
-        last = performance.now();
+        if (!resizeObserving) {
+          resizeObserving = true;
+          resize.observe(this);
+        }
+        bufferDirty = true;
+        last = performance.now() - (background ? frameInterval() : 0);
         frame = watchCircuitClock(tick, { priority: background ? 'low' : 'normal' });
         if (background && !unwatchScroll) unwatchScroll = watchScrollEnergy();
       } else if (!drawing && frame) {
@@ -296,6 +331,7 @@ class CircuitField extends HTMLElement {
         unwatchScroll = undefined;
         canvas.width = 1;
         canvas.height = 1;
+        bufferDirty = true;
       }
     };
 
@@ -303,7 +339,8 @@ class CircuitField extends HTMLElement {
       if (!entry) return;
       width = entry.contentRect.width;
       height = entry.contentRect.height;
-      sizeBuffer();
+      bufferDirty = true;
+      if (frame) sizeBuffer();
     });
     const intersection = new IntersectionObserver(
       ([entry]) => {
@@ -313,19 +350,28 @@ class CircuitField extends HTMLElement {
       { threshold: [0, 0.25, 0.5, 1] },
     );
 
-    // Pause background canvas drawing when the opaque street footer fills the viewport.
+    // Pause background canvas drawing when the opaque street footer enters the viewport.
     let occlusionObserver: IntersectionObserver | undefined;
     if (background) {
       const opaqueFooter = document.querySelector<HTMLElement>(
         '.site-footer:not(.bare) [data-stage]',
       );
       if (opaqueFooter) {
+        const footerRect = opaqueFooter.getBoundingClientRect();
+        const vh = window.innerHeight || document.documentElement.clientHeight;
+        if (footerRect.height > 0 && footerRect.top < vh) {
+          const visibleFooter = Math.max(
+            0,
+            Math.min(vh, footerRect.bottom) - Math.max(0, footerRect.top),
+          );
+          occluded = visibleFooter / Math.min(footerRect.height, vh) >= 0.2;
+        }
         occlusionObserver = new IntersectionObserver(
           ([entry]) => {
-            occluded = (entry?.intersectionRatio ?? 0) >= 0.45;
+            occluded = (entry?.intersectionRatio ?? 0) >= 0.2;
             sync();
           },
-          { threshold: [0, 0.45, 0.8] },
+          { threshold: [0, 0.2, 0.45, 0.8] },
         );
         occlusionObserver.observe(opaqueFooter);
       }
@@ -337,7 +383,8 @@ class CircuitField extends HTMLElement {
     });
     const unobserveQuality = observeQualityTier((tier) => {
       quality = tier;
-      sizeBuffer();
+      bufferDirty = true;
+      if (frame) sizeBuffer();
     });
     const events = new AbortController();
     const { signal } = events;
@@ -359,7 +406,6 @@ class CircuitField extends HTMLElement {
     }
     motion.addEventListener('change', sync, { signal });
     document.addEventListener('visibilitychange', sync, { signal });
-    resize.observe(this);
     intersection.observe(this);
 
     this.#dispose = () => {

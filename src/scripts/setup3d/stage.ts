@@ -18,6 +18,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { makeMaterials, quality, type Materials, type Vec } from './kit';
 import { ease, Motion } from './motion';
+import { watchCircuitClock } from '../circuit-clock';
 import type { LightMode, Mode, Pose, SceneDef } from './scene';
 
 export interface StageHooks {
@@ -844,7 +845,7 @@ export async function mountStage(
     }
   }
 
-  // ---------- First frame ----------
+  // ---------- First frame & viewport-gated 3D fan rotation ----------
   if (def.setLighting) {
     applyStageLighting(lightK);
     host.dataset.lighting = lightMode;
@@ -863,6 +864,44 @@ export async function mountStage(
   // the browser can (KHR_parallel_shader_compile); elsewhere the first frame compiles.
   if (renderer.extensions.has('KHR_parallel_shader_compile'))
     await renderer.compileAsync(scene, camera).catch(() => {});
+
+  const fanRotors: THREE.Object3D[] = [];
+  scene.traverse((o) => {
+    if (o.userData.fanRotor) fanRotors.push(o);
+  });
+  let inView = true;
+  let stopAmbient: (() => void) | undefined;
+  const syncAmbient = () => {
+    const run =
+      inView && !document.hidden && !reduced && !disposed && !contextLost && fanRotors.length > 0;
+    if (run && !stopAmbient) {
+      stopAmbient = watchCircuitClock(
+        (_now, dt) => {
+          for (const rotor of fanRotors) rotor.rotation.z -= dt * 3.4;
+          if (!frame && !disposed && !contextLost) {
+            renderer.render(scene, camera);
+          }
+        },
+        { priority: 'low' },
+      );
+    } else if (!run && stopAmbient) {
+      stopAmbient();
+      stopAmbient = undefined;
+    }
+  };
+  let stageObserver: IntersectionObserver | undefined;
+  if ('IntersectionObserver' in window) {
+    stageObserver = new IntersectionObserver(
+      (entries) => {
+        inView = entries.some((entry) => entry.isIntersecting);
+        syncAmbient();
+      },
+      { threshold: 0.05 },
+    );
+    stageObserver.observe(host);
+  }
+  document.addEventListener('visibilitychange', syncAmbient);
+  syncAmbient();
 
   return {
     modes: def.modes ?? [],
@@ -1014,11 +1053,20 @@ export async function mountStage(
       const shot = document.createElement('canvas');
       shot.width = canvas.width;
       shot.height = canvas.height;
-      shot.getContext('2d')?.drawImage(canvas, 0, 0);
+      const ctx = shot.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#0b0d12';
+        ctx.fillRect(0, 0, shot.width, shot.height);
+        ctx.drawImage(canvas, 0, 0);
+      }
       return shot;
     },
     dispose() {
       disposed = true;
+      stopAmbient?.();
+      stopAmbient = undefined;
+      stageObserver?.disconnect();
+      document.removeEventListener('visibilitychange', syncAmbient);
       if (screenTimer) clearTimeout(screenTimer);
       screenIo?.disconnect();
       if (def.tickScreen) document.removeEventListener('visibilitychange', onVisibility);

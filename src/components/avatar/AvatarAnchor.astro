@@ -104,6 +104,10 @@ const copy = t(avatar);
     .cameo :global(.avatar-drawing[data-idle-breathe]) {
       animation: cameo-breathe 2400ms ease-in-out infinite alternate;
     }
+    /* Seated, the chest rises from the seat, not from the canvas floor. */
+    .cameo :global(.avatar-drawing[data-pose='sit']) {
+      transform-origin: 50% 62.5%;
+    }
   }
   :global(html[data-avatar-still]) .cameo :global(.avatar-drawing) {
     animation: none !important;

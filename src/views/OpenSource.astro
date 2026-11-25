@@ -281,6 +281,7 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
 
   .doc {
     position: relative;
+    overflow: hidden;
     padding: var(--space-m) var(--space-m) var(--space-l);
     border: 1px solid var(--line);
     border-radius: var(--radius-s);
@@ -291,6 +292,34 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
         var(--line-soft) calc(1.9rem - 1px) 1.9rem
       ),
       var(--ink-1);
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .doc::before {
+      content: '';
+      position: absolute;
+      inset-inline: 0;
+      top: 0;
+      height: 1.9rem;
+      pointer-events: none;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        color-mix(in oklch, var(--accent-soft, var(--fg)) 10%, transparent) 50%,
+        transparent
+      );
+      opacity: 0.55;
+      animation: oss-doc-scan 9.5s ease-in-out infinite alternate;
+    }
+  }
+
+  @keyframes oss-doc-scan {
+    from {
+      transform: translateY(12%);
+    }
+    to {
+      transform: translateY(680%);
+    }
   }
 
   /* The folded corner of a sheet. */
@@ -322,11 +351,17 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
     font-size: var(--text-caption);
     line-height: 1.9rem;
     color: var(--fg-2);
+    transition: color var(--dur-fast) var(--ease-out);
+  }
+
+  .doc:hover .doc-n {
+    color: var(--fg-2);
   }
 
   .doc-n {
     font-family: var(--ff-mono);
     color: var(--fg-3);
+    transition: color var(--dur-fast) var(--ease-out);
   }
 
   .facts {
@@ -483,6 +518,11 @@ const groups = [...credits].sort((a, b) => rank(a.project) - rank(b.project));
   .repo {
     padding-block: var(--space-s);
     border-bottom: 1px solid var(--line-soft);
+    transition: border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .repo:is(:hover, :focus-within) {
+    border-bottom-color: var(--line-strong);
   }
 
   .repo-name {

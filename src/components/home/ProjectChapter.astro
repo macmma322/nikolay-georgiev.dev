@@ -237,6 +237,11 @@ const headingId = `chapter-${entry.id}`;
   /* ---------- Signature linking: text lights the plate, the plate marks the title ---------- */
   .chapter:has(:is(.name a, .read):is(:hover, :focus-visible)) .visual {
     --plate-lit: 1;
+    filter: drop-shadow(0 10px 26px color-mix(in oklch, var(--accent) 12%, transparent));
+  }
+
+  .visual {
+    transition: filter var(--dur-ui) var(--ease-out);
   }
 
   .name a:is(:hover, :focus-visible) {

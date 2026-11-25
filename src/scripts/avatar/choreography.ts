@@ -12,6 +12,12 @@ type Frame = {
 const frames = (clip: Clip, state: CharacterState, indices: number[], times: number[]): Frame[] =>
   indices.map((index, i) => ({ clip, state, index, ms: times[i] ?? times[0]! }));
 
+// A loop that repeats on an exact beat reads as a machine. Vary each repeat by
+// up to a quarter so the same keyframes never land on the same rhythm twice.
+const vary = (ms: number, spread = 0.25) =>
+  ms === 0 ? 0 : Math.round(ms * (1 - spread + Math.random() * spread * 2));
+const loose = (list: Frame[]) => list.map((f) => ({ ...f, ms: vary(f.ms, 0.15) }));
+
 export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[] {
   switch (pose) {
     case 'peek':
@@ -84,12 +90,23 @@ export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[
  * registered sprite keyframes so proportions and physical contacts stay locked.
  */
 export function idleCycle(pose: Pose, music: boolean): { pauseMs: number; frames: Frame[] } | null {
+  const cycle = ambient(pose, music);
+  return cycle && { pauseMs: vary(cycle.pauseMs), frames: loose(cycle.frames) };
+}
+
+function ambient(pose: Pose, music: boolean): { pauseMs: number; frames: Frame[] } | null {
   switch (pose) {
     case 'sit':
       if (music) {
+        // Rise from the seat through the reach, and settle back: the opening
+        // plan ends seated, so starting on the raised phone would jump.
         return {
           pauseMs: 2800,
-          frames: frames('listen', 'phone', [3, 4, 3, 4, 3], [900, 300, 950, 300, 0]),
+          frames: [
+            ...frames('listen', 'interact', [1, 2], [230, 260]),
+            ...frames('listen', 'phone', [3, 4, 3, 4, 3], [900, 300, 950, 300, 420]),
+            ...frames('listen', 'sit', [2, 1, 0], [220, 230, 0]),
+          ],
         };
       }
       return {
