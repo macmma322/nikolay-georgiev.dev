@@ -32,6 +32,10 @@ interface Props {
     modes?: readonly ('cutaway' | 'exploded')[];
     /** Offer a preview of the view's planned upgrade. */
     upgrade?: boolean;
+    /** Offer a television / display power toggle. */
+    power?: boolean;
+    /** Offer a night / daylight environment lighting switch. */
+    lighting?: boolean;
   }[];
   parts: readonly Part[];
 }
@@ -100,6 +104,36 @@ const icons = [
                   <input type="checkbox" data-stage-upgrade />
                   <span>{u.stage.upgrade}</span>
                 </label>
+              )}
+              {v.power && (
+                <button
+                  type="button"
+                  class="stage-power"
+                  data-stage-power
+                  aria-pressed="true"
+                  aria-label={u.stage.powerAria}
+                  title={u.stage.powerAria}
+                >
+                  <span class="power-dot" aria-hidden="true" />
+                  <span>{u.stage.power}</span>
+                </button>
+              )}
+              {v.lighting && (
+                <fieldset class="stage-modes">
+                  <legend class="visually-hidden">{u.stage.lighting}</legend>
+                  {(['night', 'day'] as const).map((light, i) => (
+                    <label>
+                      <input
+                        type="radio"
+                        name={`${id}-${v.view}-lighting`}
+                        value={light}
+                        data-stage-lighting
+                        checked={i === 0}
+                      />
+                      <span>{u.stage.lightModes[light]}</span>
+                    </label>
+                  ))}
+                </fieldset>
               )}
               <span class="stage-buttons">
                 {icons.map(([act, d]) => (
@@ -320,6 +354,16 @@ const icons = [
     aspect-ratio: 4 / 3;
   }
 
+  .stage-canvas[data-lighting='day'] {
+    background:
+      radial-gradient(
+        ellipse at 65% 24%,
+        color-mix(in oklch, var(--fg) 14%, transparent),
+        transparent 68%
+      ),
+      color-mix(in oklch, var(--ink-2) 72%, var(--steel-dim));
+  }
+
   @media (max-width: 40rem) {
     .stage-canvas,
     [data-stage] .stage-canvas {
@@ -421,7 +465,8 @@ const icons = [
   }
 
   .stage-modes label,
-  .stage-upgrade {
+  .stage-upgrade,
+  .stage-power {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -432,18 +477,49 @@ const icons = [
     font-size: var(--text-caption);
     color: var(--fg-2);
     cursor: pointer;
+    transition:
+      border-color var(--dur-fast) var(--ease-out),
+      color var(--dur-fast) var(--ease-out),
+      scale var(--dur-press) var(--ease-out);
   }
 
   .stage-modes label:has(:checked),
-  .stage-upgrade:has(:checked) {
+  .stage-upgrade:has(:checked),
+  .stage-power[aria-pressed='true'] {
     border-color: var(--fg-2);
     color: var(--fg);
   }
 
   .stage-modes label:has(:focus-visible),
-  .stage-upgrade:has(:focus-visible) {
+  .stage-upgrade:has(:focus-visible),
+  .stage-power:focus-visible {
     outline: 2px solid var(--fg);
     outline-offset: 2px;
+  }
+
+  .stage-power:is(:hover, :focus-visible) {
+    border-color: var(--fg-2);
+    color: var(--fg);
+  }
+
+  .stage-power:active {
+    scale: 0.97;
+  }
+
+  .power-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px solid var(--fg-3);
+    background: transparent;
+    transition:
+      background-color var(--dur-fast) var(--ease-out),
+      border-color var(--dur-fast) var(--ease-out);
+  }
+
+  .stage-power[aria-pressed='true'] .power-dot {
+    border-color: var(--fg);
+    background: var(--fg);
   }
 
   .stage-modes input,

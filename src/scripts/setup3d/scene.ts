@@ -2,6 +2,7 @@ import type * as THREE from 'three';
 import type { Vec } from './kit';
 
 export type Mode = 'assembled' | 'cutaway' | 'exploded';
+export type LightMode = 'night' | 'day';
 
 export interface Pose {
   position: Vec;
@@ -50,4 +51,16 @@ export interface SceneDef {
   doors?: Record<string, { at: Vec; part: string; pose: Pose }>;
   /** The doorway into this view; leaving for a view with no door here pulls back to it. */
   entry?: Pose;
+  /** Per-part inspection camera poses for smooth close-up transitions between devices. */
+  focusPoses?: Record<string, Pose>;
+  /** Minimum camera orbit distance in cm when inspecting smaller hardware close up. */
+  minDistance?: number;
+  /** Interpolates TV/console power state (0 = standby/off, 1 = active/on). */
+  setPower?: (k: number) => void;
+  /** Interpolates environment lighting (0 = cinematic night, 1 = natural daylight). */
+  setLighting?: (k: number) => void;
+  /** Lightweight screen animation update (seconds); called only while visible and powered on. */
+  tickScreen?: (timeSec: number) => boolean;
+  /** Called before rendering so backdrop geometry can yield cleanly during rear 360° orbit. */
+  onCameraMove?: (camera: THREE.PerspectiveCamera) => void;
 }
