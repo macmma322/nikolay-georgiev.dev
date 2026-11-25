@@ -18,7 +18,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { makeMaterials, quality, type Materials, type Vec } from './kit';
 import { ease, Motion } from './motion';
-import type { Mode, Pose, SceneDef } from './scene';
+import type { LightMode, Mode, Pose, SceneDef } from './scene';
 
 export interface StageHooks {
   pick(id: string): void;
@@ -35,6 +35,8 @@ export interface Stage {
   hover(id: string | null): void;
   setMode(mode: Mode, animate?: boolean): void;
   setUpgrade(on: boolean): void;
+  setPower(on: boolean, animate?: boolean): void;
+  setLighting(mode: LightMode, animate?: boolean): void;
   orbit(step: number): void;
   zoom(step: number): void;
   reset(): void;
@@ -54,6 +56,11 @@ const builders: Record<string, () => Promise<(m: Materials) => SceneDef>> = {
   inside: () => import('./pc').then((x) => x.buildInside),
   secondary: () => import('./pc').then((x) => x.buildSecondary),
   laptop: () => import('./laptop').then((x) => x.buildLaptop),
+  entertainment: () =>
+    import('./entertainment').then(async (x) => {
+      await x.artReady;
+      return x.buildEntertainment;
+    }),
 };
 
 /** Fetch a view's scene code ahead of a view change. */
@@ -151,7 +158,8 @@ export async function mountStage(
   const size = bounds.getSize(new THREE.Vector3());
   const centre = bounds.getCenter(new THREE.Vector3());
   const span = Math.max(size.x, size.y, size.z);
-  scene.add(new THREE.HemisphereLight(0xe3e8f0, 0x202328, 1.1));
+  const hemi = new THREE.HemisphereLight(0xe3e8f0, 0x202328, 1.1);
+  scene.add(hemi);
   const key = new THREE.DirectionalLight(0xfff0dc, 2.6);
   key.position.set(centre.x - span * 0.5, centre.y + span * 0.9, centre.z + span * 0.7);
   key.target.position.copy(centre);
@@ -171,6 +179,17 @@ export async function mountStage(
   const headlight = new THREE.DirectionalLight(0xffffff, 0.55);
   rim.position.set(centre.x + span, centre.y + span * 0.4, centre.z - span);
   scene.add(rim);
+  const nightKeyColor = new THREE.Color(0xd8e2ff);
+  const dayKeyColor = new THREE.Color(0xfff4e2);
+  const applyStageLighting = (k: number) => {
+    hemi.intensity = 0.72 + k * 0.85;
+    key.intensity = 1.25 + k * 1.85;
+    key.color.copy(nightKeyColor).lerp(dayKeyColor, k);
+    rim.intensity = 0.72 + k * 0.35;
+    headlight.intensity = 0.42 + k * 0.22;
+    scene.environmentIntensity = 0.55 + k * 0.45;
+    def.setLighting?.(k);
+  };
 
   // Floor: a drafting grid and a shadow catcher.
   const floorY = bounds.min.y;
@@ -242,7 +261,11 @@ export async function mountStage(
           (i & 4 ? box.max.z : box.min.z) + (shift?.[2] ?? 0),
         ),
     );
-  const corners = [...def.root.children, ...Object.values(def.parts)].flatMap((part) =>
+  const fitChildren = def.root.children.filter((c) => !c.userData.noFit);
+  const fitRoot = fitChildren.length ? fitChildren : def.root.children;
+  const fitBox = new THREE.Box3();
+  for (const child of fitRoot) fitBox.expandByObject(child);
+  const corners = [...fitRoot, ...Object.values(def.parts)].flatMap((part) =>
     cornersOf(new THREE.Box3().setFromObject(part)),
   );
   const explodedCorners = [
@@ -251,7 +274,7 @@ export async function mountStage(
       def.parts[id] ? cornersOf(new THREE.Box3().setFromObject(def.parts[id]), offset) : [],
     ),
   ];
-  const sphere = bounds.getBoundingSphere(new THREE.Sphere());
+  const sphere = fitBox.getBoundingSphere(new THREE.Sphere());
   const probe = new THREE.PerspectiveCamera();
   const point = new THREE.Vector3();
   /** The closest distance along `dir` at which every corner fits in 88% of the frame. */
@@ -306,7 +329,7 @@ export async function mountStage(
   const setLimits = () => {
     const home = poseFor('assembled');
     homeDistance = home.position.distanceTo(home.target);
-    controls.minDistance = homeDistance * 0.3;
+    controls.minDistance = def.minDistance ?? homeDistance * 0.3;
     controls.maxDistance = homeDistance * 2;
   };
 
@@ -376,6 +399,7 @@ export async function mountStage(
     let busy = motion.tick(now);
     if (!motion.has('camera') && controls.update()) busy = true;
     else if (travelling) camera.lookAt(controls.target);
+    def.onCameraMove?.(camera);
     renderer.render(scene, camera);
     placeTags();
     if (busy && last) {
@@ -429,10 +453,15 @@ export async function mountStage(
   let hovered: string | null = null;
   let mode: Mode = 'assembled';
   let upgradeOn = false;
+  let powerOn = true;
+  let powerK = 1;
+  let lightMode: LightMode = 'night';
+  let lightK = 0;
+  const hasFocusPoses = !!def.focusPoses;
   /** The visitor has turned or zoomed: views no longer move the camera for them. */
   let moved = false;
-  /** Lean toward the chosen part (cleared by Reset until the next choice). */
-  let focus = true;
+  /** Lean toward or inspect the chosen part (cleared by Reset until the next choice). */
+  let focus = !hasFocusPoses;
   let explodeK = 0;
   let glowK = 1;
   const alpha: Record<Group, number> = { shell: 1, veil: 1, upgrade: 0 };
@@ -448,10 +477,19 @@ export async function mountStage(
     if (offset) c.add(new THREE.Vector3(...offset).multiplyScalar(k - explodeK));
     return c;
   };
-  /** The resting view: the mode's framing, leaning toward the chosen part. */
+  /** The resting view: the mode's framing, leaning toward or inspecting the chosen part. */
   const restPose = (): Rig => {
     const base = poseFor(mode);
     if (!focus || !selected || !def.parts[selected]?.visible) return base;
+    const custom = def.focusPoses?.[selected];
+    if (custom) {
+      const r = rig(custom);
+      if (camera.aspect > 0 && camera.aspect < 1.35) {
+        const pull = Math.min(1.65, 1.35 / Math.max(camera.aspect, 0.72));
+        r.position.sub(r.target).multiplyScalar(pull).add(r.target);
+      }
+      return r;
+    }
     const shift = centreOf(selected).sub(base.target).multiplyScalar(FOCUS);
     base.target.add(shift);
     base.position.add(shift);
@@ -467,9 +505,14 @@ export async function mountStage(
     const tint = (amount: number) => {
       const mat = base.clone() as THREE.MeshStandardMaterial;
       if ('emissive' in mat && mat.emissive) {
+        const luma =
+          'color' in mat && mat.color
+            ? mat.color.r * 0.3 + mat.color.g * 0.59 + mat.color.b * 0.11
+            : 0.2;
+        const scaled = luma < 0.04 ? amount * 0.25 : amount;
         mat.emissive = ACCENT.clone();
-        mat.emissiveIntensity = amount;
-        mat.userData.glow = amount;
+        mat.emissiveIntensity = scaled;
+        mat.userData.glow = scaled;
       } else if ('color' in mat && mat.color) {
         mat.color = mat.color.clone().lerp(ACCENT, amount * 1.6);
       }
@@ -555,17 +598,22 @@ export async function mountStage(
   };
 
   const paint = () => {
-    outline(selected);
+    const inspectActive = !hasFocusPoses || focus;
+    outline(inspectActive ? selected : null);
     bracketMat.opacity = 0.95 * glowK;
     for (const v of variants.values()) v.lit.emissiveIntensity = (v.lit.userData.glow ?? 0) * glowK;
     for (const [id, meshes] of partMeshes) {
       const group = veiled.has(id) ? 'veil' : undefined;
       for (const mesh of meshes) {
+        if (mesh.userData.selfLit) {
+          mesh.material = mesh.userData.base as THREE.Material;
+          continue;
+        }
         const v = variantOf(mesh.userData.base as THREE.Material);
         let mat: THREE.Material = mesh.userData.base;
-        if (id === selected) mat = v.lit;
+        if (inspectActive && id === selected) mat = v.lit;
         else if (id === hovered) mat = v.hover;
-        else if (selected) mat = v.dim;
+        else if (inspectActive && selected) mat = v.dim;
         dress(mesh, mat, (mesh.userData.alpha as Group | undefined) ?? group);
       }
       tags.get(id)?.classList.toggle('is-on', id === selected);
@@ -754,12 +802,63 @@ export async function mountStage(
     });
   };
 
+  // ---------- Optional lightweight screen loop (suspended when inactive) ----------
+  let inViewport = true;
+  let screenTimer = 0;
+  const syncScreenLoop = () => {
+    if (screenTimer) {
+      clearTimeout(screenTimer);
+      screenTimer = 0;
+    }
+    if (
+      !def.tickScreen ||
+      disposed ||
+      reduced ||
+      low ||
+      !powerOn ||
+      !inViewport ||
+      document.hidden
+    ) {
+      return;
+    }
+    screenTimer = window.setTimeout(() => {
+      screenTimer = 0;
+      if (disposed || !powerOn || !inViewport || document.hidden) return;
+      if (def.tickScreen?.(performance.now() * 0.001)) schedule();
+      syncScreenLoop();
+    }, 72);
+  };
+  let screenIo: IntersectionObserver | undefined;
+  const onVisibility = () => syncScreenLoop();
+  if (def.tickScreen) {
+    document.addEventListener('visibilitychange', onVisibility);
+    if ('IntersectionObserver' in window) {
+      screenIo = new IntersectionObserver(
+        ([entry]) => {
+          inViewport = entry?.isIntersecting ?? false;
+          syncScreenLoop();
+        },
+        { threshold: 0.05 },
+      );
+      screenIo.observe(host);
+    }
+  }
+
   // ---------- First frame ----------
+  if (def.setLighting) {
+    applyStageLighting(lightK);
+    host.dataset.lighting = lightMode;
+  }
+  if (def.setPower) {
+    def.setPower(powerK);
+    host.dataset.power = powerOn ? 'on' : 'off';
+  }
   renderer.shadowMap.needsUpdate = true;
   host.append(canvas, tagLayer);
   ro.observe(host);
   resize();
   paint();
+  syncScreenLoop();
   // Compile every shader before the first frame, off the main thread, where
   // the browser can (KHR_parallel_shader_compile); elsewhere the first frame compiles.
   if (renderer.extensions.has('KHR_parallel_shader_compile'))
@@ -769,9 +868,17 @@ export async function mountStage(
     modes: def.modes ?? [],
     select(id, animate = true) {
       const next = id && def.parts[id] ? id : null;
-      if (next === selected) return;
+      const reInspect = animate && hasFocusPoses && next !== null && (!focus || moved);
+      if (next === selected && !reInspect) return;
       selected = next;
-      focus = true;
+      if (animate) {
+        focus = true;
+        if (hasFocusPoses) moved = false;
+      } else if (hasFocusPoses) {
+        focus = false;
+      } else {
+        focus = true;
+      }
       if (selected && mode === 'assembled' && def.hidden?.includes(selected)) hooks.mode('cutaway');
       glowK = 0;
       void motion.play(
@@ -802,6 +909,41 @@ export async function mountStage(
       upgradeOn = on;
       void fadeTo('upgrade', on || selected === def.upgrade ? 1 : 0, T.mode);
     },
+    setPower(on, animate = true) {
+      if (!def.setPower) return;
+      powerOn = on;
+      host.dataset.power = on ? 'on' : 'off';
+      const from = powerK;
+      const to = on ? 1 : 0;
+      syncScreenLoop();
+      void motion.play(
+        'power',
+        animate && from !== to ? T.highlight : 0,
+        (k) => {
+          powerK = from + (to - from) * k;
+          def.setPower?.(powerK);
+          schedule();
+        },
+        ease.out,
+      );
+    },
+    setLighting(next, animate = true) {
+      if (!def.setLighting) return;
+      lightMode = next;
+      host.dataset.lighting = next;
+      const from = lightK;
+      const to = next === 'day' ? 1 : 0;
+      void motion.play(
+        'lighting',
+        animate && from !== to ? T.focus : 0,
+        (k) => {
+          lightK = from + (to - from) * k;
+          applyStageLighting(lightK);
+          schedule();
+        },
+        ease.inOut,
+      );
+    },
     orbit(step) {
       moved = true;
       const offset = camera.position.clone().sub(controls.target);
@@ -830,6 +972,7 @@ export async function mountStage(
     reset() {
       moved = false;
       focus = false;
+      paint();
       void travel(restPose(), T.settle);
     },
     leave(other) {
@@ -876,6 +1019,9 @@ export async function mountStage(
     },
     dispose() {
       disposed = true;
+      if (screenTimer) clearTimeout(screenTimer);
+      screenIo?.disconnect();
+      if (def.tickScreen) document.removeEventListener('visibilitychange', onVisibility);
       motion.finish();
       cancelAnimationFrame(frame);
       ro.disconnect();
@@ -916,6 +1062,8 @@ export async function mountStage(
       delete host.dataset.motion;
       delete host.dataset.mode;
       delete host.dataset.travel;
+      delete host.dataset.lighting;
+      delete host.dataset.power;
     },
   };
 }

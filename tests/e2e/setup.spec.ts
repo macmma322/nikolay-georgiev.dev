@@ -85,6 +85,8 @@ test.describe('3D views', () => {
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('/setup');
     const pane = page.locator('[data-view-pane="desk"]');
+    // The category cards put the first model below the fold; it mounts on approach.
+    await pane.scrollIntoViewIfNeeded();
     await expect(pane).toHaveAttribute('data-live', '', { timeout: 20_000 });
     await expect(pane.locator('.art')).toBeHidden();
     await expect(pane.locator('canvas.stage-gl')).toBeVisible();
@@ -125,6 +127,7 @@ test.describe('3D views', () => {
   const liveDesk = async (page: Page) => {
     await page.goto('/setup');
     const explorer = page.locator('[data-explorer="workstation"]');
+    await explorer.scrollIntoViewIfNeeded();
     await expect(explorer.locator('[data-view-pane="desk"]')).toHaveAttribute('data-live', '', {
       timeout: 30_000,
     });
@@ -245,6 +248,88 @@ test.describe('3D views', () => {
     await expect(pane.locator('.art')).toBeVisible();
     await expect(pane.locator('[data-stage]')).toBeHidden();
     await expect(pane).not.toHaveAttribute('data-live', '');
+
+    const ent = page.locator('[data-view-pane="entertainment"]');
+    await ent.scrollIntoViewIfNeeded();
+    await expect(ent.locator('.art')).toBeVisible();
+    await expect(ent.locator('[data-stage]')).toBeHidden();
+    await expect(ent).not.toHaveAttribute('data-live', '');
+  });
+
+  test('entertainment station lazy-loads on scroll and supports hotspots, TV power, lighting and reset', async ({
+    page,
+  }) => {
+    const errors: string[] = [];
+    page.on('pageerror', (error) => errors.push(error.message));
+    await page.goto('/setup');
+
+    const explorer = page.locator('[data-explorer="entertainment"]');
+    const pane = explorer.locator('[data-view-pane="entertainment"]');
+    // At the top of /setup, the entertainment 3D stage is below the fold and not mounted yet.
+    await expect(pane).not.toHaveAttribute('data-live', '');
+
+    // Scroll to the entertainment station: the WebGL stage lazy-loads on demand.
+    await explorer.scrollIntoViewIfNeeded();
+    await expect(pane).toHaveAttribute('data-live', '', { timeout: 25_000 });
+    const stage = pane.locator('.stage-canvas');
+    await expect(stage.locator('canvas.stage-gl')).toBeVisible();
+    expect(
+      await stage.locator('canvas.stage-gl').evaluate((c) => getComputedStyle(c).touchAction),
+    ).toBe('pan-y');
+    await expect(pane.locator('.stage-tag')).toHaveCount(5);
+
+    // Hotspot inspection: selecting DualSense White transitions camera and reveals specs.
+    await pane.locator('.stage-tag[data-tag="dualsense-white"]').dispatchEvent('click');
+    await expect(explorer.locator('button[data-pick="dualsense-white"]')).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await expect(explorer.locator('#detail-dualsense-white')).toBeVisible();
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 20_000 });
+
+    // Smooth transition to another device (TV) and camera reset.
+    await explorer.locator('button[data-pick="tv"]').click();
+    await expect(pane.locator('.stage-tag[data-tag="tv"]')).toHaveClass(/is-on/);
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 20_000 });
+    await pane.getByRole('button', { name: 'Reset view' }).click();
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 20_000 });
+
+    // Television power toggle updates aria-pressed and stage power state.
+    const powerBtn = pane.locator('[data-stage-power]');
+    await expect(powerBtn).toHaveAttribute('aria-pressed', 'true');
+    await expect(stage).toHaveAttribute('data-power', 'on');
+    await powerBtn.click();
+    await expect(powerBtn).toHaveAttribute('aria-pressed', 'false');
+    await expect(stage).toHaveAttribute('data-power', 'off');
+    await powerBtn.click();
+    await expect(powerBtn).toHaveAttribute('aria-pressed', 'true');
+    await expect(stage).toHaveAttribute('data-power', 'on');
+
+    // Lighting switch toggles between cinematic night and natural daylight.
+    await expect(stage).toHaveAttribute('data-lighting', 'night');
+    await pane.locator('input[data-stage-lighting][value="day"]').check({ force: true });
+    await expect(stage).toHaveAttribute('data-lighting', 'day');
+    await expect(stage).toHaveAttribute('data-motion', 'idle', { timeout: 20_000 });
+    await pane.locator('input[data-stage-lighting][value="night"]').check({ force: true });
+    await expect(stage).toHaveAttribute('data-lighting', 'night');
+    expect(errors).toEqual([]);
+  });
+
+  test('entertainment station respects reduced motion and releases GPU when scrolled away', async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.goto('/setup#entertainment');
+    const pane = page.locator('[data-view-pane="entertainment"]');
+    await expect(pane).toHaveAttribute('data-live', '', { timeout: 25_000 });
+    const stage = pane.locator('.stage-canvas');
+    await page.locator('button[data-pick="dualsense-black"]').click();
+    await expect(stage).toHaveAttribute('data-motion', 'idle');
+
+    // Scrolling back to the top releases the entertainment WebGL context.
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }));
+    await expect(pane).not.toHaveAttribute('data-live', '', { timeout: 10_000 });
+    await expect(pane.locator('canvas.stage-gl')).toHaveCount(0);
   });
 });
 
@@ -256,11 +341,62 @@ test.describe('without JavaScript', () => {
     await expect(page.locator('#detail-desk')).toBeVisible();
     await expect(page.locator('#detail-streamdeck')).toBeVisible();
     await expect(page.locator('#detail-old-ssd')).toBeVisible();
+    await expect(page.locator('#detail-ps5')).toBeVisible();
+    await expect(page.locator('#detail-tv')).toBeVisible();
+    await expect(page.locator('#detail-dualsense-white')).toBeVisible();
+    await expect(page.locator('#detail-dualsense-black')).toBeVisible();
+    await expect(page.locator('#detail-charger')).toBeVisible();
   });
+});
+
+test('clicking a part of the entertainment fallback drawing selects it', async ({
+  page,
+  isMobile,
+}) => {
+  desktopOnly(isMobile);
+  await withoutWebGL(page);
+  await page.goto('/setup#entertainment');
+  const explorer = page.locator('[data-explorer="entertainment"]');
+  await explorer.locator('[data-part="tv"] rect.screen').click();
+  await expect(explorer.locator('button[data-pick="tv"]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(explorer.locator('#detail-tv')).toBeVisible();
 });
 
 for (const locale of locales) {
   test.describe(`setup content (${locale})`, () => {
+    test('presents all three setup categories and localized entertainment inventory', async ({
+      page,
+    }) => {
+      await page.goto(localize('/setup', locale));
+      await expect(page.locator('[data-setup-category="workstation"]')).toContainText(
+        locale === 'en' ? 'Main Workstation' : 'Основна работна станция',
+      );
+      await expect(page.locator('[data-setup-category="secondary"]')).toContainText(
+        locale === 'en' ? 'Secondary Workstation' : 'Втора работна станция',
+      );
+      await expect(page.locator('[data-setup-category="entertainment"]')).toContainText(
+        locale === 'en' ? 'Entertainment Station' : 'Станция за развлечение',
+      );
+      await expect(page.locator('[data-setup-category="entertainment"]')).toContainText('PS5 Slim');
+      await expect(page.locator('[data-setup-category="entertainment"]')).toContainText('825 GB');
+
+      // Verify localized Philips & DualSense manufacturer links and Digital Edition disclosure.
+      await page.locator('button[data-pick="tv"]').click();
+      await expect(page.locator('#detail-tv .maker-link')).toHaveAttribute(
+        'href',
+        `https://www.philips.${locale === 'en' ? 'co.uk' : 'bg'}/c-p/55PUS8450_12/qled-4k-ambilight-tv`,
+      );
+      await expect(page.locator('#detail-tv')).toContainText('55PUS8450/12');
+
+      await page.locator('button[data-pick="dualsense-white"]').click();
+      await expect(page.locator('#detail-dualsense-white .maker-link')).toHaveAttribute(
+        'href',
+        `https://www.playstation.com/${locale === 'en' ? 'en-gb' : 'bg-bg'}/accessories/dualsense-wireless-controller/`,
+      );
+
+      await page.locator('button[data-pick="ps5"]').click();
+      await expect(page.locator('#detail-ps5')).toContainText('M.2 SSD');
+    });
     test('discloses that nothing is sponsored, and keeps KObait generic', async ({ page }) => {
       await page.goto(localize('/setup', locale));
       await expect(page.locator('.disclosure')).toContainText(

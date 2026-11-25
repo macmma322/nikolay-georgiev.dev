@@ -16,7 +16,7 @@
  * simply changes.
  */
 import type { Stage } from './setup3d/stage';
-import type { Mode } from './setup3d/scene';
+import type { LightMode, Mode } from './setup3d/scene';
 
 type StageModule = typeof import('./setup3d/stage');
 let stageModule: Promise<StageModule> | null = null;
@@ -273,6 +273,10 @@ for (const explorer of document.querySelectorAll<HTMLElement>('[data-explorer]')
         stage.setMode((mode?.value ?? 'assembled') as Mode, false);
         const upgrade = holder.querySelector<HTMLInputElement>('[data-stage-upgrade]');
         if (upgrade) stage.setUpgrade(upgrade.checked);
+        const power = holder.querySelector<HTMLButtonElement>('[data-stage-power]');
+        if (power) stage.setPower(power.getAttribute('aria-pressed') !== 'false', false);
+        const lighting = holder.querySelector<HTMLInputElement>('[data-stage-lighting]:checked');
+        if (lighting) stage.setLighting(lighting.value as LightMode, false);
         stage.select(current ?? null, false);
         pane.dataset.live = '';
         return stage;
@@ -327,6 +331,15 @@ for (const explorer of document.querySelectorAll<HTMLElement>('[data-explorer]')
       ?.addEventListener('change', (event) =>
         stage()?.setUpgrade((event.target as HTMLInputElement).checked),
       );
+    const powerBtn = holder.querySelector<HTMLButtonElement>('[data-stage-power]');
+    powerBtn?.addEventListener('click', () => {
+      const next = powerBtn.getAttribute('aria-pressed') === 'false';
+      powerBtn.setAttribute('aria-pressed', String(next));
+      stage()?.setPower(next);
+    });
+    for (const input of holder.querySelectorAll<HTMLInputElement>('[data-stage-lighting]')) {
+      input.addEventListener('change', () => stage()?.setLighting(input.value as LightMode));
+    }
   }
 
   if (!saveData && 'IntersectionObserver' in window) {

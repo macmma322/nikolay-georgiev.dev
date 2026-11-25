@@ -28,6 +28,9 @@ export const setup = {
   manufacturer: { en: 'Manufacturer page', bg: 'Страница на производителя' },
   shop: { en: 'Shop listing', bg: 'Обява в магазин' },
   usedFor: { en: 'Used for', bg: 'Използва се за' },
+  categories: {
+    label: { en: 'Setup categories', bg: 'Категории техника' },
+  },
   explorer: {
     view: { en: 'View', bg: 'Изглед' },
     parts: { en: 'Parts', bg: 'Части' },
@@ -49,6 +52,16 @@ export const setup = {
       cutaway: { en: 'Cutaway', bg: 'В разрез' },
       exploded: { en: 'Exploded', bg: 'Разглобен' },
     },
+    power: { en: 'TV power', bg: 'Екран' },
+    powerAria: {
+      en: 'Toggle television power',
+      bg: 'Включете или изключете телевизора',
+    },
+    lighting: { en: 'Lighting', bg: 'Осветление' },
+    lightModes: {
+      night: { en: 'Night', bg: 'Нощ' },
+      day: { en: 'Daylight', bg: 'Ден' },
+    },
     upgrade: { en: 'Preview the planned SSD', bg: 'Преглед на планирания SSD' },
     hint: {
       en: 'Drag to turn the model. Pick a part in the drawing or the list below.',
@@ -60,7 +73,7 @@ export const setup = {
     },
   },
   workstation: {
-    label: { en: '01 · Main workstation', bg: '01 · Основна станция' },
+    label: { en: '01 · Main workstation', bg: '01 · Основна работна станция' },
     title: { en: 'Where everything is built', bg: 'Където се създава всичко' },
     lede: {
       en: 'Every project on this site is built and run on one Windows desktop at a height-adjustable desk. Switch between the desk and the inside of the PC.',
@@ -68,11 +81,12 @@ export const setup = {
     },
   },
   secondary: {
-    label: { en: '02 · Secondary PC', bg: '02 · Втори компютър' },
+    label: { en: '02 · Secondary workstation', bg: '02 · Втора работна станция' },
+    pcLabel: { en: 'Secondary PC', bg: 'Втори компютър' },
     title: { en: 'Older hardware, waiting for a job', bg: 'По-стар хардуер, който чака задача' },
     lede: {
-      en: 'My previous desktop still works but has no job yet. Reusing it costs far less than new hardware, as long as I plan around its limits.',
-      bg: 'Предишният ми настолен компютър още работи, но засега не го използвам за нищо. Да му намеря задача струва много по-малко от нов хардуер, стига да съобразя ограниченията му.',
+      en: 'My previous desktop still works but has no job yet, while the Linux laptop handles portable work and Ubuntu checks. Reusing existing hardware costs far less than buying new kit, as long as I plan around its limits.',
+      bg: 'Предишният ми настолен компютър още работи, но засега няма задача, а лаптопът с Linux поема преносимата работа и проверките под Ubuntu. Повторното използване струва много по-малко от нов хардуер, стига да съобразя ограниченията му.',
     },
     roles: {
       en: 'Possible roles; none is set up yet',
@@ -81,7 +95,8 @@ export const setup = {
     limits: { en: 'What reuse costs', bg: 'Цената на повторното използване' },
   },
   laptop: {
-    label: { en: '03 · Linux laptop', bg: '03 · Лаптоп с Linux' },
+    label: { en: 'Portable Linux · Laptop', bg: 'Преносим Linux · Лаптоп' },
+    viewLabel: { en: 'Linux laptop', bg: 'Лаптоп с Linux' },
     title: {
       en: 'Where the code learned to leave Windows',
       bg: 'Където кодът се научи да работи извън Windows',
@@ -89,6 +104,19 @@ export const setup = {
     lede: {
       en: 'For a stretch of August 2026 the laptop was my only machine, so J.A.R.V.I.S. had to build, test and run on Ubuntu too. Today it is for working away from the desk, Linux checks and Git on the go.',
       bg: 'През част от август 2026 г. лаптопът беше единственият ми компютър, затова J.A.R.V.I.S. трябваше да се компилира, тества и работи и под Ubuntu. Днес го използвам за работа извън бюрото, проверки под Linux и Git, когато не съм у дома.',
+    },
+  },
+  entertainment: {
+    label: { en: '03 · Entertainment station', bg: '03 · Станция за развлечение' },
+    viewLabel: { en: 'Entertainment station', bg: 'Станция за развлечение' },
+    title: { en: 'Away from the compiler', bg: 'Далеч от компилатора' },
+    lede: {
+      en: 'Where I step away from development for console games and films: a vertical PS5 Slim Digital Edition on the small light-oak side cabinet, two DualSense controllers on one shared charging dock and a 55-inch 4K QLED television centred on the light-oak cabinet. Toggle the television or switch between night and daylight.',
+      bg: 'Мястото за почивка с конзолни игри и филми извън работния плот: вертикално поставена PS5 Slim Digital Edition на малкия шкаф от светъл дъб, два контролера DualSense на обща зарядна станция и 55-инчов 4K QLED телевизор в центъра върху светлия дъбов шкаф. Включвайте или изключвайте екрана и сменяйте нощното и дневното осветление.',
+    },
+    note: {
+      en: 'Reconstructed from a photograph of the real setup, without household clutter; furniture and curtain dimensions are approximate.',
+      bg: 'Подредбата възпроизвежда реалния кът по снимка, без излишните домашни вещи; размерите на мебелите и завесата са приблизителни.',
     },
   },
   ecosystem: {
