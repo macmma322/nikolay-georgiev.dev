@@ -44,6 +44,8 @@ const YAW: Record<FigurePose, number> = {
 };
 
 const v = () => new THREE.Vector3();
+/** How much narrower and shallower than generated he is drawn. */
+const SLIM = 0.86;
 /** The keyboard, from the seated hips: forward and up, in metres. */
 const KEYS = { forward: 0.24, up: 0.13 };
 const tmp = { a: v(), b: v(), c: v(), t: v(), d: v(), q: new THREE.Quaternion() };
@@ -244,6 +246,21 @@ async function build(url: string): Promise<Figure> {
 
   const gltf = await new GLTFLoader().loadAsync(url);
   const model = gltf.scene;
+  // Fabric, not leather: the generated metal and roughness maps read as a sheen
+  // under the warm key light, so cloth is made fully matte and its folds softer.
+  model.traverse((o) => {
+    const m = (o as THREE.Mesh).material as THREE.MeshStandardMaterial | undefined;
+    if (!m?.isMeshStandardMaterial) return;
+    m.metalness = 0;
+    m.metalnessMap = null;
+    m.roughness = 1;
+    m.roughnessMap = null;
+    m.normalScale.setScalar(0.55);
+    m.needsUpdate = true;
+  });
+  // The generated build came out broader than the art it was made from: narrow
+  // the width and depth, not the height.
+  model.scale.set(SLIM, 1, SLIM);
   const holder = new THREE.Group();
   holder.add(model);
   scene.add(holder);
@@ -277,10 +294,10 @@ async function build(url: string): Promise<Figure> {
   // a bone undo it, so their sizes and offsets stay in metres.
   model.updateMatrixWorld(true);
   const attach = (to: THREE.Object3D, prop: THREE.Object3D, at: [number, number, number]) => {
-    const k = 1 / to.getWorldScale(v()).x;
+    const k = to.getWorldScale(v());
     to.add(prop);
-    prop.scale.setScalar(k);
-    prop.position.set(at[0] * k, at[1] * k, at[2] * k);
+    prop.scale.set(1 / k.x, 1 / k.y, 1 / k.z);
+    prop.position.set(at[0] / k.x, at[1] / k.y, at[2] / k.z);
   };
   attach(B.head, props.headphones, [0, 0.11, 0]);
   props.board.position.set(0.05, 0.006, 0.38);
