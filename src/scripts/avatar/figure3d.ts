@@ -335,6 +335,11 @@ async function build(url: string): Promise<Figure> {
     }
   }
 
+  /** The slimming is for the body: the face keeps the width it was made with. */
+  function keepHead() {
+    B.head.scale.set(1 / SLIM, 1, 1 / SLIM);
+  }
+
   /** Bends the arms where generated motion could not, after the clip each frame. */
   function setByHand(t: number) {
     if (pose !== 'typing' && pose !== 'lean') return;
@@ -433,6 +438,7 @@ async function build(url: string): Promise<Figure> {
       // with whatever props stand with him, as the drawings included them.
       holder.rotation.y = wantYaw;
       mixer.update(0);
+      keepHead();
       setByHand(time);
       model.updateMatrixWorld(true);
       const bounds = new THREE.Box3();
@@ -474,6 +480,7 @@ async function build(url: string): Promise<Figure> {
         action.timeScale = pace > 0 ? (pace / 0.8) * walkCycle : 1;
       } else if (action) action.timeScale = 1;
       mixer.update(dt);
+      keepHead();
       setByHand(time);
       const k = 1 - Math.exp(-dt * 3.5);
       look.x += (want.x - look.x) * k;
