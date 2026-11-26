@@ -841,8 +841,18 @@ export function createStreet(options: StreetOptions): Street {
     const pose = walker.pose;
     const interacting = pose.turn > 0.36 || pose.wave > 0.28 || pose.phone > 0.28;
     const idleFrame = Math.sin(pose.t * 2.4) >= 0 ? 16 : 17;
-    const full =
-      pose.stand > 0.72
+    // Anyone still covering ground shows a walk frame: a standing frame that
+    // moves is a figure skating, the slide that gave the crowd away.
+    const moving = walker.v > walker.pace * 0.06;
+    // Between two drawings, blend the next one in by how far the walker has got:
+    // sixteen drawings a loop otherwise step at about 14 a second under a body
+    // that glides at sixty, which reads as lag.
+    const walkFrames = entry.frames === 20 ? 16 : 8;
+    const at = (pose.p % 1) * walkFrames;
+    const blend = moving ? at - Math.floor(at) : 0;
+    const full = moving
+      ? Math.floor(at) * (16 / walkFrames)
+      : pose.stand > 0.72
         ? interacting
           ? 19
           : idleFrame
@@ -905,6 +915,20 @@ export function createStreet(options: StreetOptions): Street {
       drawW,
       drawH,
     );
+    if (blend > 0.04) {
+      g.globalAlpha = depthAlpha * blend;
+      g.drawImage(
+        sheet,
+        ((frameIdx + 1) % walkFrames) * entry.w,
+        sy,
+        entry.w,
+        entry.h,
+        -drawW * centerRatio,
+        -(drawH - footPadY),
+        drawW,
+        drawH,
+      );
+    }
 
     // Subtle companion status optical pulse for J.A.R.V.I.S. autonomous unit
     if (walker.look.id === 'companion') {

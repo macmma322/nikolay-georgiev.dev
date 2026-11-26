@@ -100,7 +100,7 @@ export function createAvatarPresence(options: AvatarPresenceOptions): AvatarPres
 
   function triggerBlink(clock: number, allowDouble: boolean) {
     setBlink(true);
-    blinkUntil = clock + 0.13;
+    blinkUntil = clock + 0.17;
     doubleBlinkAt = allowDouble && random() < 0.18 ? clock + 0.24 : 0;
     nextBlink = clock + between(3.4, 8.2);
   }

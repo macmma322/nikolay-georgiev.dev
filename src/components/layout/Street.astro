@@ -173,6 +173,15 @@ const widths = [112, 168, 252, 336, 528];
         <i class="signal"></i>
         <i class="window one"></i>
         <i class="window two"></i>
+        <i class="window far w1"></i>
+        <i class="window far w2"></i>
+        <i class="window far w3"></i>
+        <i class="window far w4"></i>
+        <i class="window far w5"></i>
+        <i class="window far w6"></i>
+        <i class="window far w7"></i>
+        <i class="window far w8"></i>
+        <i class="tube"></i>
         <i class="glow one"></i>
         <i class="glow two"></i>
         <i class="glow three"></i>
@@ -226,8 +235,8 @@ const widths = [112, 168, 252, 336, 528];
                 decoding="async"
               />
               <svg class="me-lids" viewBox="0 0 528 1520" aria-hidden="true" focusable="false">
-                <path d="M240 118q14-11 29-1q-14 9-29 1z"></path>
-                <path d="M296 111q12-11 26-2q-12 9-26 2z"></path>
+                <path d="M237 118q16-14 34-1q-17 12-34 1z"></path>
+                <path d="M293 110q15-13 31-2q-15 12-31 2z"></path>
               </svg>
             </span>
           </span>
@@ -632,6 +641,97 @@ const widths = [112, 168, 252, 336, 528];
     opacity: 0;
   }
 
+  /* Lit windows in the far towers, found in the plate. Each goes dark for a
+     moment on its own clock, so the city never switches in step. */
+  .w1 {
+    --x: 0.5378;
+    --y: 0.137;
+    --d: 23s;
+    --o: -4s;
+    width: calc(var(--ph) * 0.0037);
+    height: calc(var(--ph) * 0.0046);
+  }
+
+  .w2 {
+    --x: 0.5263;
+    --y: 0.1403;
+    --d: 41s;
+    --o: -17s;
+    width: calc(var(--ph) * 0.0074);
+    height: calc(var(--ph) * 0.0056);
+  }
+
+  .w3 {
+    --x: 0.3698;
+    --y: 0.1509;
+    --d: 29s;
+    --o: -9s;
+    width: calc(var(--ph) * 0.0028);
+    height: calc(var(--ph) * 0.0028);
+  }
+
+  .w4 {
+    --x: 0.519;
+    --y: 0.1519;
+    --d: 17s;
+    --o: -11s;
+    width: calc(var(--ph) * 0.0037);
+    height: calc(var(--ph) * 0.0046);
+  }
+
+  .w5 {
+    --x: 0.4029;
+    --y: 0.162;
+    --d: 37s;
+    --o: -26s;
+    width: calc(var(--ph) * 0.0037);
+    height: calc(var(--ph) * 0.0028);
+  }
+
+  .w6 {
+    --x: 0.5068;
+    --y: 0.1657;
+    --d: 31s;
+    --o: -3s;
+    width: calc(var(--ph) * 0.0046);
+    height: calc(var(--ph) * 0.0046);
+  }
+
+  .w7 {
+    --x: 0.4576;
+    --y: 0.1694;
+    --d: 19s;
+    --o: -14s;
+    width: calc(var(--ph) * 0.0037);
+    height: calc(var(--ph) * 0.0065);
+  }
+
+  .w8 {
+    --x: 0.5174;
+    --y: 0.1731;
+    --d: 43s;
+    --o: -33s;
+    width: calc(var(--ph) * 0.0037);
+    height: calc(var(--ph) * 0.0028);
+  }
+
+  /* Measured at their centres. */
+  .window.far,
+  .tube {
+    translate: -50% -50%;
+  }
+
+  /* The panel light in the office over the wall, dimmed by the wall's own dark. */
+  .tube {
+    --x: 0.769;
+    --y: 0.16;
+    width: calc(var(--ph) * 0.044);
+    height: calc(var(--ph) * 0.014);
+    background: oklch(0.13 0.02 265);
+    box-shadow: 0 0 calc(var(--ph) * 0.01) calc(var(--ph) * 0.004) oklch(0.13 0.02 265);
+    opacity: 0;
+  }
+
   .window.one {
     --x: 0.3843;
     --y: 0.196;
@@ -684,10 +784,16 @@ const widths = [112, 168, 252, 336, 528];
       animation: signal 31s steps(1, end) infinite;
     }
     .stage[data-state='running'] .window.one {
-      animation: window 67s steps(1, end) infinite;
+      animation: window 29s steps(1, end) infinite;
     }
     .stage[data-state='running'] .window.two {
-      animation: window 89s steps(1, end) -31s infinite;
+      animation: window 37s steps(1, end) -13s infinite;
+    }
+    .stage[data-state='running'] .window.far {
+      animation: window-far var(--d) steps(1, end) var(--o) infinite;
+    }
+    .stage[data-state='running'] .tube {
+      animation: tube 13s linear -5s infinite;
     }
     .stage[data-state='running'] .glow {
       animation: lamp 7600ms ease-in-out infinite alternate;
@@ -748,6 +854,36 @@ const widths = [112, 168, 252, 336, 528];
     }
     62% {
       opacity: 0.94;
+    }
+  }
+
+  @keyframes window-far {
+    0% {
+      opacity: 0;
+    }
+    82% {
+      opacity: 0.94;
+    }
+  }
+
+  /* A tired ceiling tube in the office: steady, then a short stutter. */
+  @keyframes tube {
+    0%,
+    90%,
+    100% {
+      opacity: 0;
+    }
+    91% {
+      opacity: 0.75;
+    }
+    92% {
+      opacity: 0.1;
+    }
+    93.5% {
+      opacity: 0.6;
+    }
+    94.5% {
+      opacity: 0;
     }
   }
 
@@ -1045,8 +1181,8 @@ const widths = [112, 168, 252, 336, 528];
       translate: 0 0;
     }
     42% {
-      scale: 1.011 1.005;
-      translate: 0 -0.1%;
+      scale: 1.018 1.009;
+      translate: 0 -0.22%;
     }
   }
 
@@ -1056,7 +1192,7 @@ const widths = [112, 168, 252, 336, 528];
       translate: 0 0;
     }
     48% {
-      translate: 0 -0.14%;
+      translate: 0 -0.32%;
     }
   }
 
