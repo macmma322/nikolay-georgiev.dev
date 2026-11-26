@@ -329,11 +329,18 @@ class AvatarRuntime extends HTMLElement {
       setLifecycle('entering', anchor);
 
       function runPlan(plan: ReturnType<typeof sequence>, isAmbient: boolean, startAt = 0) {
+        // Film plays by the clock: each frame is due at a fixed time from the start.
+        // A busy page drops frames instead of stretching the scene out.
+        const due: number[] = [];
+        plan.reduce((t, f, k) => ((due[k] = t), t + f.ms), 0);
+        let origin = -1;
         async function draw(i: number) {
           const step = plan[i];
           if (!step || generation !== token) return;
           const img = await loadClip(step.clip);
           if (generation !== token || !anchor.element.isConnected) return;
+          // The clock starts once the first frame can actually be shown.
+          if (origin < 0) origin = performance.now() - due[i]!;
           const dim = sizes.get(anchor) ?? anchor.element.getBoundingClientRect();
           const { width, height } = dim;
           if (!width || !height) {
@@ -459,7 +466,19 @@ class AvatarRuntime extends HTMLElement {
           }
           const scheduleNext = () => {
             if (i + 1 < plan.length) {
-              timer = window.setTimeout(() => startFrame(i + 1), step.ms);
+              const now = performance.now();
+              let next = i + 1;
+              // Only frames that repeat the current state are dropped: a change (a touch, an exit) always shows.
+              while (
+                next < plan.length - 1 &&
+                plan[next]!.state === step.state &&
+                origin + due[next + 1]! <= now
+              )
+                next += 1;
+              timer = window.setTimeout(
+                () => startFrame(next),
+                Math.max(0, origin + due[next]! - now),
+              );
             } else if (quality !== 'low') {
               // Queue a natural, restrained ambient repeat while the cameo stays on screen.
               const nextLoop = idleCycle(anchor.pose, activeMusic && playing);
