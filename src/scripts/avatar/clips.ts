@@ -21,13 +21,14 @@ export type CharacterState =
 
 export const clips = {
   standing: { frames: 1, contact: 0.997 },
-  walk: { frames: 8, contact: 0.99 },
+  // Filmed clips (scripts/avatar-film.mjs): same framing as the drawings they replaced.
+  walk: { frames: 29, contact: 0.99 },
   turn: { frames: 4, contact: 0.99 },
-  'lean-phone': { frames: 5, contact: 0.29 },
-  phone: { frames: 4, contact: 0.61 },
-  listen: { frames: 5, contact: 0.64 },
-  typing: { frames: 4, contact: 0.99 },
-  inspect: { frames: 4, contact: 0.99 },
+  'lean-phone': { frames: 49, contact: 0.29 },
+  phone: { frames: 49, contact: 0.61 },
+  listen: { frames: 49, contact: 0.64 },
+  typing: { frames: 49, contact: 0.99 },
+  inspect: { frames: 49, contact: 0.99 },
 } as const;
 
 export type Clip = keyof typeof clips;

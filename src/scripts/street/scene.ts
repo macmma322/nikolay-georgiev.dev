@@ -12,6 +12,7 @@ import { createAvatarPresence, type AvatarPresenceSnapshot } from './avatar-pres
 import { CAST, paintFor, pick } from './cast';
 import {
   CROWD_ATLAS_FILES,
+  CROWD_FRONT,
   CROWD_NEAR,
   CROWD_SPRITES,
   hasPhotorealSprite,
@@ -210,6 +211,10 @@ export function createStreet(options: StreetOptions): Street {
       .then(() => {
         if (destroyed) return;
         sheets[tier] = img;
+        if (nearWaiting && sheets.core && sheets.city) {
+          nearWaiting = false;
+          loadAtlasTier('near');
+        }
         if (state !== 'running') draw();
       })
       .catch(() => {
@@ -218,12 +223,15 @@ export function createStreet(options: StreetOptions): Street {
   };
   loadAtlasTier('core');
   let nearAsked = false;
+  let nearWaiting = false;
   /** The larger cells for the front lanes: only where a figure is drawn big enough to show them. */
   const wantNear = () => {
     // Device pixels, not CSS ones: a tablet's small stage is still drawn large.
     if (nearAsked || quality !== 'high' || width < 700 || ph * dpr < 620) return;
     nearAsked = true;
-    loadAtlasTier('near');
+    // The big sheet waits for the two everyone is drawn from, so it never delays them.
+    if (sheets.core && sheets.city) loadAtlasTier('near');
+    else nearWaiting = true;
   };
   const cityTimer = window.setTimeout(() => {
     if (!destroyed) loadAtlasTier('city');
@@ -399,7 +407,7 @@ export function createStreet(options: StreetOptions): Street {
   function fits(look: Look, lane: number): boolean {
     // All 5 depth lanes use the 16 photorealistic sprites so vector silhouettes never mix behind them.
     if (!hasPhotorealSprite(look.id)) return false;
-    const close = look.id in CROWD_NEAR;
+    const close = CROWD_FRONT.includes(look.id);
     if (LANES[lane]!.front && !close) return false;
     // A project figure belongs where it can be found and pointed at.
     if (look.egg) return lane === 2 || (close ? lane === 3 : lane === 1);
@@ -1192,7 +1200,7 @@ export function createStreet(options: StreetOptions): Street {
     let walker = walkers.find((candidate) => candidate.look === look) ?? null;
     if (!walker && state !== 'static') {
       // Focus can arrive before the visibility observer resumes the street.
-      walker = spawn(look.id in CROWD_NEAR ? 3 : 2, look, random() < 0.5 ? 1 : -1);
+      walker = spawn(CROWD_FRONT.includes(look.id) ? 3 : 2, look, random() < 0.5 ? 1 : -1);
       if (walker) walker.x = walker.dir === 1 ? -walker.half : width + walker.half;
     }
     if (walker) {

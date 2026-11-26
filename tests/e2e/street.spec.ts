@@ -131,8 +131,9 @@ test.describe('street: layout', () => {
       await expect
         .poll(() => image.evaluate((el: HTMLImageElement) => el.complete && el.naturalWidth > 0))
         .toBe(true);
-      const size = (await image.boundingBox())!;
-      expect(Math.abs(size.height - me.height)).toBeLessThan(1.5);
+      // Layout height: the chest layer breathes by scaling, which a bounding box would include.
+      const height = await image.evaluate((el: HTMLImageElement) => el.offsetHeight);
+      expect(Math.abs(height - me.height)).toBeLessThan(1.5);
     }
     // His name is on the screen, not off its edge.
     const tag = (await page.locator('.me-tag').boundingBox())!;
