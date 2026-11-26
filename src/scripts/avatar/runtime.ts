@@ -361,8 +361,7 @@ class AvatarRuntime extends HTMLElement {
             x = center - dw / 2;
             y = h * (0.99 - clip.contact);
           } else if (anchor.pose === 'sit') {
-            const seat = step.clip === 'listen' && step.index >= 3 ? 0.68 : clip.contact;
-            y = h * 0.625 - drawHeight * seat;
+            y = h * 0.625 - drawHeight * clip.contact;
           }
           ctx!.clearRect(0, 0, w, h);
           ctx!.save();
@@ -387,8 +386,8 @@ class AvatarRuntime extends HTMLElement {
             activeMusic,
             savedAt: performance.now(),
           });
-          // Breathe in every held pose; walking, turning and the peek move on their own.
-          if (quality !== 'low' && anchor.pose !== 'peek' && !STEPPING.has(step.state)) {
+          // The filmed clips breathe by themselves; only the still standing drawing needs help.
+          if (quality !== 'low' && step.clip === 'standing' && !STEPPING.has(step.state)) {
             canvas.dataset['idleBreathe'] = '';
             canvas.dataset['pose'] = anchor.pose;
           } else {

@@ -1035,24 +1035,18 @@ async function packAtlas(fileName, specs, tier, K = 1, pick = null) {
 }
 
 /*
- * The near tier: the people allowed in the two lanes in front of the standing
- * figure, rigged again at 2.5x with every other walk frame, so they are as
- * sharp as he is when they pass close. Wide screens only (scene.ts).
+ * The near tier: everyone again at 2x with all twenty frames, drawn whenever
+ * they walk in the middle lane or closer, where the base tier would be
+ * stretched 2.5 times. Wide screens only (scene.ts). FRONT_IDS are the people
+ * allowed in the two lanes in front of the standing figure.
  */
-const NEAR_SCALE = 2.5;
-const NEAR_FRAMES = [0, 2, 4, 6, 8, 10, 12, 14, 16, 17, 18, 19];
-const NEAR_IDS = ['courier', 'kernel', 'traveller', 'dog-walker', 'student', 'grandfather'];
+const NEAR_SCALE = 2;
+const FRONT_IDS = ['courier', 'kernel', 'traveller', 'dog-walker', 'student', 'grandfather'];
 
 console.log('Generating Living World V3.1 20-frame anatomical street assets...');
 const core = await packAtlas('crowd-core.webp', CORE_SPECS, 'core');
 const city = await packAtlas('crowd-city.webp', CITY_SPECS, 'city');
-const near = await packAtlas(
-  'crowd-near.webp',
-  [...CORE_SPECS, ...CITY_SPECS].filter((spec) => NEAR_IDS.includes(spec.id)),
-  'near',
-  NEAR_SCALE,
-  NEAR_FRAMES,
-);
+const near = await packAtlas('crowd-near.webp', [...CORE_SPECS, ...CITY_SPECS], 'near', NEAR_SCALE);
 
 const allEntries = { ...core.entries, ...city.entries };
 const tsSource = `/**
@@ -1094,6 +1088,9 @@ export const CROWD_SPRITES: Record<string, SpriteStripEntry> = ${JSON.stringify(
  * walk frame (0..7), then idle A, idle B, transition, interact (8..11).
  */
 export const CROWD_NEAR: Record<string, SpriteStripEntry> = ${JSON.stringify(near.entries, null, 2)};
+
+/** The people allowed in the two lanes in front of the standing figure. */
+export const CROWD_FRONT: readonly string[] = ${JSON.stringify(FRONT_IDS)};
 
 export function hasPhotorealSprite(id: string): boolean {
   return id in CROWD_SPRITES;

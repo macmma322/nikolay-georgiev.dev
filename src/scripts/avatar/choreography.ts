@@ -12,11 +12,32 @@ type Frame = {
 const frames = (clip: Clip, state: CharacterState, indices: number[], times: number[]): Frame[] =>
   indices.map((index, i) => ({ clip, state, index, ms: times[i] ?? times[0]! }));
 
-// A loop that repeats on an exact beat reads as a machine. Vary each repeat by
-// up to a quarter so the same keyframes never land on the same rhythm twice.
-const vary = (ms: number, spread = 0.25) =>
-  ms === 0 ? 0 : Math.round(ms * (1 - spread + Math.random() * spread * 2));
-const loose = (list: Frame[]) => list.map((f) => ({ ...f, ms: vary(f.ms, 0.15) }));
+/** Filmed frames `from`..`to` (either direction) at the clip's own frame rate. */
+const film = (clip: Clip, state: CharacterState, from: number, to: number, fps = 16): Frame[] => {
+  const step = to >= from ? 1 : -1;
+  return Array.from({ length: Math.abs(to - from) + 1 }, (_, i) => ({
+    clip,
+    state,
+    index: from + i * step,
+    ms: Math.round(1000 / fps),
+  }));
+};
+/** The last frame of a plan holds: nothing follows it. */
+const hold = (list: Frame[]) => list.map((f, i) => (i === list.length - 1 ? { ...f, ms: 0 } : f));
+
+// Between repeats a cameo rests for a varied moment, so a loop left on screen
+// never comes round on an exact beat. The film itself always plays at its rate.
+const vary = (ms: number, spread = 0.3) =>
+  Math.round(ms * (1 - spread + Math.random() * spread * 2));
+
+/**
+ * The filmed walk: 29 frames are one loop of two steps (scripts/avatar-film.mjs),
+ * covering 0.906 figure heights. The track is about 1.88 standing heights and the
+ * figure 0.97 of the cell, so crossing it takes 62 frames at 24 a second, and
+ * each frame advances the root by the same share: the planted foot stays put.
+ */
+const WALK_LOOP = 29;
+const WALK_FRAMES = 62;
 
 export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[] {
   switch (pose) {
@@ -24,17 +45,14 @@ export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[
       return [...frames('standing', 'peek', [0], [1700]), ...frames('standing', 'exit', [0], [0])];
     case 'walk': {
       if (returning) return frames('standing', 'idle', [0], [0]);
-      // Measure the rearward displacement of the planted sole at each drawing.
-      // Advance the root at the same instant as the foot changes, in either direction.
-      const travel = [0, 0.15, 0.235, 0.38, 0.5, 0.65, 0.735, 0.88];
       const left = Math.random() < 0.5;
-      const steps: Frame[] = Array.from({ length: 16 }, (_, i) => {
-        const distance = ((i >= 8 ? 1 : 0) + travel[i % 8]!) / 2;
+      const steps: Frame[] = Array.from({ length: WALK_FRAMES }, (_, i) => {
+        const distance = i / (WALK_FRAMES - 1);
         return {
           clip: 'walk',
-          index: i % 8,
+          index: i % WALK_LOOP,
           state: left ? 'walk-left' : 'walk-right',
-          ms: 115,
+          ms: 42,
           x: left ? 1 - distance : distance,
         };
       });
@@ -46,99 +64,64 @@ export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[
       return [...steps, ...settle];
     }
     case 'lean':
-      return [
-        ...frames('lean-phone', 'lean', [0], [2000]),
-        ...frames(
-          'lean-phone',
-          'phone',
-          [1, 2, 3, 4, 3, 2, 1],
-          [180, 170, 1700, 1100, 280, 180, 160],
-        ),
-        ...frames('lean-phone', 'lean', [0], [0]),
-      ];
+      return hold([
+        ...frames('lean-phone', 'lean', [0], [1400]),
+        ...film('lean-phone', 'phone', 1, 47),
+        ...frames('lean-phone', 'lean', [48], [0]),
+      ]);
     case 'sit':
       if (music)
-        return [
-          ...frames('listen', 'sit', [0], [1100]),
-          ...frames('listen', 'interact', [1, 2], [250, 700]),
-          ...frames('listen', 'phone', [3, 4, 3], [1150, 310, 1440]),
-          ...frames('listen', 'react', [2], [800]),
-          ...frames('listen', 'sit', [1, 0], [230, 0]),
-        ];
-      return [
-        ...frames('phone', 'sit', [0], [1250]),
-        ...frames('phone', 'phone', [1, 0, 3, 0], [340, 900, 350, 0]),
-      ];
+        // Headphones from the neck onto the ears, then a nod to the track.
+        return hold([
+          ...frames('listen', 'sit', [0], [900]),
+          ...film('listen', 'interact', 1, 26),
+          ...film('listen', 'phone', 27, 48),
+        ]);
+      return hold([...frames('phone', 'sit', [0], [900]), ...film('phone', 'phone', 1, 48)]);
     case 'typing':
-      return frames(
-        'typing',
-        'typing',
-        [0, 1, 2, 3, 0, 1, 2, 3, 0],
-        [980, 170, 280, 190, 480, 215, 150, 190, 0],
-      );
+      return hold([...frames('typing', 'typing', [0], [700]), ...film('typing', 'typing', 1, 48)]);
     case 'inspect':
-      return [
-        ...frames('inspect', 'inspect', [0, 3], [750, 650]),
-        ...frames('inspect', 'interact', [1], [260]),
-        ...frames('inspect', 'react', [0, 2], [400, 0]),
-      ];
+      return hold([
+        ...frames('inspect', 'inspect', [0], [600]),
+        ...film('inspect', 'inspect', 1, 7),
+        ...frames('inspect', 'interact', [8], [62]),
+        ...film('inspect', 'react', 9, 48),
+      ]);
   }
 }
 
 /**
- * Restrained ambient follow-up cycles while a cameo stays on screen, using only
- * registered sprite keyframes so proportions and physical contacts stay locked.
+ * What a cameo does while it stays on screen: its film again, from the frame
+ * the last plan ended on (the clips end where they began), after a short rest.
  */
 export function idleCycle(pose: Pose, music: boolean): { pauseMs: number; frames: Frame[] } | null {
-  const cycle = ambient(pose, music);
-  return cycle && { pauseMs: vary(cycle.pauseMs), frames: loose(cycle.frames) };
-}
-
-function ambient(pose: Pose, music: boolean): { pauseMs: number; frames: Frame[] } | null {
   switch (pose) {
     case 'sit':
-      if (music) {
-        // Rise from the seat through the reach, and settle back: the opening
-        // plan ends seated, so starting on the raised phone would jump.
+      // The nod plays back and forth: the clip ends with headphones on, not off.
+      if (music)
         return {
-          pauseMs: 2800,
-          frames: [
-            ...frames('listen', 'interact', [1, 2], [230, 260]),
-            ...frames('listen', 'phone', [3, 4, 3, 4, 3], [900, 300, 950, 300, 420]),
-            ...frames('listen', 'sit', [2, 1, 0], [220, 230, 0]),
-          ],
+          pauseMs: vary(400),
+          frames: hold([...film('listen', 'phone', 47, 27), ...film('listen', 'phone', 28, 48)]),
         };
-      }
-      return {
-        pauseMs: 5600,
-        frames: [...frames('phone', 'phone', [1, 0, 3, 0], [320, 820, 340, 0])],
-      };
+      return { pauseMs: vary(1600), frames: hold(film('phone', 'phone', 0, 48)) };
     case 'lean':
       return {
-        pauseMs: 7800,
-        frames: [
-          ...frames(
-            'lean-phone',
-            'phone',
-            [1, 2, 3, 4, 3, 2, 1],
-            [170, 160, 1400, 900, 240, 170, 150],
-          ),
-          ...frames('lean-phone', 'lean', [0], [0]),
-        ],
+        pauseMs: vary(2200),
+        frames: hold([
+          ...film('lean-phone', 'phone', 0, 47),
+          ...frames('lean-phone', 'lean', [48], [0]),
+        ]),
       };
     case 'typing':
-      return {
-        pauseMs: 4200,
-        frames: frames('typing', 'typing', [1, 2, 3, 1, 2, 0], [160, 240, 180, 170, 210, 0]),
-      };
+      return { pauseMs: vary(300), frames: hold(film('typing', 'typing', 0, 48)) };
     case 'inspect':
       return {
-        pauseMs: 6800,
-        frames: [
-          ...frames('inspect', 'inspect', [3], [480]),
-          ...frames('inspect', 'interact', [1], [240]),
-          ...frames('inspect', 'react', [0, 2, 0], [340, 360, 0]),
-        ],
+        pauseMs: vary(2600),
+        frames: hold([
+          ...film('inspect', 'inspect', 0, 7),
+          ...frames('inspect', 'interact', [8], [62]),
+          ...film('inspect', 'react', 9, 48),
+        ]),
       };
     default:
       return null;
