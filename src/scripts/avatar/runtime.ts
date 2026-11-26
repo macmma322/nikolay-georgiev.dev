@@ -1,7 +1,8 @@
 import { clips, loadClip, type CharacterState, type Clip } from './clips';
-import { idleCycle, sequence, type Pose } from './choreography';
+import { idleCycle, sequence, WALK_SECONDS, type Pose } from './choreography';
 import { observePlaybackState } from '../playback-state';
 import { getQualityTier, observeQualityTier, type QualityTier } from '../circuit-clock';
+import type { Figure, FigurePose } from './figure3d';
 
 const preference = 'nikolay.avatar.motion';
 type Anchor = { element: HTMLElement; pose: Pose };
@@ -27,6 +28,38 @@ const ENTER_TOP_SLACK_RATIO = 0.12;
 const ENTER_BOTTOM_SLACK_RATIO = 0.12;
 const ACTIVE_MIN_VISIBLE_RATIO = 0.44;
 const STEPPING = new Set<CharacterState>(['walk-left', 'walk-right', 'stop', 'turn', 'exit']);
+/**
+ * Where the figure stands in each drawing's cell (left, right, top, bottom, as
+ * fractions): the 3D figure is fitted to the same box, so seats, elbows and
+ * feet land where the drawings put them.
+ */
+const FIGURE_BOX: Record<Clip, readonly [number, number, number, number]> = {
+  standing: [0.05, 0.95, 0.02, 0.99],
+  walk: [0.3, 0.7, 0.02, 0.99],
+  turn: [0.2, 0.8, 0.02, 0.99],
+  'lean-phone': [0.03, 0.97, 0.01, 0.98],
+  phone: [0.03, 0.93, 0.02, 0.98],
+  listen: [0.07, 0.93, 0.02, 0.99],
+  typing: [0.02, 0.97, 0.03, 0.97],
+  inspect: [0.04, 0.95, 0.04, 0.98],
+};
+/** The 3D pose for a step of a cameo's plan. */
+function figurePose(pose: Pose, step: { clip: Clip; state: CharacterState }): FigurePose {
+  switch (pose) {
+    case 'walk':
+      return step.state === 'walk-left' || step.state === 'walk-right' ? 'walk' : 'idle';
+    case 'sit':
+      return step.clip === 'listen' ? 'listen' : 'phone';
+    case 'lean':
+      return 'lean';
+    case 'typing':
+      return 'typing';
+    case 'inspect':
+      return 'inspect';
+    default:
+      return 'idle';
+  }
+}
 
 function overlaps(a: DOMRect, b: DOMRect) {
   return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
@@ -136,6 +169,51 @@ class AvatarRuntime extends HTMLElement {
     }
     setLifecycle('hidden');
 
+    // The 3D figure: loaded once a cameo is wanted on a capable device, drawn
+    // every frame while a cameo is on screen. Until it is ready (or where it is
+    // not wanted) the filmed drawings play, as before.
+    let figure: Figure | undefined;
+    let figureAsked = false;
+    let figureLoop = 0;
+    let figureLast = 0;
+    let figureKey = '';
+    let figureBaseX = 0;
+    const figureSlide = { target: 0, now: 0 };
+    const look = { x: 0, y: 0 };
+    const wantFigure = () =>
+      quality === 'high' && !motion.matches && typeof WebGL2RenderingContext === 'function';
+    function askFigure() {
+      if (figureAsked || !wantFigure()) return;
+      figureAsked = true;
+      import('./figure3d')
+        .then((m) => m.loadFigure())
+        .then((f) => {
+          figure = f;
+          runtimeEl.dataset['figure'] = '3d';
+        })
+        .catch(() => {
+          /* The drawings stay. */
+        });
+    }
+    function figureTick(now: number) {
+      figureLoop = 0;
+      if (!figure || quality !== 'high' || !canvas.isConnected) return;
+      const dt = figureLast ? Math.min(0.05, (now - figureLast) / 1000) : 0;
+      figureLast = now;
+      figureSlide.now += (figureSlide.target - figureSlide.now) * (1 - Math.exp(-dt * 18));
+      figure.slide(figureSlide.now);
+      figure.frame(dt, look);
+      ctx!.clearRect(0, 0, canvas.width, canvas.height);
+      ctx!.drawImage(figure.canvas, 0, 0);
+      figureLoop = requestAnimationFrame(figureTick);
+    }
+    function stopFigure() {
+      cancelAnimationFrame(figureLoop);
+      figureLoop = 0;
+      figureLast = 0;
+      figureKey = '';
+    }
+
     const scope = (a: Anchor) =>
       a.element.closest('article.chapter,.case-hero,.hero,.finale,section') ??
       a.element.parentElement!;
@@ -166,6 +244,7 @@ class AvatarRuntime extends HTMLElement {
       delete canvas.dataset['idleBreathe'];
       delete canvas.dataset['exitDir'];
       canvas.remove();
+      stopFigure();
       active = undefined;
       activeMusic = false;
       setLifecycle('hidden');
@@ -302,6 +381,7 @@ class AvatarRuntime extends HTMLElement {
         lastEgg = performance.now();
       }
       active = anchor;
+      askFigure();
       const generation = ++token;
       const previous = visits.get(anchor);
       const returning =
@@ -337,7 +417,10 @@ class AvatarRuntime extends HTMLElement {
         async function draw(i: number) {
           const step = plan[i];
           if (!step || generation !== token) return;
-          const img = await loadClip(step.clip);
+          // In 3D the drawing is not needed; until then (or without it), it is.
+          // A page that has slowed down drops back to the drawings.
+          const fig = quality === 'high' ? figure : undefined;
+          const img = fig ? undefined : await loadClip(step.clip);
           if (generation !== token || !anchor.element.isConnected) return;
           // The clock starts once the first frame can actually be shown.
           if (origin < 0) origin = performance.now() - due[i]!;
@@ -354,12 +437,11 @@ class AvatarRuntime extends HTMLElement {
             canvas.width = w;
             canvas.height = h;
           }
-          const clip = clips[step.clip],
-            sw = img.naturalWidth / clip.frames;
+          const clip = clips[step.clip];
           let drawHeight = h;
           if (anchor.pose === 'peek') drawHeight = h / 0.32;
           if (anchor.pose === 'sit') drawHeight = h / 1.12;
-          const dw = (drawHeight * sw) / img.naturalHeight;
+          const dw = drawHeight * clip.aspect;
           let x = (w - dw) / 2,
             y = 0;
           if (anchor.pose === 'walk') {
@@ -370,14 +452,43 @@ class AvatarRuntime extends HTMLElement {
           } else if (anchor.pose === 'sit') {
             y = h * 0.625 - drawHeight * clip.contact;
           }
-          ctx!.clearRect(0, 0, w, h);
-          ctx!.save();
-          if (step.state === 'walk-left' || step.mirror) {
-            ctx!.translate(2 * x + dw, 0);
-            ctx!.scale(-1, 1);
+          if (fig) {
+            const facing = step.state === 'walk-left' || step.mirror ? -1 : 1;
+            const pose3 = figurePose(anchor.pose, step);
+            const centre = x + dw / 2;
+            const key = [anchor.pose, pose3, facing, w, h].join('|');
+            if (key !== figureKey) {
+              figureKey = key;
+              fig.setPose(pose3, facing);
+              const f = FIGURE_BOX[step.clip];
+              const box = {
+                x0: x + f[0] * dw,
+                x1: x + f[1] * dw,
+                y0: y + f[2] * drawHeight,
+                y1: y + f[3] * drawHeight,
+              };
+              fig.fit(w, h, box);
+              figureBaseX = centre;
+              figureSlide.target = figureSlide.now = 0;
+              if (pose3 === 'walk') {
+                // The root crosses the track in the plan's time: the stride keeps pace.
+                const track = Math.min(h * 1.96 * 0.96, w - h * 0.81);
+                fig.setPace(track / WALK_SECONDS / (box.y1 - box.y0));
+              }
+            }
+            figureSlide.target = centre - figureBaseX;
+            if (!figureLoop) figureLoop = requestAnimationFrame(figureTick);
+          } else if (img) {
+            const sw = img.naturalWidth / clip.frames;
+            ctx!.clearRect(0, 0, w, h);
+            ctx!.save();
+            if (step.state === 'walk-left' || step.mirror) {
+              ctx!.translate(2 * x + dw, 0);
+              ctx!.scale(-1, 1);
+            }
+            ctx!.drawImage(img, step.index * sw, 0, sw, img.naturalHeight, x, y, dw, drawHeight);
+            ctx!.restore();
           }
-          ctx!.drawImage(img, step.index * sw, 0, sw, img.naturalHeight, x, y, dw, drawHeight);
-          ctx!.restore();
           canvas.dataset['state'] = step.state;
           canvas.dataset['frame'] = String(step.index);
           canvas.dataset['settled'] = i === plan.length - 1 ? 'true' : 'false';
@@ -394,7 +505,7 @@ class AvatarRuntime extends HTMLElement {
             savedAt: performance.now(),
           });
           // The filmed clips breathe by themselves; only the still standing drawing needs help.
-          if (quality !== 'low' && step.clip === 'standing' && !STEPPING.has(step.state)) {
+          if (quality !== 'low' && !fig && step.clip === 'standing' && !STEPPING.has(step.state)) {
             canvas.dataset['idleBreathe'] = '';
             canvas.dataset['pose'] = anchor.pose;
           } else {
@@ -638,6 +749,18 @@ class AvatarRuntime extends HTMLElement {
     for (const anchor of anchors) resize.observe(anchor.element);
     // Handle scroll within the visibility thresholds, sticky headers and zoom.
     window.addEventListener('scroll', onScroll, { passive: true, signal });
+    // He looks toward the visitor's pointer, a little, relative to where he stands.
+    window.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!figure || !canvas.isConnected) return;
+        const box = canvas.getBoundingClientRect();
+        const clamp = (n: number) => Math.max(-1, Math.min(1, n));
+        look.x = clamp((e.clientX - (box.left + box.width / 2)) / (innerWidth * 0.4));
+        look.y = clamp((e.clientY - (box.top + box.height * 0.2)) / (innerHeight * 0.5));
+      },
+      { passive: true, signal },
+    );
     window.addEventListener(
       'resize',
       () => {
