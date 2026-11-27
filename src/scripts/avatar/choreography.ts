@@ -38,6 +38,8 @@ const vary = (ms: number, spread = 0.3) =>
  */
 const WALK_LOOP = 29;
 const WALK_FRAMES = 62;
+/** How long the walk takes to cross its track. */
+export const WALK_SECONDS = (WALK_FRAMES * 42) / 1000;
 
 export function sequence(pose: Pose, returning: boolean, music: boolean): Frame[] {
   switch (pose) {
