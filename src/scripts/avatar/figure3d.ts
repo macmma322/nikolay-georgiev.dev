@@ -44,7 +44,8 @@ const YAW: Record<FigurePose, number> = {
 };
 
 const v = () => new THREE.Vector3();
-/** How much narrower and shallower than generated he is drawn. */
+/** How much shallower than generated he is drawn: the art shows only his front,
+ * so its width is kept and the guessed depth, which read heavy in profile, is not. */
 const SLIM = 0.86;
 /** The keyboard, from the seated hips: forward and up, in metres. */
 const KEYS = { forward: 0.24, up: 0.13 };
@@ -258,9 +259,7 @@ async function build(url: string): Promise<Figure> {
     m.normalScale.setScalar(0.55);
     m.needsUpdate = true;
   });
-  // The generated build came out broader than the art it was made from: narrow
-  // the width and depth, not the height.
-  model.scale.set(SLIM, 1, SLIM);
+  model.scale.set(1, 1, SLIM);
   const holder = new THREE.Group();
   holder.add(model);
   scene.add(holder);
@@ -337,7 +336,7 @@ async function build(url: string): Promise<Figure> {
 
   /** The slimming is for the body: the face keeps the width it was made with. */
   function keepHead() {
-    B.head.scale.set(1 / SLIM, 1, 1 / SLIM);
+    B.head.scale.set(1, 1, 1 / SLIM);
   }
 
   /** Bends the arms where generated motion could not, after the clip each frame. */
